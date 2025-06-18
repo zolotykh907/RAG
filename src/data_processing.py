@@ -47,6 +47,6 @@ def check_data_quality(df, logger, min_len=10):
     df_clean = df[~df['uid'].isin(short_texts_uids)]
 
     df_clean = df_clean.drop_duplicates(subset=['text_hash'], keep='first')
-    df_clean = df_clean.drop('text_hash', axis=1)
+    #df_clean = df_clean.drop('text_hash', axis=1)
     
     return res, df_clean
