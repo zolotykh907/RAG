@@ -3,8 +3,7 @@ from sentence_transformers import SentenceTransformer
 import faiss
 
 
-def create_embeddings(texts, model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2", batch_size=32):
-    model = SentenceTransformer(model_name)
+def create_embeddings(texts, model, batch_size=32):
     embeddings = model.encode(
         texts,
         batch_size=batch_size,

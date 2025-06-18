@@ -1,0 +1,9 @@
+data:
+  data_path: "data/RuBQ_2.0_paragraphs.json"
+  index_path: "data/RuBQ_index.index"
+  hashes_path: "data/existing_hashes.json"
+  quality_log_path: "data_quality.json"
+
+model:
+  emb_model_name: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+  batch_size: 32
