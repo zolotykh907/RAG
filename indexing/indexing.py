@@ -6,9 +6,9 @@ import logging
 import faiss
 from sentence_transformers import SentenceTransformer
 
-from data_processing import *
-from data_vectorize import *
-from config import Config
+from indexing.data_processing import *
+from indexing.data_vectorize import *
+from indexing.config import Config
 
 
 logging.basicConfig(level=logging.INFO)
