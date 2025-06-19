@@ -1,0 +1,23 @@
+from langchain.llms import Ollama
+from langchain.chains import LLMChain
+from langchain.prompts import PromptTemplate
+
+class LLMResponder:
+    def __init__(self, model_name="llama3"):
+        self.llm = Ollama(model=model_name)
+        self.prompt_template = PromptTemplate(
+            input_variables=["question", "context"],
+            template=(
+                "Ты — интеллектуальный помощник, использующий информацию из базы знаний, чтобы точно ответить на вопрос.\n\n"
+                "Вопрос: {question}\n\n"
+                "Контекст:\n{context}\n\n"
+                "Если точного ответа нет, напиши что не нашел информацию. Ответ пиши всегда на русском языке.\n\n"
+                "Если нашел - то процитируй или перефразируй, оставляя только самое важное для ответа на вопрос"
+            )
+        )
+        self.chain = LLMChain(prompt=self.prompt_template, llm=self.llm)
+
+    def generate_answer(self, question: str, context_chunks: list[str]) -> str:
+        context = "\n\n".join(context_chunks)
+        response = self.chain.run(question=question, context=context)
+        return response.strip()

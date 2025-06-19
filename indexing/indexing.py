@@ -16,20 +16,6 @@ logger = logging.getLogger("Indexing")
 
 
 class Indexing:
-    # def __init__(self, data_path, 
-    #              index_path,
-    #              hashes_path='data/existing_hashes.json',
-    #              model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
-    #              batch_size=32):
-        # self.data_path = data_path
-        # self.index_path = index_path
-        # self.hashes_path = hashes_path
-        # self.model_name = model_name
-        # self.batch_size = batch_size
-        # self.model = SentenceTransformer(model_name)
-        # self.index = None
-        # self.existing_hashes = []
-
     def __init__(self, config):
         self.config = config
         self.data_path = config.data_path
@@ -117,6 +103,7 @@ class Indexing:
         with open(self.hashes_path, 'w') as f:
             json.dump(self.existing_hashes.to_dict('records'), f, ensure_ascii=False, indent=4)
             logger.info(f"Saved updated hashes to {self.hashes_path}.")
+
 
 config = Config()
 I = Indexing(config)
