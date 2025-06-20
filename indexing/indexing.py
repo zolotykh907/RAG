@@ -79,6 +79,7 @@ class Indexing:
         if os.path.exists(self.processed_data_path):
             processed_df = self.load_data(path=self.processed_data_path)
             combined_df = pd.concat([processed_df, df], ignore_index=True)
+            combined_df = combined_df.drop_duplicates(subset=['uid'])
             combined_df.to_json(self.processed_data_path, orient='records', force_ascii=False, indent=4)
         else:
             df.to_json(self.processed_data_path, orient='records', force_ascii=False, indent=4)
