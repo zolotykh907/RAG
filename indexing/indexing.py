@@ -8,7 +8,6 @@ from sentence_transformers import SentenceTransformer
 
 from data_processing import *
 from data_vectorize import *
-from config import Config
 
 
 logging.basicConfig(level=logging.INFO)

@@ -1,0 +1,5 @@
+numpy
+pandas
+sentence_transformers
+faiss
+pymorphy2
