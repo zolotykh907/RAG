@@ -1,10 +1,12 @@
 data:
+  data_dir: './data'
+  logs_dir: './logs'
   data_url: "https://raw.githubusercontent.com/vladislavneon/RuBQ/refs/heads/master/RuBQ_2.0/RuBQ_2.0_paragraphs.json"
-  data_path: "data/RuBQ_2.0_paragraphs.json"
-  index_path: "data/RuBQ_index.index"
-  hashes_path: "data/existing_hashes.json"
-  quality_log_path: "logs/data_quality.json"
-  processed_data_path: "data/processed_texts.json"
+  data_path: "./data/RuBQ_2.0_paragraphs.json"
+  index_path: "./data/RuBQ_index.index"
+  hashes_path: "./data/existing_hashes.json"
+  quality_log_path: "./logs/data_quality.json"
+  processed_data_path: "./data/processed_texts.json"
   flag_save_data: True
 
 model:

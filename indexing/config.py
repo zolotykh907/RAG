@@ -5,6 +5,8 @@ class Config:
         with open(config_file, 'r') as f:
             cfg = yaml.safe_load(f)
 
+        self.data_dir = cfg['data']['data_dir']
+        self.logs_dir = cfg['data']['logs_dir']
         self.data_url = cfg['data']['data_url']
         self.data_path = cfg['data']['data_path']
         self.index_path = cfg['data']['index_path']

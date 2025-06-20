@@ -9,7 +9,7 @@ from sentence_transformers import SentenceTransformer
 
 from data_processing import *
 from data_vectorize import *
-
+from config import Config
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("Indexing")
@@ -17,6 +17,8 @@ logger = logging.getLogger("Indexing")
 
 class Indexing:
     def __init__(self, config):
+        self.data_dir = config.data_dir
+        self.logs_dir = config.logs_dir
         self.data_url = config.data_url
         self.data_path = config.data_path
         self.index_path = config.index_path
@@ -29,6 +31,8 @@ class Indexing:
         self.embedding_model = SentenceTransformer(self.emb_model_name)
         self.flag_save_data = config.flag_save_data
 
+        os.makedirs(self.data_dir, exist_ok=True)
+        os.makedirs(self.logs_dir, exist_ok=True)
     
     def download_data(self):
         if not os.path.exists(self.data_path):
@@ -36,7 +40,6 @@ class Indexing:
             response = requests.get(self.data_url)
             response.raise_for_status()
 
-            os.makedirs(os.path.dirname(self.data_path), exist_ok=True)
             with open(self.data_path, 'wb') as f:
                 f.write(response.content)
             logger.info(f"Saved data to {self.data_path}.")

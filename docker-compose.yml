@@ -1,0 +1,12 @@
+version: "3.8"
+
+services:
+  indexing:
+    build:
+      context: .
+      dockerfile: ./docker/indexing.Dockerfile
+    volumes:
+      - ./indexing/data:/app/data
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
