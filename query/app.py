@@ -3,15 +3,15 @@ from pydantic import BaseModel
 from pipeline import RAGPipeline
 from query import Query
 from llm import LLMResponder
+from config import Config
 
-app = FastAPI(title="RAG Query API")
+config = Config()
 
-query = Query(index_path='/Users/igorzolotyh/RAG/data/RuBQ_index.index',
-          data_path='/Users/igorzolotyh/RAG/data/good_texts.json',
-          emb_model_name='sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2',
-          )
+app = FastAPI(title=config.api_title)
 
-responder = LLMResponder(model_name="llama3")
+query = Query(config)
+
+responder = LLMResponder(config)
 pipeline = RAGPipeline(query_engine=query, responder=responder)
 
 class QueryRequest(BaseModel):
@@ -21,7 +21,7 @@ class QueryResponse(BaseModel):
     answer: str
     retrieved_chunks: list
 
-@app.post("/query", response_model=QueryResponse)
+@app.post(config.endpoint, response_model=QueryResponse)
 def query_rag(request: QueryRequest):
     try:
         result = pipeline.answer(request.question)

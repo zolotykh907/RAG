@@ -17,10 +17,10 @@ logger = logging.getLogger("Indexing")
 
 class Indexing:
     def __init__(self, config):
-        self.config = config
         self.data_path = config.data_path
         self.index_path = config.index_path
         self.hashes_path = config.hashes_path
+        self.processed_data_path = config.processed_data_path
         self.emb_model_name = config.emb_model_name
         self.batch_size = config.batch_size
         self.index = None
@@ -28,10 +28,11 @@ class Indexing:
         self.embedding_model = SentenceTransformer(self.emb_model_name)
         self.flag_save_data = config.flag_save_data
 
-    def load_data(self):
-        with open(self.data_path, 'r') as f:
+
+    def load_data(self, path):
+        with open(path, 'r') as f:
             data = json.load(f)
-            logger.info(f"Loaded data from {self.data_path}.")
+            logger.info(f"Loaded data from {path}.")
 
         df = pd.DataFrame(data)
 
@@ -63,6 +64,7 @@ class Indexing:
         self.existing_hashes = pd.concat([self.existing_hashes, pd.DataFrame({'uid': new_uids, 'hash': new_hashes})], ignore_index=True)
         logger.info(f"Updated existing hashes.")
 
+
     def check_quality(self, df):
         quality_log, df_clean = check_data_quality(df, logger)
         logger.info(f"Data quality check completed. {len(df_clean)} texts passed the quality check.")
@@ -74,11 +76,16 @@ class Indexing:
     
     
     def save_data(self, df):
-        df.to_json('data/good_texts.json', orient='records', force_ascii=False, indent=4)
+        if os.path.exists(self.processed_data_path):
+            processed_df = self.load_data(path=self.processed_data_path)
+            combined_df = pd.concat([processed_df, df], ignore_index=True)
+            combined_df.to_json(self.processed_data_path, orient='records', force_ascii=False, indent=4)
+        else:
+            df.to_json(self.processed_data_path, orient='records', force_ascii=False, indent=4)
 
 
     def run_indexing(self):
-        df = self.load_data()
+        df = self.load_data(path=self.data_path)
 
         df_clean = self.check_quality(df)
 
@@ -99,7 +106,7 @@ class Indexing:
         if self.flag_save_data:
             self.save_data(df_new)
 
-        df_clean['text'] = df_clean['text'].apply(normalize_text)
+        df_new['text'] = df_new['text'].apply(normalize_text)
         
         embeddings = create_embeddings(df_new['text'].tolist(), self.embedding_model, batch_size=self.batch_size)
 

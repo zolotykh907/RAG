@@ -1,0 +1,16 @@
+data:
+  index_path: "data/RuBQ_index.index"
+  processed_data_path: "data/processed_texts.json"
+
+models:
+  emb_model_name: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+  llm: "llama3"
+
+rag:
+  k: 5
+
+api:
+  endpoint: "/query"
+  title: "RAG Query API"
+  host: "0.0.0.0"
+  port: 8000

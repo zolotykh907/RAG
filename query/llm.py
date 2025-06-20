@@ -3,8 +3,9 @@ from langchain.chains import LLMChain
 from langchain.prompts import PromptTemplate
 
 class LLMResponder:
-    def __init__(self, model_name="llama3"):
-        self.llm = Ollama(model=model_name)
+    def __init__(self, config):
+        self.model_name = config.llm
+        self.llm = Ollama(model=self.model_name)
         self.prompt_template = PromptTemplate(
             input_variables=["question", "context"],
             template=(

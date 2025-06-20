@@ -2,7 +2,8 @@ data:
   data_path: "data/RuBQ_2.0_paragraphs.json"
   index_path: "data/RuBQ_index.index"
   hashes_path: "data/existing_hashes.json"
-  quality_log_path: "data_quality.json"
+  quality_log_path: "logs/data_quality.json"
+  processed_data_path: "data/processed_texts.json"
   flag_save_data: True
 
 model:

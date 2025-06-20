@@ -13,15 +13,15 @@ logger = logging.getLogger("QueryService")
 
 
 class Query:
-    def __init__(self, index_path, data_path, emb_model_name, k=5):
-        self.index_path = index_path
-        self.data_path = data_path
-        self.emb_model_name = emb_model_name
+    def __init__(self, config):
+        self.index_path = config.index_path
+        self.processed_data_path = config.processed_data_path
+        self.emb_model_name = config.emb_model_name
         self.index = None
         self.embedding_model = SentenceTransformer(self.emb_model_name)
         self.data = None
         self.texts = None
-        self.k = k
+        self.k = config.k
 
         self.load_texts_and_index()
         
@@ -31,9 +31,9 @@ class Query:
             self.index = faiss.read_index(self.index_path)
             logger.info(f'loaded index from {self.index_path}')
 
-        with open(self.data_path, 'r') as f:
+        with open(self.processed_data_path, 'r') as f:
             self.data = json.load(f)
-            logger.info(f'loaded data from {self.data_path}')
+            logger.info(f'loaded data from {self.processed_data_path}')
 
         self.texts = [item['text'] for item in self.data]
         logger.info(f'loaded {len(self.texts)} texts from data')
