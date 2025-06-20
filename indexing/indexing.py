@@ -4,6 +4,7 @@ import pandas as pd
 import os
 import logging
 import faiss
+import requests
 from sentence_transformers import SentenceTransformer
 
 from data_processing import *
@@ -16,6 +17,7 @@ logger = logging.getLogger("Indexing")
 
 class Indexing:
     def __init__(self, config):
+        self.data_url = config.data_url
         self.data_path = config.data_path
         self.index_path = config.index_path
         self.hashes_path = config.hashes_path
@@ -27,8 +29,22 @@ class Indexing:
         self.embedding_model = SentenceTransformer(self.emb_model_name)
         self.flag_save_data = config.flag_save_data
 
+    
+    def download_data(self):
+        if not os.path.exists(self.data_path):
+            logger.info(f'Downloading data from {self.data_url}.')
+            response = requests.get(self.data_url)
+            response.raise_for_status()
+
+            os.makedirs(os.path.dirname(self.data_path), exist_ok=True)
+            with open(self.data_path, 'wb') as f:
+                f.write(response.content)
+            logger.info(f"Saved data to {self.data_path}.")
+        else:
+            logger.info(f'File {self.dapa_path} exists.')
 
     def load_data(self, path):
+        self.download_data()
         with open(path, 'r') as f:
             data = json.load(f)
             logger.info(f"Loaded data from {path}.")
@@ -122,6 +138,6 @@ class Indexing:
             logger.info(f"Saved updated hashes to {self.hashes_path}.")
 
 
-# config = Config()
-# I = Indexing(config)
-# I.run_indexing()
+config = Config()
+I = Indexing(config)
+I.run_indexing()
