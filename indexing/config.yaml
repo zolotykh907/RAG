@@ -3,6 +3,7 @@ data:
   index_path: "data/RuBQ_index.index"
   hashes_path: "data/existing_hashes.json"
   quality_log_path: "data_quality.json"
+  flag_save_data: True
 
 model:
   emb_model_name: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"

@@ -6,9 +6,9 @@ import logging
 import faiss
 from sentence_transformers import SentenceTransformer
 
-from indexing.data_processing import *
-from indexing.data_vectorize import *
-from indexing.config import Config
+from data_processing import *
+from data_vectorize import *
+from config import Config
 
 
 logging.basicConfig(level=logging.INFO)
@@ -26,6 +26,7 @@ class Indexing:
         self.index = None
         self.existing_hashes = []
         self.embedding_model = SentenceTransformer(self.emb_model_name)
+        self.flag_save_data = config.flag_save_data
 
     def load_data(self):
         with open(self.data_path, 'r') as f:
@@ -71,6 +72,10 @@ class Indexing:
 
         return df_clean
     
+    
+    def save_data(self, df):
+        df.to_json('data/good_texts.json', orient='records', force_ascii=False, indent=4)
+
 
     def run_indexing(self):
         df = self.load_data()
@@ -90,6 +95,11 @@ class Indexing:
 
         df_new = df_new.drop('text_hash', axis=1)
         logger.info(f"Found {len(df_new)} new texts to index.")
+
+        if self.flag_save_data:
+            self.save_data(df_new)
+
+        df_clean['text'] = df_clean['text'].apply(normalize_text)
         
         embeddings = create_embeddings(df_new['text'].tolist(), self.embedding_model, batch_size=self.batch_size)
 
@@ -105,6 +115,6 @@ class Indexing:
             logger.info(f"Saved updated hashes to {self.hashes_path}.")
 
 
-config = Config()
-I = Indexing(config)
-I.run_indexing()
+# config = Config()
+# I = Indexing(config)
+# I.run_indexing()

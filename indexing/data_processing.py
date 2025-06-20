@@ -1,16 +1,21 @@
 import re
 import hashlib
 import logging
+import pymorphy2
 
-# logging.basicConfig(filename='data_processing.log', level=logging.INFO)
+morph = pymorphy2.MorphAnalyzer()
 
-# logger = logging.getLogger(__name__)
 
 def normalize_text(text):
     text = text.strip()
     text = text.lower()
     text = re.sub(r'\s+', ' ', text)
-    return text
+    text = re.sub(r'[^\w\s]', ' ', text)
+
+    words = text.split()
+    lemmas = [morph.parse(word)[0].normal_form for word in words if word.isalpha()]
+    
+    return ' '.join(lemmas)
 
 
 def compute_text_hash(text):

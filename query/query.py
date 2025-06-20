@@ -56,12 +56,3 @@ class Query:
             res.append(self.texts[idx])
 
         return res
-
-
-# q = Query(index_path='/Users/igorzolotyh/RAG/data/RuBQ_index.index',
-#           data_path='/Users/igorzolotyh/RAG/data/good_texts.json',
-#           emb_model_name='sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2',
-#           )
-
-# res = q.query('')
-# print(res[0])
