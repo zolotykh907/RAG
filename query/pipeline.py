@@ -1,5 +1,5 @@
-from query import Query
-from llm import LLMResponder
+from query.query import Query
+from query.llm import LLMResponder
 
 class RAGPipeline:
     def __init__(self, query_engine, responder):

@@ -1,9 +1,9 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from pipeline import RAGPipeline
-from query import Query
-from llm import LLMResponder
-from config import Config
+from query.query import Query
+from query.pipeline import RAGPipeline
+from query.llm import LLMResponder
+from query.config import Config
 
 config = Config()
 

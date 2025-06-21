@@ -1,11 +1,15 @@
 from langchain.llms import Ollama
 from langchain.chains import LLMChain
 from langchain.prompts import PromptTemplate
+import os
 
 class LLMResponder:
     def __init__(self, config):
         self.model_name = config.llm
-        self.llm = Ollama(model=self.model_name)
+        self.llm = Ollama(
+            model=self.model_name,
+            base_url=os.getenv("OLLAMA_HOST", "http://localhost:11434")
+        )
         self.prompt_template = PromptTemplate(
             input_variables=["question", "context"],
             template=(

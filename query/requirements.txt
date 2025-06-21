@@ -7,3 +7,4 @@ pandas
 numpy
 sentence_transformers
 uvicorn
+pymorphy2

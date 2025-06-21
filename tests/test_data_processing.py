@@ -8,6 +8,8 @@ from unittest.mock import MagicMock
     ("  Тестирование текста... ", {"тестирование", "текст"}),
     ("12345 ???", set()),
 ])
+
+
 def test_normalize_text(input_text, expected_tokens):
     result = normalize_text(input_text)
     result_tokens = set(result.split())
@@ -19,6 +21,7 @@ def test_compute_text_hash_consistency():
     hash1 = compute_text_hash(text)
     hash2 = compute_text_hash(" пример ТЕКСТА  ")
     assert hash1 == hash2 
+
 
 def test_compute_text_hash_different():
     assert compute_text_hash("abc") != compute_text_hash("def")

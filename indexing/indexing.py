@@ -7,10 +7,10 @@ import faiss
 import requests
 from sentence_transformers import SentenceTransformer
 from tqdm.auto import tqdm
+import pymorphy2
 
 from data_processing import *
 from data_vectorize import *
-from config import Config
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("Indexing")
@@ -31,6 +31,7 @@ class Indexing:
         self.existing_hashes = []
         self.flag_save_data = config.flag_save_data
         self.quality_log_path = config.quality_log_path
+        self.morph = pymorphy2.MorphAnalyzer()
 
         os.makedirs(self.data_dir, exist_ok=True)
         os.makedirs(self.logs_dir, exist_ok=True)
@@ -140,7 +141,7 @@ class Indexing:
             self.save_data(df_new)
 
         logger.info(f'Text normalization...')
-        df_new['text'] = df_new['text'].apply(normalize_text)
+        df_new['text'] = df_new['text'].apply(lambda x: normalize_text(x, morph=self.morph))
         
         embeddings = create_embeddings(df_new['text'].tolist(), self.embedding_model, batch_size=self.batch_size)
 

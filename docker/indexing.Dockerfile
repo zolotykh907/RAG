@@ -6,7 +6,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-COPY indexing/requirements.txt ./indexing/
+COPY indexing/requirements.txt ./indexing/requirements.txt
+
 RUN pip install --no-cache-dir -r indexing/requirements.txt
 
 COPY indexing/ /app/indexing/

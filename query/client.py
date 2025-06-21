@@ -8,9 +8,9 @@ def ask_question(question: str):
     if response.status_code == 200:
         data = response.json()
         print("Ответ:", data["answer"])
-        print("\nИспользованные фрагменты:")
-        for i, chunk in enumerate(data["retrieved_chunks"], 1):
-            print(f"{i}. {chunk.get('text', '')[:200]}...") 
+        # print("\nИспользованные фрагменты:")
+        # for i, chunk in enumerate(data["retrieved_chunks"], 1):
+        #     print(f"{i}. {chunk.get('text', '')[:200]}...") 
     else:
         print(f"Ошибка {response.status_code}: {response.text}")
 
