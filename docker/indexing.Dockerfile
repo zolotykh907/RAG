@@ -11,4 +11,4 @@ RUN pip install --no-cache-dir -r indexing/requirements.txt
 
 COPY indexing/ /app/indexing/
 
-CMD ["python", "indexing/indexing.py"]
+CMD ["python", "indexing/run_indexing.py"]

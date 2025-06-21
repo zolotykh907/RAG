@@ -154,8 +154,3 @@ class Indexing:
         with open(self.hashes_path, 'w') as f:
             json.dump(self.existing_hashes.to_dict('records'), f, ensure_ascii=False, indent=4)
             logger.info(f"Saved updated hashes to {self.hashes_path}.")
-
-
-config = Config()
-I = Indexing(config)
-I.run_indexing()
