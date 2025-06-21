@@ -54,14 +54,14 @@ class Query:
         logger.info(f'loaded {len(self.texts)} texts from data')
     
 
-    def normalize_text(text, morph):
+    def normalize_text(self, text):
         text = text.strip()
         text = text.lower()
         text = re.sub(r'\s+', ' ', text)
         text = re.sub(r'[^\w\s]', ' ', text)
 
         words = text.split()
-        lemmas = [morph.parse(word)[0].normal_form for word in tqdm(words) if word.isalpha()]
+        lemmas = [self.morph.parse(word)[0].normal_form for word in tqdm(words) if word.isalpha()]
         
         return ' '.join(lemmas)
 
@@ -69,7 +69,7 @@ class Query:
     def query(self, request):
         res = []
 
-        request = self.normalize_text(request, morph=self.morph)
+        request = self.normalize_text(request)
         request_embedding = self.embedding_model.encode([request], convert_to_numpy=True)
 
         d, i = self.index.search(request_embedding, self.k)

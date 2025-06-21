@@ -14,5 +14,5 @@ def test_pipeline():
 
     data = response.json()
     answer = data['answer']
-    assert isinstance(data['answer'], str)
+    assert isinstance(answer, str)
 
