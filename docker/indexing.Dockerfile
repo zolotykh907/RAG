@@ -1,22 +1,14 @@
-# Используем официальный образ Python
 FROM python:3.10-slim
 
-# Установка системных зависимостей (если нужно)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Создаём рабочую директорию
 WORKDIR /app
 
-# Копируем зависимости
-COPY indexing/requirements.txt .
+COPY indexing/requirements.txt ./indexing/
+RUN pip install --no-cache-dir -r indexing/requirements.txt
 
-# Устанавливаем зависимости
-RUN pip install --no-cache-dir -r requirements.txt
+COPY indexing/ /app/indexing/
 
-# Копируем весь код из папки indexing
-COPY indexing/ /app/
-
-# Точка входа (запуск скрипта)
-CMD ["python", "indexing.py"]
+CMD ["python", "indexing/indexing.py"]

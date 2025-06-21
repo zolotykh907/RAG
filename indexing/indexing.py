@@ -6,6 +6,7 @@ import logging
 import faiss
 import requests
 from sentence_transformers import SentenceTransformer
+from tqdm.auto import tqdm
 
 from data_processing import *
 from data_vectorize import *
@@ -28,12 +29,25 @@ class Indexing:
         self.batch_size = config.batch_size
         self.index = None
         self.existing_hashes = []
-        self.embedding_model = SentenceTransformer(self.emb_model_name)
         self.flag_save_data = config.flag_save_data
+        self.quality_log_path = config.quality_log_path
 
         os.makedirs(self.data_dir, exist_ok=True)
         os.makedirs(self.logs_dir, exist_ok=True)
-    
+
+        self.download_emb_model()
+
+    def download_emb_model(self):
+        logger.info(f"Loading model {self.emb_model_name}...")
+        with tqdm(total=100, desc="Downloading") as pbar:
+            self.embedding_model = SentenceTransformer(
+                self.emb_model_name,
+                device='cpu'
+            )
+            pbar.update(100)
+        logger.info(f"Model {self.emb_model_name} loaded successfully")
+
+
     def download_data(self):
         if not os.path.exists(self.data_path):
             logger.info(f'Downloading data from {self.data_url}.')
@@ -44,7 +58,7 @@ class Indexing:
                 f.write(response.content)
             logger.info(f"Saved data to {self.data_path}.")
         else:
-            logger.info(f'File {self.dapa_path} exists.')
+            logger.info(f'File {self.data_path} exists.')
 
     def load_data(self, path):
         self.download_data()
@@ -87,7 +101,7 @@ class Indexing:
         quality_log, df_clean = check_data_quality(df, logger)
         logger.info(f"Data quality check completed. {len(df_clean)} texts passed the quality check.")
 
-        with open('data_quality.json', 'w') as f:
+        with open(self.quality_log_path, 'w') as f:
             json.dump(quality_log, f, ensure_ascii=False)
 
         return df_clean
@@ -125,6 +139,7 @@ class Indexing:
         if self.flag_save_data:
             self.save_data(df_new)
 
+        logger.info(f'Text normalization...')
         df_new['text'] = df_new['text'].apply(normalize_text)
         
         embeddings = create_embeddings(df_new['text'].tolist(), self.embedding_model, batch_size=self.batch_size)

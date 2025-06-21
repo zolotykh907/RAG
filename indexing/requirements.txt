@@ -3,3 +3,4 @@ pandas
 sentence_transformers
 faiss-cpu
 pymorphy2
+tqdm

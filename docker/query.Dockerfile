@@ -10,6 +10,6 @@ COPY query/requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY query/ /app/
+COPY query/ /app/query
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "query/app:app", "--host", "0.0.0.0", "--port", "8000"]
