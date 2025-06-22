@@ -19,7 +19,7 @@ class QueryRequest(BaseModel):
 
 class QueryResponse(BaseModel):
     answer: str
-    retrieved_chunks: list
+    texts: list
 
 @app.post(config.endpoint, response_model=QueryResponse)
 def query_rag(request: QueryRequest):

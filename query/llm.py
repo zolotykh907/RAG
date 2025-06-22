@@ -19,7 +19,7 @@ class LLMResponder:
         #         "Если точного ответа нет, напиши что не нашел информацию. Ответ пиши всегда на русском языке.\n\n"
         #         "Если нашел - то процитируй или перефразируй, оставляя только самое важное для ответа на вопрос"
         #     )
-        #)
+        # )
         self.prompt_template = PromptTemplate(
             input_variables=["question", "context"],
             template = config.prompt_template
@@ -27,7 +27,7 @@ class LLMResponder:
 
         self.chain = LLMChain(prompt=self.prompt_template, llm=self.llm)
 
-    def generate_answer(self, question: str, context_chunks: list[str]) -> str:
-        context = "\n\n".join(context_chunks)
+    def generate_answer(self, question: str, texts: list[str]) -> str:
+        context = "\n\n".join(texts)
         response = self.chain.run(question=question, context=context)
         return response.strip()

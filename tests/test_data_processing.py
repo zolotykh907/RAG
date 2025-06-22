@@ -1,9 +1,12 @@
 import pytest
 import pandas as pd
 from unittest.mock import MagicMock
+import pymorphy2
 
 from indexing.data_processing import normalize_text, compute_text_hash, check_data_quality
 
+
+morph = pymorphy2.MorphAnalyzer()
 
 @pytest.mark.parametrize("input_text, expected_tokens", [
     ("Привет, МИР!", {"привет", "мир"}),
@@ -13,7 +16,7 @@ from indexing.data_processing import normalize_text, compute_text_hash, check_da
 
 
 def test_normalize_text(input_text, expected_tokens):
-    result = normalize_text(input_text)
+    result = normalize_text(input_text, morph=morph)
     result_tokens = set(result.split())
     assert result_tokens == expected_tokens
 
