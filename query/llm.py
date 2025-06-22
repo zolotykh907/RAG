@@ -50,6 +50,6 @@ class LLMResponder:
 
     def generate_answer(self, question, texts):
         context = '\n'.join(texts)
-        response = self.chain.invoke(question=question, context=context)
+        response = self.chain.invoke({"question": question, "context": context})
 
         return response
