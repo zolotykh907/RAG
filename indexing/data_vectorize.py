@@ -3,6 +3,16 @@ import faiss
 
 
 def create_embeddings(texts, model, batch_size=32):
+    """creating embeddings for input texts.
+
+    Args:
+        texts (list[str]): list of texts.
+        model: model for generating embeddings.
+        batch_size (int, optional): The number of texts to process in one batch.
+
+    Returns:
+        numpy.ndarray: array of embeddings.
+    """
     embeddings = model.encode(
         texts,
         batch_size=batch_size,
@@ -11,12 +21,3 @@ def create_embeddings(texts, model, batch_size=32):
     )
 
     return embeddings
-
-
-def create_faiss(embeddings, index_path="data/RuBQ_index.index"):
-    dimension = embeddings.shape[1]
-    index = faiss.IndexFlatL2(dimension)
-
-    index.add(np.array(embeddings, dtype=np.float32))
-
-    faiss.write_index(index, index_path)

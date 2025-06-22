@@ -1,5 +1,6 @@
 import yaml
 
+
 class Config:
     def __init__(self, config_file='indexing/config.yaml'):
         with open(config_file, 'r') as f:
