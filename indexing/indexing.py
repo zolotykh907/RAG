@@ -44,6 +44,7 @@ class Indexing:
         os.makedirs(self.logs_dir, exist_ok=True)
 
         self.download_emb_model()
+        
 
     def download_emb_model(self):
         """Download of embedding model."""
