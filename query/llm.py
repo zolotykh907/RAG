@@ -8,10 +8,9 @@ class LLMResponder:
     def __init__(self, config):
         self.model_name = config.llm
         self.prompt_template = ChatPromptTemplate.from_template(config.prompt_template)
-        self.llm = OllamaLLM(model="llama3",
+        self.llm = OllamaLLM(model=self.model_name,
                              base_url=os.getenv("OLLAMA_HOST", "http://localhost:11434")
                              )
-
         self.chain = self.prompt_template | self.llm
 
     def generate_answer(self, question, texts):

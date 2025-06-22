@@ -170,7 +170,7 @@ class Indexing:
         df_clean = self.check_quality(df)
 
         self.check_existing_index()
-        self.check_existing_haches(df_clean)
+        self.check_existing_haches()
 
         df_new = df_clean[~df_clean['text_hash'].isin(self.existing_hashes['hash'].tolist())]
 
