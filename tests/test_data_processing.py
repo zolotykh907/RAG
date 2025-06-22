@@ -1,7 +1,9 @@
 import pytest
-from indexing.data_processing import normalize_text, compute_text_hash, check_data_quality
 import pandas as pd
 from unittest.mock import MagicMock
+
+from indexing.data_processing import normalize_text, compute_text_hash, check_data_quality
+
 
 @pytest.mark.parametrize("input_text, expected_tokens", [
     ("Привет, МИР!", {"привет", "мир"}),
@@ -31,11 +33,11 @@ def test_check_data_quality():
     data = {
         'uid': ['1', '2', '3', '4', '5'],
         'text': [
-            'Привет мир!',         # длина 11
-            ' ',                   # пустой (пробел)
-            'Кратко',              # длина 6
-            'Привет мир!',         # дубликат
-            'Что-то интересное'    # длина 17
+            'Привет мир!',         # len 11
+            ' ',                   # empty
+            'Кратко',              # len 6 
+            'Привет мир!',         # duplicate
+            'Что-то интересное'    # len 17
         ]
     }
     df = pd.DataFrame(data)
@@ -43,9 +45,9 @@ def test_check_data_quality():
 
     report, df_clean = check_data_quality(df, logger, min_len=10)
 
-    assert report['empty_docs']['count'] == 1  # ' '
-    assert report['short_texts']['count'] == 1 # 'Кратко'
-    assert report['duplicate_texts']['count'] == 2 # один дубликат (второе 'Привет мир!')
+    assert report['empty_docs']['count'] == 1  
+    assert report['short_texts']['count'] == 1 
+    assert report['duplicate_texts']['count'] == 2
 
     assert len(df_clean) == 2
     assert list(df_clean['uid']) == ['1', '5']

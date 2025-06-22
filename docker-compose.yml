@@ -1,10 +1,9 @@
-version: "3.8"
-
 services:
   indexing:
     build:
       context: .
       dockerfile: ./docker/indexing.Dockerfile
+    container_name: indexing
     volumes:
       - model_cache:/root/.cache/huggingface/hub
       - shared_data:/app/data
@@ -21,11 +20,11 @@ services:
       - "11434:11434"
     entrypoint: ["/bin/bash", "-c", "ollama serve & sleep 2 && ollama pull llama3 && wait"]
 
-  rag-api:
+  query:
       build: 
         context: .
         dockerfile: ./docker/query.Dockerfile
-      container_name: rag-api
+      container_name: query
       volumes:
         - shared_data:/app/data
         - model_cache:/root/.cache/huggingface/hub

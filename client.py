@@ -14,6 +14,5 @@ def ask_question(question: str):
     else:
         print(f"Ошибка {response.status_code}: {response.text}")
 
-if __name__ == "__main__":
-    question = input("Задай вопрос: ")
-    ask_question(question)
+question = input("Задай вопрос: ")
+ask_question(question)

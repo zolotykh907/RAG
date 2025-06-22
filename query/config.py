@@ -7,8 +7,11 @@ class Config:
 
         self.index_path = cfg['data']['index_path']
         self.processed_data_path = cfg['data']['processed_data_path']
+
         self.emb_model_name = cfg['models']['emb_model_name']
         self.llm = cfg['models']['llm']
+        self.prompt_template = cfg['models']['prompt_template']
+
         
         self.k = cfg['rag']['k']
 
