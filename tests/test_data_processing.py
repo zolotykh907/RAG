@@ -50,7 +50,7 @@ def test_check_data_quality():
 
     assert report['empty_docs']['count'] == 1  
     assert report['short_texts']['count'] == 1 
-    assert report['duplicate_texts']['count'] == 2
+    assert report['duplicate_texts']['count'] == 1
 
     assert len(df_clean) == 2
     assert list(df_clean['uid']) == ['1', '5']

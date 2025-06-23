@@ -45,7 +45,7 @@ def compute_text_hash(text):
     return hashlib.sha256(text.strip().lower().encode('utf-8')).hexdigest()
 
 
-def check_data_quality(df, min_len=10):
+def check_data_quality(df, logger=logger, min_len=10):
     """Check data quality.
 
     Args:
