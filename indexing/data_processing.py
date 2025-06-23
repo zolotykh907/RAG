@@ -16,8 +16,11 @@ def normalize_text(text, morph):
         morph (MorphAnalizer): Morphological analyzer.
 
     Returns:
-        str: normalized text
+        str: normalized text.
     """
+    if not isinstance(text, str):
+        raise ValueError("Input text must be a string")
+    
     text = text.strip().lower()
     text = re.sub(r'\s+', ' ', text)
     text = re.sub(r'[^\w\s]', ' ', text)
@@ -58,20 +61,20 @@ def check_data_quality(df, min_len=10):
 
     # Empty docs
     empty_docs = df[(df['text'] == '')]
-    logger.info(f'Пустых документов: {len(empty_docs)}')
+    logger.info(f'Number of empty docs: {len(empty_docs)}')
 
     # Duplicates uids
-    duplicate_uids = df[df.duplicated(subset=['uid'], keep=False)]
-    logger.info(f"Дубликатов по uid: {len(duplicate_uids)}")
+    duplicate_uids = df[df.duplicated(subset=['uid'], keep='first')]
+    logger.info(f"Number of duplicates by uid: {len(duplicate_uids)}")
 
     # Duplicates texts
     df['text_hash'] = df['text'].apply(compute_text_hash)
-    duplicate_texts = df[df.duplicated(subset=['text_hash'], keep=False)]
-    logger.info(f"Дубликатов текстов: {len(duplicate_texts)}")
+    duplicate_texts = df[df.duplicated(subset=['text_hash'], keep='first')]
+    logger.info(f"Number of duplicates by hashes: {len(duplicate_texts)}")
 
     # Short texts
     short_texts = df[(df['text'].str.len() < min_len) & (df['text'] != '')]
-    logger.info(f'Текстов длиной меньше {min_len}: {len(short_texts)}')
+    logger.info(f'Number of docs shorter {min_len}: {len(short_texts)}')
 
     # Results
     res = {}
@@ -90,4 +93,9 @@ def check_data_quality(df, min_len=10):
         (df['text'].str.len() >= min_len)  
     ].drop_duplicates(subset=['text_hash'], keep='first')
     
+    res['remaining_docs'] = len(df_clean)
+    res['removed_docs'] = len(df) - len(df_clean)
+    logger.info(f'Docs after cleaning: {len(df_clean)}')
+    logger.info(f'Docs removed: {len(df) - len(df_clean)}')
+
     return res, df_clean

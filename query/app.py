@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
@@ -6,25 +8,48 @@ from query.pipeline import RAGPipeline
 from query.llm import LLMResponder
 from query.config import Config
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("RAG_API")
+
 config = Config()
 
-app = FastAPI(title=config.api_title)
+app = FastAPI(title=config.api_title,
+              description="RAG API for question answering with context retrieval")
 
-query = Query(config)
-responder = LLMResponder(config)
-pipeline = RAGPipeline(query_engine=query, responder=responder)
+try:
+    query = Query(config)
+    responder = LLMResponder(config)
+    pipeline = RAGPipeline(query=query, responder=responder)
+    logger.info(f'RAG API initialized successfully.')
+except Exception as e:
+    logger.error(f'Failed to initialize RAG API: {str(e)}')
+    raise
 
 class QueryRequest(BaseModel):
+    """Request model for RAG query endpoint."""
     question: str
 
 class QueryResponse(BaseModel):
+    """Response model for RAG query endpoint."""
     answer: str
     texts: list
 
 @app.post(config.endpoint, response_model=QueryResponse)
-def query_rag(request: QueryRequest):
+async def query_rag(request: QueryRequest):
+    """Handle RAG query request.
+    
+    Args:
+        request: QueryRequest containing the question.
+        
+    Returns:
+        QueryResponse with answer and relevant texts.
+    """
     try:
+        logger.info(f"Processing question: {request.question[:25]}...")
+
         result = pipeline.answer(request.question)
+        logger.info(f'Successfully processed question')
+
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

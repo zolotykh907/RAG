@@ -19,5 +19,6 @@ class Config:
         self.api_title = cfg['api']['title']
         self.host = cfg['api']['host']
         self.port = cfg['api']['port']
+        self.ollama_host = cfg['api']['ollama_host']
 
     

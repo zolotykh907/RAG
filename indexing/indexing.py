@@ -14,7 +14,7 @@ from data_processing import normalize_text, check_data_quality
 from data_vectorize import create_embeddings
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("Indexing")
+logger = logging.getLogger("IndexingService")
 
 
 class Indexing:

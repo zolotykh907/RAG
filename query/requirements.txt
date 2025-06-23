@@ -2,6 +2,7 @@ fastapi
 pydantic
 langchain
 langchain-community
+langchain_ollama
 faiss-cpu
 pandas
 numpy
