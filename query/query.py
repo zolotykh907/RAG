@@ -1,18 +1,15 @@
 import json
 import os
-import logging
 import re
+import logging
+from logging.handlers import RotatingFileHandler
 
 import faiss
-import pandas as pd
-import numpy as np
 from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
 import pymorphy2
 
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("QueryService")
+from query.logs import setup_logging
 
 
 class Query:
@@ -24,6 +21,7 @@ class Query:
             config: configuration object with parameters.
             """
         self.index_path = config.index_path
+        self.logs_dir = config.logs_dir
         self.processed_data_path = config.processed_data_path
         self.emb_model_name = config.emb_model_name
         self.index = None
@@ -32,13 +30,14 @@ class Query:
         self.k = config.k
         self.morph = pymorphy2.MorphAnalyzer()
 
+        self.logger = setup_logging(self.logs_dir, 'QueryService')
         self.load_texts_and_index()
         self.download_emb_model()
-
+        
 
     def download_emb_model(self):
         """Download and initialize the sentence embedding model."""
-        logger.info(f"Loading model {self.emb_model_name}...")
+        self.logger.info(f"Loading model {self.emb_model_name}...")
         try:
             with tqdm(total=100, desc="Downloading") as pbar:
                 self.embedding_model = SentenceTransformer(
@@ -46,9 +45,9 @@ class Query:
                     device='cpu'
                 )
                 pbar.update(100)
-            logger.info(f"Model {self.emb_model_name} loaded successfully")
+            self.logger.info(f"Model {self.emb_model_name} loaded successfully")
         except Exception as e:
-            logger.error(f'Faild to download embedding model: {str(e)}')
+            self.logger.error(f'Faild to download embedding model: {str(e)}')
             raise
 
 
@@ -62,9 +61,9 @@ class Query:
         
         try:
             self.index = faiss.read_index(self.index_path)
-            logger.info(f'Index loaded from {self.index_path}')
+            self.logger.info(f'Index loaded from {self.index_path}')
         except Exception as e:
-            logger.error(f"Failed to load FAISS index from {self.index_path}: {str(e)}")
+            self.logger.error(f"Failed to load FAISS index from {self.index_path}: {str(e)}")
             raise
 
         try:
@@ -72,12 +71,12 @@ class Query:
                 self.data = json.load(f)
                 if not isinstance(self.data, list):
                     raise ValueError("Loaded data is not a list")
-                logger.info(f'loaded data from {self.processed_data_path}')
+                self.logger.info(f'loaded data from {self.processed_data_path}')
 
                 self.texts = [item['text'] for item in self.data]
-                logger.info(f'loaded {len(self.texts)} texts from data')
+                self.logger.info(f'loaded {len(self.texts)} texts from data')
         except Exception as e:
-            logger.error(f'Failed to load data from {self.texts}: {str(e)}')
+            self.logger.error(f'Failed to load data from {self.texts}: {str(e)}')
     
 
     def normalize_text(self, text):
@@ -131,5 +130,5 @@ class Query:
 
             return res
         except Exception as e:
-            logger.error(f"Query failed: {str(e)}")
+            self.logger.error(f"Query failed: {str(e)}")
             raise

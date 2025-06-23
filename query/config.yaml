@@ -1,5 +1,6 @@
 data:
   index_path: "./data/RuBQ_index.index"
+  logs_dir: './logs'
   processed_data_path: "./data/processed_texts.json"
 
 models:

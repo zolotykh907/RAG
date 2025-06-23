@@ -1,12 +1,10 @@
 import logging
 
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("RAGPipeline")
+from query.logs import setup_logging
 
 class RAGPipeline:
     """Class of pipeline for RAG"""
-    def __init__(self, query, responder):
+    def __init__(self, config, query, responder):
         """Initialize RAG pipeline.
 
         args:
@@ -15,6 +13,8 @@ class RAGPipeline:
         """
         self.query = query
         self.responder = responder
+        self.logger = setup_logging(config.logs_dir, 'RAGPipeline')
+
 
     def answer(self, question):
         """Generate answer using RAG.
@@ -39,5 +39,5 @@ class RAGPipeline:
                 "texts": results
             }
         except Exception as e:
-            logger.error(f'Failed to generate answer: {str(e)}')
+            self.logger.error(f'Failed to generate answer: {str(e)}')
             raise

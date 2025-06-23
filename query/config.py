@@ -6,6 +6,7 @@ class Config:
             cfg = yaml.safe_load(f)
 
         self.index_path = cfg['data']['index_path']
+        self.logs_dir = cfg['data']['logs_dir']
         self.processed_data_path = cfg['data']['processed_data_path']
 
         self.emb_model_name = cfg['models']['emb_model_name']

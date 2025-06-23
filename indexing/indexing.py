@@ -1,6 +1,7 @@
 import json
 import os
 import logging
+from logging.handlers import RotatingFileHandler
 
 import numpy as np
 import pandas as pd
@@ -12,10 +13,7 @@ import pymorphy2
 
 from data_processing import normalize_text, check_data_quality
 from data_vectorize import create_embeddings
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("IndexingService")
-
+from logs import setup_logging
 
 class Indexing:
     """Manage text indexing process with embedding creation and FAISS index maintenance."""
@@ -41,14 +39,14 @@ class Indexing:
         self.morph = pymorphy2.MorphAnalyzer()
 
         os.makedirs(self.data_dir, exist_ok=True)
-        os.makedirs(self.logs_dir, exist_ok=True)
 
+        self.logger = setup_logging(self.logs_dir, 'IndexingService')
         self.download_emb_model()
         
 
     def download_emb_model(self):
         """Download of embedding model."""
-        logger.info(f"Loading model {self.emb_model_name}...")
+        self.logger.info(f"Loading model {self.emb_model_name}...")
         try:
             with tqdm(total=100, desc="Downloading") as pbar:
                 self.embedding_model = SentenceTransformer(
@@ -56,24 +54,24 @@ class Indexing:
                     device='cpu'
                 )
                 pbar.update(100)
-            logger.info(f"Model {self.emb_model_name} loaded successfully")
+            self.logger.info(f"Model {self.emb_model_name} loaded successfully")
         except Exception as e:
-            logger.error(f"Ошибка загрузки модели {self.emb_model_name}: {e}")
+            self.logger.error(f"Ошибка загрузки модели {self.emb_model_name}: {e}")
             raise
 
 
     def download_data(self):
         """Download and sace data from URL"""
         if not os.path.exists(self.data_path):
-            logger.info(f'Downloading data from {self.data_url}.')
+            self.logger.info(f'Downloading data from {self.data_url}.')
             response = requests.get(self.data_url)
             response.raise_for_status()
 
             with open(self.data_path, 'wb') as f:
                 f.write(response.content)
-            logger.info(f"Saved data to {self.data_path}.")
+            self.logger.info(f"Saved data to {self.data_path}.")
         else:
-            logger.info(f'File {self.data_path} exists.')
+            self.logger.info(f'File {self.data_path} exists.')
 
 
     def load_data(self, path):
@@ -89,12 +87,12 @@ class Indexing:
         try:
             with open(path, 'r') as f:
                 data = json.load(f)
-                logger.info(f"Loaded data from {path}.")
+                self.logger.info(f"Loaded data from {path}.")
 
             df = pd.DataFrame(data)
             return df
         except FileNotFoundError:
-            logger.error(f"File {path} not found.")
+            self.logger.error(f"File {path} not found.")
             raise
     
 
@@ -102,7 +100,7 @@ class Indexing:
         """"Load existing index FAISS."""
         if os.path.exists(self.index_path):
             self.index = faiss.read_index(self.index_path)
-            logger.info(f"Loaded existing index from {self.index_path}.")
+            self.logger.info(f"Loaded existing index from {self.index_path}.")
     
 
     def check_existing_haches(self):
@@ -112,9 +110,9 @@ class Indexing:
                 existing_uid_hashes = json.load(f)
 
             self.existing_hashes = pd.DataFrame(existing_uid_hashes)
-            logger.info(f"Loaded existing hashes from {self.hashes_path}.")
+            self.logger.info(f"Loaded existing hashes from {self.hashes_path}.")
         else:
-            logger.info(f"No existing hashes found at {self.hashes_path}. Creating a new DataFrame.")
+            self.logger.info(f"No existing hashes found at {self.hashes_path}. Creating a new DataFrame.")
 
             self.existing_hashes = pd.DataFrame(columns=['uid', 'hash'])
     
@@ -128,7 +126,7 @@ class Indexing:
         new_uids = df['uid'].tolist()
         new_hashes = df['text_hash'].tolist()
         self.existing_hashes = pd.concat([self.existing_hashes, pd.DataFrame({'uid': new_uids, 'hash': new_hashes})], ignore_index=True)
-        logger.info(f"Updated existing hashes.")
+        self.logger.info(f"Updated existing hashes.")
 
 
     def check_quality(self, df):
@@ -141,7 +139,7 @@ class Indexing:
             DataFrame: clean DataFrame after quality check.
         """
         quality_log, df_clean = check_data_quality(df)
-        logger.info(f"Data quality check completed. {len(df_clean)} texts passed the quality check.")
+        self.logger.info(f"Data quality check completed. {len(df_clean)} texts passed the quality check.")
 
         with open(self.quality_log_path, 'w') as f:
             json.dump(quality_log, f, ensure_ascii=False)
@@ -176,18 +174,18 @@ class Indexing:
         df_new = df_clean[~df_clean['text_hash'].isin(self.existing_hashes['hash'].tolist())]
 
         if df_new.empty:
-            logger.info("No new data to index.")
+            self.logger.info("No new data to index.")
             return
         
         self.update_existing_hashes(df_new)
 
         df_new = df_new.drop('text_hash', axis=1)
-        logger.info(f"Found {len(df_new)} new texts to index.")
+        self.logger.info(f"Found {len(df_new)} new texts to index.")
 
         if self.flag_save_data:
             self.save_data(df_new)
 
-        logger.info(f'Text normalization...')
+        self.logger.info(f'Text normalization...')
         df_new['text'] = df_new['text'].apply(lambda x: normalize_text(x, morph=self.morph))
         
         embeddings = create_embeddings(df_new['text'].tolist(), self.embedding_model, batch_size=self.batch_size)
@@ -199,11 +197,11 @@ class Indexing:
 
             self.index.add(np.array(embeddings, dtype=np.float32))
             faiss.write_index(self.index, self.index_path)
-            logger.info(f"Index saved to {self.index_path}.")
+            self.logger.info(f"Index saved to {self.index_path}.")
         except Exception as e:
-            logger.error(f"Error when adding or saving the index: {e}")
+            self.logger.error(f"Error when adding or saving the index: {e}")
             raise
 
         with open(self.hashes_path, 'w') as f:
             json.dump(self.existing_hashes.to_dict('records'), f, ensure_ascii=False, indent=4)
-            logger.info(f"Saved updated hashes to {self.hashes_path}.")
+            self.logger.info(f"Saved updated hashes to {self.hashes_path}.")

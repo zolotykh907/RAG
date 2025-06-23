@@ -1,7 +1,3 @@
-import numpy as np
-import faiss
-
-
 def create_embeddings(texts, model, batch_size=32):
     """creating embeddings for input texts.
 

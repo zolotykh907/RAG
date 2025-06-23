@@ -4,8 +4,8 @@ import logging
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama.llms import OllamaLLM
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("RAG_LLM")
+from query.logs import setup_logging
+
 
 class LLMResponder:
     """Class for generation answer using LLM and context."""
@@ -22,6 +22,7 @@ class LLMResponder:
                              base_url=os.getenv("OLLAMA_HOST", self.ollama_host)
                              )
         self.chain = self.prompt_template | self.llm
+        self.logger = setup_logging(config.logs_dir, 'RAG_LLM')
 
 
     def generate_answer(self, question, texts):
@@ -42,5 +43,5 @@ class LLMResponder:
             response = self.chain.invoke({"question": question, "context": context})
             return response
         except Exception as e:
-            logger.error(f'Answer generation failed: {str(e)}')
+            self.logger.error(f'Answer generation failed: {str(e)}')
             raise

@@ -7,11 +7,10 @@ from query.query import Query
 from query.pipeline import RAGPipeline
 from query.llm import LLMResponder
 from query.config import Config
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("RAG_API")
+from query.logs import setup_logging
 
 config = Config()
+logger = setup_logging(config.logs_dir, 'RAG_API')
 
 app = FastAPI(title=config.api_title,
               description="RAG API for question answering with context retrieval")
@@ -19,7 +18,7 @@ app = FastAPI(title=config.api_title,
 try:
     query = Query(config)
     responder = LLMResponder(config)
-    pipeline = RAGPipeline(query=query, responder=responder)
+    pipeline = RAGPipeline(config=config, query=query, responder=responder)
     logger.info(f'RAG API initialized successfully.')
 except Exception as e:
     logger.error(f'Failed to initialize RAG API: {str(e)}')

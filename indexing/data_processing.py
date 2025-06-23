@@ -1,12 +1,11 @@
 import re
+import os
 import hashlib
-import logging
-from tqdm import tqdm
+
+from logs import setup_logging
 
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("DataProcessing")
-
+logger = setup_logging('./logs', 'DataProcessing')
 
 def normalize_text(text, morph):
     """Normalize text.
