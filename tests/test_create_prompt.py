@@ -11,6 +11,7 @@ class DummyConfig:
         "Если нашел - то процитируй или перефразируй, оставляя только самое важное для ответа на вопрос"
     )
     ollama_host = "http://localhost:11434"
+    logs_dir = "./logs"
 
 def test_generate_prompt_format_with_mock():
     config = DummyConfig()

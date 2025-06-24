@@ -1,8 +1,10 @@
 import re
-import os
 import hashlib
 
-from logs import setup_logging
+try:
+    from logs import setup_logging  
+except ImportError:
+    from .logs import setup_logging  
 
 
 logger = setup_logging('./logs', 'DataProcessing')

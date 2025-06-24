@@ -1,6 +1,5 @@
 import json
 import os
-import logging
 from logging.handlers import RotatingFileHandler
 
 import numpy as np
@@ -13,7 +12,10 @@ import pymorphy2
 
 from data_processing import normalize_text, check_data_quality
 from data_vectorize import create_embeddings
-from logs import setup_logging
+try:
+    from logs import setup_logging  
+except ImportError:
+    from .logs import setup_logging 
 
 class Indexing:
     """Manage text indexing process with embedding creation and FAISS index maintenance."""
