@@ -183,13 +183,12 @@ class Indexing:
         return res
 
 
-
     def run_indexing(self):
         """Full indexing pipeline."""
         df = self.load_data(path=self.data_path)
-        #self.split_to_chunks(df)
-
         df_clean = self.check_quality(df)
+
+        #df_clean = self.split_to_chunks(df_clean)
 
         self.check_existing_index()
         self.check_existing_haches()
