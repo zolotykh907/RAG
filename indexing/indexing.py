@@ -165,6 +165,7 @@ class Indexing:
         else:
             df.to_json(self.processed_data_path, orient='records', force_ascii=False, indent=4)
     
+    
     def split_to_chunks(self, df):
         res = []
         
