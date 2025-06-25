@@ -8,7 +8,7 @@ import faiss
 import requests
 from sentence_transformers import SentenceTransformer
 from tqdm.auto import tqdm
-import pymorphy2
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from data_processing import normalize_text, check_data_quality
 from data_vectorize import create_embeddings
@@ -39,6 +39,8 @@ class Indexing:
         self.flag_save_data = config.flag_save_data
         self.quality_log_path = config.quality_log_path
         self.morph = pymorphy2.MorphAnalyzer()
+        self.text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, 
+                                                            chunk_overlap=0)
 
         os.makedirs(self.data_dir, exist_ok=True)
 
@@ -90,7 +92,7 @@ class Indexing:
             with open(path, 'r') as f:
                 data = json.load(f)
                 self.logger.info(f"Loaded data from {path}.")
-
+                
             df = pd.DataFrame(data)
             return df
         except FileNotFoundError:
@@ -162,11 +164,29 @@ class Indexing:
             combined_df.to_json(self.processed_data_path, orient='records', force_ascii=False, indent=4)
         else:
             df.to_json(self.processed_data_path, orient='records', force_ascii=False, indent=4)
+    
+    def split_to_chunks(self, df):
+        res = []
+        
+        for i, elem in enumerate(df.iloc()):
+            chunks = self.text_splitter.split_text(elem['text'])
+            
+            for j, chunk in enumerate(chunks):
+                res.append({
+                    'uid': i + j/10,
+                    'old_uid': elem['text'],
+                    'text': chunk
+                })
+        
+        res = pd.DataFrame(res).set_index('float_index')
+        return res
+
 
 
     def run_indexing(self):
         """Full indexing pipeline."""
         df = self.load_data(path=self.data_path)
+        #self.split_to_chunks(df)
 
         df_clean = self.check_quality(df)
 

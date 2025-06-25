@@ -9,7 +9,7 @@ except ImportError:
 
 logger = setup_logging('./logs', 'DataProcessing')
 
-def normalize_text(text, morph):
+def normalize_text(text, morph, clear_flag = False):
     """Normalize text.
     
     Args:
@@ -22,19 +22,20 @@ def normalize_text(text, morph):
     if not isinstance(text, str):
         raise ValueError("Input text must be a string")
     
-    text = text.strip().lower()
-    text = re.sub(r'\s+', ' ', text)
-    text = re.sub(r'[^\w\s]', ' ', text)
+    if clear_flag:
+        text = text.strip().lower()
+        text = re.sub(r'\s+', ' ', text)
+        text = re.sub(r'[^\w\s]', ' ', text)
 
-    words = text.split()
-    lemmas = [morph.parse(word)[0].normal_form 
-              for word in words 
-              if word.isalpha()]
-    
-    res = ' '.join(lemmas)
+        words = text.split()
+        lemmas = [morph.parse(word)[0].normal_form 
+                for word in words 
+                if word.isalpha()]
+        
+        res = ' '.join(lemmas)
 
-    return res
-
+        return res
+    return text.strip()
 
 def compute_text_hash(text):
     """Compute sha256 hash for input text.
