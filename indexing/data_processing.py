@@ -27,7 +27,9 @@ def normalize_text(text, morph):
     text = re.sub(r'[^\w\s]', ' ', text)
 
     words = text.split()
-    lemmas = [morph.parse(word)[0].normal_form for word in words if word.isalpha()]
+    lemmas = [morph.parse(word)[0].normal_form 
+              for word in words 
+              if word.isalpha()]
     
     res = ' '.join(lemmas)
 

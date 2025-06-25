@@ -30,10 +30,8 @@ class RAGPipeline:
         
         try:
             results = self.query.query(question)
-            
-            # top_contexts = [r["text"] for r in results]
 
-            answer = self.responder.generate_answer(question, results[0])
+            answer = self.responder.generate_answer(question, results)
             return {
                 "answer": answer,
                 "texts": results

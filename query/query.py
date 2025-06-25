@@ -90,17 +90,19 @@ class Query:
         """
         if not isinstance(text, str):
             raise ValueError("Input text must be a string.")
-        text = text.strip()
-        text = text.lower()
-        text = re.sub(r'\s+', ' ', text)
-        text = re.sub(r'[^\w\s]', ' ', text)
+        # text = text.strip()
+        # text = text.lower()
+        # text = re.sub(r'\s+', ' ', text)
+        # text = re.sub(r'[^\w\s]', ' ', text)
 
-        words = text.split()
-        lemmas = [self.morph.parse(word)[0].normal_form 
-                  for word in tqdm(words) 
-                  if word.isalpha()]
+        # words = text.split()
+        # lemmas = [self.morph.parse(word)[0].normal_form 
+        #           for word in tqdm(words) 
+        #           if word.isalpha()]
         
-        return ' '.join(lemmas)
+        # return ' '.join(lemmas)
+
+        return text.strip()
 
 
     def query(self, request):
@@ -126,6 +128,7 @@ class Query:
 
             d, i = self.index.search(request_embedding, self.k)
             for idx in i[0]:
+                print(idx)
                 res.append(self.texts[idx])
 
             return res
