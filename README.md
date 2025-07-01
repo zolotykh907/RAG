@@ -1,4 +1,13 @@
 # RAG
+
+
+<div align="center">
+  <img src="https://img.shields.io/badge/Python-3.12-blue?logo=python" alt="Python">
+  <img src="https://img.shields.io/badge/PostgreSQL-16-blueviolet?logo=postgresql" alt="PostgreSQL">
+  <img src="https://img.shields.io/badge/Django-092E20?logo=django&logoColor=white" alt="Django">
+</div>
+
+
 # 📌 Описание проекта
 
 Прототип сервиса вопрос-ответ (Q&A) на основе RAG архитектуры, с возможностью тестирования. 
