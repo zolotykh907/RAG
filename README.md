@@ -1,14 +1,12 @@
 # 📌 Q&A сервис с использованием RAG
-
-<div align="center">
-  <img src="https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white" alt="Python">
-  <img src="https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white" alt="Docker">
-  <img src="https://img.shields.io/badge/Llama3-FF6600?logo=meta&logoColor=white" alt="Llama3">
-  <img src="https://img.shields.io/badge/LangChain-00A67D?logo=chainlink&logoColor=white" alt="LangChain">
-  <img src="https://img.shields.io/badge/FAISS-00C4CC?logo=facebook&logoColor=white" alt="FAISS">
-  <img src="https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white" alt="FastAPI">
+<div align="center" style="margin: 20px 0;">
+  <img src="https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white&logoWidth=40" alt="Python" height="30">
+  <img src="https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white&logoWidth=40" alt="Docker" height="30">
+  <img src="https://img.shields.io/badge/Llama3-FF6600?logo=meta&logoColor=white&logoWidth=40" alt="Llama3" height="30">
+  <img src="https://img.shields.io/badge/LangChain-00A67D?logo=chainlink&logoColor=white&logoWidth=40" alt="LangChain" height="30">
+  <img src="https://img.shields.io/badge/FAISS-00C4CC?logo=facebook&logoColor=white&logoWidth=40" alt="FAISS" height="30">
+  <img src="https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white&logoWidth=40" alt="FastAPI" height="30">
 </div>
-
 
 
 Прототип сервиса вопрос-ответ (Q&A) на основе RAG архитектуры, с возможностью тестирования. 
