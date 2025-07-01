@@ -8,7 +8,7 @@
   <img src="https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white&logoWidth=40" alt="FastAPI" height="30">
 </div>
 
-<div style="margin-bottom: 40px;"></div>
+<br>
 
 Прототип сервиса вопрос-ответ (Q&A) на основе RAG архитектуры, с возможностью тестирования. 
 
@@ -252,3 +252,13 @@ pytest tests/
 5. Масштабирование
 * Запуск нескольких реплик сервиса за балансировщиком нагрузки
 
+# ✉️ Контакты
+
+<div align="center">
+  <a href="mailto:i.zolotykh@g.nsu.ru">
+    <img src="https://img.shields.io/badge/i.zolotykh@g.nsu.ru-E0FFFF?style=for-the-badge&logo=gmail" height="28">
+  </a>
+  <a href="https://t.me/igor_zolotykh">
+    <img src="https://img.shields.io/badge/@igor_zolotykh-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white" height="28">
+  </a>
+</div>
