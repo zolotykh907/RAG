@@ -2,9 +2,12 @@
 
 
 <div align="center">
-  <img src="https://img.shields.io/badge/Python-3.12-blue?logo=python" alt="Python">
-  <img src="https://img.shields.io/badge/PostgreSQL-16-blueviolet?logo=postgresql" alt="PostgreSQL">
-  <img src="https://img.shields.io/badge/Django-092E20?logo=django&logoColor=white" alt="Django">
+  <img src="https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white" alt="Docker">
+  <img src="https://img.shields.io/badge/Llama3-FF6600?logo=meta&logoColor=white" alt="Llama3">
+  <img src="https://img.shields.io/badge/LangChain-00A67D?logo=chainlink&logoColor=white" alt="LangChain">
+  <img src="https://img.shields.io/badge/FAISS-00C4CC?logo=facebook&logoColor=white" alt="FAISS">
+  <img src="https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white" alt="FastAPI">
 </div>
 
 
