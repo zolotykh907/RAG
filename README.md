@@ -256,9 +256,9 @@ pytest tests/
 
 <div align="center">
   <a href="mailto:i.zolotykh@g.nsu.ru">
-    <img src="https://img.shields.io/badge/i.zolotykh@g.nsu.ru-E0FFFF?style=for-the-badge&logo=gmail" height="28">
+    <img src="https://img.shields.io/badge/i.zolotykh@g.nsu.ru-E0FFFF?style=for-the-badge&logo=gmail&lowercase=true" height="28">
   </a>
   <a href="https://t.me/igor_zolotykh">
-    <img src="https://img.shields.io/badge/@igor_zolotykh-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white" height="28">
+    <img src="https://img.shields.io/badge/@igor_zolotykh-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white&lowercase=true" height="28">
   </a>
 </div>
