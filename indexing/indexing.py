@@ -295,7 +295,6 @@ class Indexing:
             self.logger.error(f"Error adding embeddings or saving index: {e}")
             raise
 
-        # Сохраняем обновленные хэши
         with open(self.hashes_path, 'w', encoding='utf-8') as f:
             json.dump(self.existing_hashes.to_dict('records'), f, ensure_ascii=False, indent=4)
         self.logger.info(f"Saved updated hashes to {self.hashes_path}.")

@@ -1,0 +1,14 @@
+data:
+  data_dir: './data_without_uids'
+  logs_dir: './logs_without_uids'
+  data_url: "https://raw.githubusercontent.com/vladislavneon/RuBQ/refs/heads/master/RuBQ_2.0/RuBQ_2.0_paragraphs.json"
+  data_path: "./data/RuBQ_2.0_paragraphs.json"
+  index_path: "./data_without_uids/RuBQ_index.index"
+  hashes_path: "./data_without_uids/existing_hashes.json"
+  quality_log_path: "./logs_without_uids/data_quality.json"
+  processed_data_path: "./data_without_uids/processed_data.json"
+  flag_save_data: True
+
+model:
+  emb_model_name: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+  batch_size: 32
