@@ -35,6 +35,7 @@ def normalize_text(text, morph, clear_flag = False):
         res = ' '.join(lemmas)
 
         return res
+    
     return text.strip()
 
 def compute_text_hash(text):
