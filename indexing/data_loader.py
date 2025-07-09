@@ -1,5 +1,5 @@
 import json
-
+import os
 import pandas as pd
 
 try:
@@ -34,7 +34,7 @@ class DataLoader:
             self.logger.info(f'Data from {path} loaded successfully')
             return df
         except FileNotFoundError:
-            self.logger.info(f'Error loaded data from {path}')
+            self.logger.error(f'File not found: {path}')
             raise
 
 
@@ -68,9 +68,26 @@ class DataLoader:
         return df
     
 
+    def from_dir(self, path):
+        if os.path.exists(path):
+            res_df = []
+
+            for file in os.listdir(path):
+                file_path = os.path.join(path, file)
+                try:
+                    df = self.load_data(file_path)
+                    res_df.append(df)
+                except Exception as e:
+                    self.logger.warning(f"Error download {file_path}: {e}")
+
+            return pd.concat(res_df, ignore_index=True)
+            
+
     def load_data(self, data):
         try:
             if isinstance(data, str):
+                if os.path.isdir(data):
+                    return self.from_dir(data)
                 if data.endswith('.json'):
                     return self.from_json(data)
                 elif data.endswith('.txt'):

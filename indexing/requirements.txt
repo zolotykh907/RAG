@@ -4,3 +4,7 @@ sentence_transformers
 faiss-cpu
 pymorphy2
 tqdm
+pdf2image
+pytesseract
+pillow
+fitz
