@@ -217,7 +217,7 @@ class Indexing:
 
     def run_indexing(self, data=None):
         try:
-            if data is not None:
+            if not(data is None):
                 df = self.data_loader.load_data(data=data)
             else:
                 df = self.data_loader.load_data(data=self.data_path)
@@ -262,15 +262,21 @@ class Indexing:
             # embeddings = create_embeddings(df_chunks_new['text'].tolist(), self.embedding_model, batch_size=self.batch_size)
             # self.logger.info(f"Create embeddings successfully.")
 
-            embeddings = self.load_embeddings()
-            if embeddings is None or not self.incrementation_flag:
-                embeddings = create_embeddings(df_chunks_new['text'].tolist(), 
-                                             self.embedding_model, 
-                                             batch_size=self.batch_size)
-                self.save_embeddings(embeddings)
-                self.logger.info("Created and saved new embeddings.")
+            #embeddings = self.load_embeddings()
+            existing_embeddings = self.load_embeddings() if self.incrementation_flag else None
+
+            new_embeddings = create_embeddings(df_chunks_new['text'].tolist(),
+                                               self.emb_model,
+                                               batch_size=self.batch_size)
+            
+            if existing_embeddings is not None:
+                embeddings = np.vstack([existing_embeddings, new_embeddings])
+                self.logger.info(f"Combined existing embeddings ({existing_embeddings.shape[0]}) with new ({new_embeddings.shape[0]})")
             else:
-                self.logger.info("Using existing embeddings.")
+                embeddings = new_embeddings
+                self.logger.info("Created new embeddings")
+
+            self.save_embeddings(embeddings)
 
             try:
                 if self.index is None:

@@ -15,4 +15,4 @@ def ask_question(question: str):
 # question = input("Задай вопрос: ")
 #ask_question(question)
 
-ask_question("В каком году был основан ЦСКА?")
+ask_question("Когда была создана YOLOv4?")
