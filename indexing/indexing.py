@@ -35,6 +35,8 @@ class Indexing:
         self.batch_size = config.batch_size
         self.quality_log_path = config.quality_log_path
         self.emb_model_name = config.emb_model_name
+        self.incrementation_flag = config.incrementation_flag
+        self.delete_data_flag = config.delete_data_flag
         self.index = None
         self.existing_hashes = []
         self.morph = pymorphy2.MorphAnalyzer()
@@ -42,6 +44,8 @@ class Indexing:
                                                             chunk_overlap=0)
         self.data_loader = data_loader
         self.logger = setup_logging(self.logs_dir, 'IndexingService')
+
+        self.embeddings_path = os.path.join(config.data_dir, "embeddings.npy")
 
         os.makedirs(self.data_dir, exist_ok=True)
 
@@ -119,6 +123,18 @@ class Indexing:
         else:
             self.logger.info(f"No existing hashes found at {self.processed_data_path}. Creating a new DataFrame.")
 
+    def check_existing_embeddings(self):
+        return os.path.exists(self.embeddings_path)
+
+    def load_embeddings(self):
+        if self.check_existing_embeddings():
+            return np.load(self.embeddings_path)
+        return None
+
+    def save_embeddings(self, embeddings):
+        np.save(self.embeddings_path, embeddings)
+        self.logger.info(f"Embeddings saved to {self.embeddings_path}")
+
 
     def check_quality(self, df):
         """Data quality check and save results.
@@ -175,7 +191,7 @@ class Indexing:
         return res_df
 
 
-    def run_indexing(self, data=None, incrementation_flag=True):
+    def run_indexing(self, data=None):
         try:
             if data is not None:
                 df = self.data_loader.load_data(data=data)
@@ -184,12 +200,17 @@ class Indexing:
 
             df_clean = self.check_quality(df)
             
-            if incrementation_flag:
+            if self.incrementation_flag:
                 self.check_existing_index()
                 self.check_existing_hashes()
+
+                if os.path.exists(self.processed_data_path):
+                    self.check_existing_index()
             else:
                 if os.path.exists(self.processed_data_path):
                     os.remove(self.processed_data_path)
+                if os.path.exists(self.embeddings_path):
+                    os.remove(self.embeddings_path)
 
             df_new = df_clean[~df_clean['hash'].isin(self.existing_hashes)]
 
@@ -214,8 +235,18 @@ class Indexing:
 
             self.save_data(df_chunks_new)
 
-            embeddings = create_embeddings(df_chunks_new['text'].tolist(), self.embedding_model, batch_size=self.batch_size)
-            self.logger.info(f"Create embeddings successfully.")
+            # embeddings = create_embeddings(df_chunks_new['text'].tolist(), self.embedding_model, batch_size=self.batch_size)
+            # self.logger.info(f"Create embeddings successfully.")
+
+            embeddings = self.load_embeddings()
+            if embeddings is None or not self.incrementation_flag:
+                embeddings = create_embeddings(df_chunks_new['text'].tolist(), 
+                                             self.embedding_model, 
+                                             batch_size=self.batch_size)
+                self.save_embeddings(embeddings)
+                self.logger.info("Created and saved new embeddings.")
+            else:
+                self.logger.info("Using existing embeddings.")
 
             try:
                 if self.index is None:
@@ -230,7 +261,9 @@ class Indexing:
                 self.logger.error(f"Error adding embeddings or saving index: {e}")
                 raise
         except Exception as e:
-            self.logger.error(f"Error {e}")
-            if os.path.exists(self.processed_data_path):
-                os.remove(self.processed_data_path)
-            raise
+            if self.delete_data_flag:
+                self.logger.error(f"Error {e}")
+                if os.path.exists(self.processed_data_path):
+                    os.remove(self.processed_data_path)
+                    self.logger.info(f'Delete {self.processed_data_path}')
+                raise

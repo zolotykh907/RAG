@@ -14,6 +14,8 @@ class Config:
         self.hashes_path = cfg['data']['hashes_path']
         self.quality_log_path = cfg['data']['quality_log_path']
         self.processed_data_path = cfg['data']['processed_data_path']
+        self.incrementation_flag = cfg['data']['incrementation_flag']
+        self.delete_data_flag = cfg['data']['delete_data_flag']
         
         self.emb_model_name = cfg['model']['emb_model_name']
         self.batch_size = cfg['model']['batch_size']
