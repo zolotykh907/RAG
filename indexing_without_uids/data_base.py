@@ -43,9 +43,6 @@ class FaissDB:
         if not os.path.exists(self.index_path):
             raise FileNotFoundError(f"Index file not found at {self.index_path}")
         
-        if not os.path.exists(self.processed_data_path):
-            raise FileNotFoundError(f"Data file not found at {self.processed_data_path}")
-        
         try:
             self.index = faiss.read_index(self.index_path)
             self.logger.info(f'Index loaded from {self.index_path}')
