@@ -16,6 +16,9 @@ class Config:
         self.processed_data_path = cfg['data']['processed_data_path']
         self.incrementation_flag = cfg['data']['incrementation_flag']
         self.delete_data_flag = cfg['data']['delete_data_flag']
+        self.image_types = cfg['data']['image_types']
+        self.doc_types = cfg['data']['doc_types']
+        self.ocr_types = self.image_types + self.doc_types
         
         self.emb_model_name = cfg['model']['emb_model_name']
         self.batch_size = cfg['model']['batch_size']

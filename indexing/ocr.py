@@ -10,9 +10,12 @@ except ImportError:
     from ..indexing.logs import setup_logging 
 
 class OCR:
-    def __init__(self):
-        self.logger = setup_logging('./logs/', 'OCRsystem')
-        self.image_types = ('.jpg', '.jpeg', '.png')
+    def __init__(self, config):
+        self.logs_dir = config.logs_dir
+        self.logger = setup_logging(self.logs_dir, 'OCRsystem')
+        self.image_types = config.image_types
+        self.doc_types = config.doc_types
+
 
     def rotate_image(self, img):
         try:
@@ -23,12 +26,14 @@ class OCR:
             self.logger.info(f"Error determining orientation: {e}")
             return img
 
+
     def get_text_from_image(self, img):
         img = self.rotate_image(img)
         text = pytesseract.image_to_string(image=img, lang='rus+eng')
 
         return text
     
+
     def load_pages(self, path, dpi=150):
         path = Path(path)
         
@@ -36,7 +41,7 @@ class OCR:
             try:
                 pages = convert_from_path(path, dpi=dpi)
                 self.logger.info(f"Found {len(pages)} страниц в PDF")
-                yield from pages  # Изменено: используем yield from вместо return
+                yield from pages
             except Exception as e:
                 self.logger.error(f"Error processing PDF {path} {path}: {e}")
                 return  # Пустой генератор
@@ -59,6 +64,7 @@ class OCR:
                 yield Image.open(path)
             except Exception as e:
                 self.logger.error(f"Error opening image {path} {path}: {e}")
+
 
     def run_ocr(self, path):
         texts = []

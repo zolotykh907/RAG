@@ -12,9 +12,10 @@ from ocr import OCR
 
 class DataLoader:
     def __init__(self, config):
-        self.pdf_or_image_types = ('.pdf', '.jpg', '.jpeg', '.png')
+        self.ocr_types = config.image_types + config.doc_types
         self.logs_dir = config.logs_dir
         self.logger = setup_logging(self.logs_dir, 'DataLoader')
+        self.ocr = OCR(config)
         pass
 
 
@@ -30,7 +31,6 @@ class DataLoader:
                 self.logger.info(f'Column "{column_name}" not found in file {path}')
                 raise
 
-            #df = df.rename(columns={column_name, 'text'})
             self.logger.info(f'Data from {path} loaded successfully')
             return df
         except FileNotFoundError:
@@ -61,8 +61,7 @@ class DataLoader:
 
 
     def from_pdf_or_img(self, path):
-        ocr = OCR()
-        texts = ocr.run_ocr(path)
+        texts = self.ocr.run_ocr(path)
 
         df = pd.DataFrame({'text': texts})
         return df
@@ -92,7 +91,7 @@ class DataLoader:
                     return self.from_json(data)
                 elif data.endswith('.txt'):
                     return self.from_text_file(data)
-                elif data.endswith(self.pdf_or_image_types):
+                elif data.endswith(self.ocr_types):
                     return self.from_pdf_or_img(data)
                 else:
                     return self.from_string(data)

@@ -9,6 +9,9 @@ data:
   processed_data_path: "./data/processed_data.json"
   incrementation_flag: True
   delete_data_flag: False
+  image_types: ('.jpg', '.jpeg', '.png')
+  doc_types: ('.pdf', '.doc')
+
 
 model:
   emb_model_name: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
