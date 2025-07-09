@@ -1,6 +1,5 @@
 import json
 import os
-from logging.handlers import RotatingFileHandler
 
 import numpy as np
 import pandas as pd
@@ -16,11 +15,11 @@ from data_vectorize import create_embeddings
 try:
     from logs import setup_logging  
 except ImportError:
-    from .logs import setup_logging 
+    from ..indexing.logs import setup_logging 
 
 class Indexing:
     """Manage text indexing process with embedding creation and FAISS index maintenance."""
-    def __init__(self, config):
+    def __init__(self, config, data_loader):
         """Initialize Indexing with configuration parameters.
 
         Args:
@@ -33,19 +32,21 @@ class Indexing:
         self.index_path = config.index_path
         self.hashes_path = config.hashes_path
         self.processed_data_path = config.processed_data_path
-        self.emb_model_name = config.emb_model_name
         self.batch_size = config.batch_size
+        self.quality_log_path = config.quality_log_path
+        self.emb_model_name = config.emb_model_name
         self.index = None
         self.existing_hashes = []
-        self.flag_save_data = config.flag_save_data
-        self.quality_log_path = config.quality_log_path
         self.morph = pymorphy2.MorphAnalyzer()
         self.text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, 
                                                             chunk_overlap=0)
+        self.data_loader = data_loader
+        self.logger = setup_logging(self.logs_dir, 'IndexingService')
 
         os.makedirs(self.data_dir, exist_ok=True)
 
-        self.logger = setup_logging(self.logs_dir, 'IndexingService')
+        if self.data_url:
+            self.download_data()
         self.download_emb_model()
         
 
@@ -88,7 +89,6 @@ class Indexing:
         Returns:
             DataFrame: DataFrame with loaded data.
         """
-
         try:
             with open(path, 'r') as f:
                 data = json.load(f)
@@ -110,28 +110,14 @@ class Indexing:
 
     def check_existing_hashes(self):
         """Load or create texts hashes."""
-        if os.path.exists(self.hashes_path):
-            with open(self.hashes_path, 'r') as f:
-                existing_uid_hashes = json.load(f)
+        if os.path.exists(self.processed_data_path):
+            with open(self.processed_data_path, 'r') as f:
+                processed_data = json.load(f)
 
-            self.existing_hashes = pd.DataFrame(existing_uid_hashes)
-            self.logger.info(f"Loaded existing hashes from {self.hashes_path}.")
+            self.existing_hashes = pd.DataFrame(processed_data)['hash'].tolist()
+            self.logger.info(f"Loaded existing hashes from {self.processed_data_path}.")
         else:
-            self.logger.info(f"No existing hashes found at {self.hashes_path}. Creating a new DataFrame.")
-
-            self.existing_hashes = pd.DataFrame(columns=['uid', 'hash'])
-    
-
-    def update_existing_hashes(self, df):
-        """Update existing hashes with new data.
-
-        Args:
-            df (DataFrame): DataFrame with uid and text_hash.
-        """
-        new_uids = df['uid'].tolist()
-        new_hashes = df['text_hash'].tolist()
-        self.existing_hashes = pd.concat([self.existing_hashes, pd.DataFrame({'uid': new_uids, 'hash': new_hashes})], ignore_index=True)
-        self.logger.info(f"Updated existing hashes.")
+            self.logger.info(f"No existing hashes found at {self.processed_data_path}. Creating a new DataFrame.")
 
 
     def check_quality(self, df):
@@ -161,10 +147,11 @@ class Indexing:
         if os.path.exists(self.processed_data_path):
             processed_df = self.load_data(path=self.processed_data_path)
             combined_df = pd.concat([processed_df, df], ignore_index=True)
-            combined_df = combined_df.drop_duplicates(subset=['uid'])
             combined_df.to_json(self.processed_data_path, orient='records', force_ascii=False, indent=4)
         else:
             df.to_json(self.processed_data_path, orient='records', force_ascii=False, indent=4)
+
+        self.logger.info(f"Saved updated hashes and texts to {self.processed_data_path}.")
     
 
     def split_to_chunks(self, df):
@@ -181,8 +168,6 @@ class Indexing:
             chunks = self.text_splitter.split_text(row['text'])
             for i, chunk in enumerate(chunks):
                 res.append({
-                    'uid': f"{row['uid']}_{i}",
-                    'old_uid': row['uid'],
                     'text': chunk
                 })
 
@@ -190,112 +175,62 @@ class Indexing:
         return res_df
 
 
-    # def run_indexing(self):
-    #     """Full indexing pipeline."""
-    #     df = self.load_data(path=self.data_path)
-    #     df_clean = self.check_quality(df)
+    def run_indexing(self, data=None, incrementation_flag=True):
+        try:
+            if data is not None:
+                df = self.data_loader.load_data(data=data)
+            else:
+                df = self.data_loader.load_data(data=self.data_path)
 
-    #     self.check_existing_index()
-    #     self.check_existing_haches()
+            df_clean = self.check_quality(df)
+            
+            if incrementation_flag:
+                self.check_existing_index()
+                self.check_existing_hashes()
+            else:
+                if os.path.exists(self.processed_data_path):
+                    os.remove(self.processed_data_path)
 
-    #     df_new = df_clean[~df_clean['text_hash'].isin(self.existing_hashes['hash'].tolist())]
+            df_new = df_clean[~df_clean['hash'].isin(self.existing_hashes)]
 
-    #     if df_new.empty:
-    #         self.logger.info("No new data to index.")
-    #         return
-        
-    #     df_chunks = self.split_to_chunks(df_clean)
+            if df_new.empty:
+                self.logger.info("No new unique texts to index.")
 
-    #     df_chunks = self.split_to_chunks(df_new)
-    #     df_chunks['text_hash'] = df_chunks['text'].apply(compute_text_hash)
+            df_chunks = self.split_to_chunks(df_new)
+            df_chunks['hash'] = df_chunks['text'].apply(compute_text_hash)
 
-    #     df_chunks_new = df_chunks[~df_chunks['text_hash'].isin(self.existing_hashes['hash'].tolist())]
+            df_chunks_new = df_chunks[~df_chunks['hash'].isin(self.existing_hashes)]
 
-    #     if df_chunks_new.empty:
-    #         self.logger.info("No new unique chunks to index.")
-    #         return
-        
-        
-    #     self.update_existing_hashes(df_new)
+            if df_chunks_new.empty:
+                self.logger.info("No new unique chunks to index.")
 
-    #     df_new = df_new.drop('text_hash', axis=1)
-    #     self.logger.info(f"Found {len(df_new)} new texts to index.")
+            new_hashes = df_chunks_new['hash'].tolist()
+            self.existing_hashes.extend(new_hashes)
 
-    #     if self.flag_save_data:
-    #         self.save_data(df_new)
+            self.logger.info(f"Found {len(df_chunks_new)} new chunks to index.")
 
-    #     self.logger.info(f'Text normalization...')
-    #     df_new['text'] = df_new['text'].apply(lambda x: normalize_text(x, morph=self.morph))
-        
-    #     embeddings = create_embeddings(df_new['text'].tolist(), self.embedding_model, batch_size=self.batch_size)
+            self.logger.info("Normalizing chunk texts...")
+            df_chunks_new['text'] = df_chunks_new['text'].apply(lambda x: normalize_text(x, morph=self.morph))
 
-    #     try:
-    #         if self.index is None:
-    #             dim = embeddings.shape[1]
-    #             self.index = faiss.IndexFlatL2(dim)
-
-    #         self.index.add(np.array(embeddings, dtype=np.float32))
-    #         faiss.write_index(self.index, self.index_path)
-    #         self.logger.info(f"Index saved to {self.index_path}.")
-    #     except Exception as e:
-    #         self.logger.error(f"Error when adding or saving the index: {e}")
-    #         raise
-
-    #     with open(self.hashes_path, 'w') as f:
-    #         json.dump(self.existing_hashes.to_dict('records'), f, ensure_ascii=False, indent=4)
-    #         self.logger.info(f"Saved updated hashes to {self.hashes_path}.")
-
-    def run_indexing(self):
-        self.download_data()
-        df = self.load_data(path=self.data_path)
-        df_clean = self.check_quality(df)
-
-        self.check_existing_index()
-        self.check_existing_hashes()
-
-        existing_hash_set = set(self.existing_hashes['hash'].tolist())
-        df_new = df_clean[~df_clean['text_hash'].isin(existing_hash_set)]
-
-        if df_new.empty:
-            self.logger.info("No new unique texts to index.")
-            return
-
-        df_chunks = self.split_to_chunks(df_new)
-        df_chunks['text_hash'] = df_chunks['text'].apply(compute_text_hash)
-
-        df_chunks_new = df_chunks[~df_chunks['text_hash'].isin(existing_hash_set)]
-
-        if df_chunks_new.empty:
-            self.logger.info("No new unique chunks to index.")
-            return
-
-        new_hashes_df = df_chunks_new[['uid', 'text_hash']].rename(columns={'text_hash': 'hash'})
-        self.existing_hashes = pd.concat([self.existing_hashes, new_hashes_df], ignore_index=True)
-        self.existing_hashes.drop_duplicates(subset=['uid'], inplace=True)
-
-        self.logger.info(f"Found {len(df_chunks_new)} new chunks to index.")
-
-        if self.flag_save_data:
             self.save_data(df_chunks_new)
 
-        self.logger.info("Normalizing chunk texts...")
-        df_chunks_new['text'] = df_chunks_new['text'].apply(lambda x: normalize_text(x, morph=self.morph))
+            embeddings = create_embeddings(df_chunks_new['text'].tolist(), self.embedding_model, batch_size=self.batch_size)
+            self.logger.info(f"Create embeddings successfully.")
 
-        embeddings = create_embeddings(df_chunks_new['text'].tolist(), self.embedding_model, batch_size=self.batch_size)
+            try:
+                if self.index is None:
+                    dim = embeddings.shape[1]
+                    self.index = faiss.IndexFlatL2(dim)
+                    self.logger.info(f"Created new FAISS index with dimension {dim}.")
 
-        try:
-            if self.index is None:
-                dim = embeddings.shape[1]
-                self.index = faiss.IndexFlatL2(dim)
-                self.logger.info(f"Created new FAISS index with dimension {dim}.")
-
-            self.index.add(np.array(embeddings, dtype=np.float32))
-            faiss.write_index(self.index, self.index_path)
-            self.logger.info(f"FAISS index saved to {self.index_path}.")
+                self.index.add(np.array(embeddings, dtype=np.float32))
+                faiss.write_index(self.index, self.index_path)
+                self.logger.info(f"FAISS index saved to {self.index_path}.")
+            except Exception as e:
+                self.logger.error(f"Error adding embeddings or saving index: {e}")
+                raise
         except Exception as e:
-            self.logger.error(f"Error adding embeddings or saving index: {e}")
+            self.logger.error(f"Error {e}")
+            if os.path.exists(self.processed_data_path):
+                os.remove(self.processed_data_path)
             raise
-
-        with open(self.hashes_path, 'w', encoding='utf-8') as f:
-            json.dump(self.existing_hashes.to_dict('records'), f, ensure_ascii=False, indent=4)
-        self.logger.info(f"Saved updated hashes to {self.hashes_path}.")

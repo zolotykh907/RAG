@@ -17,14 +17,12 @@ class FaissDB:
         self.logger = setup_logging(self.logs_dir, 'FaissDB')
 
 
-    def check_existing_index(self):
-        """"Load existing index FAISS."""
-        if os.path.exists(self.index_path):
-            self.index = faiss.read_index(self.index_path)
-            self.logger.info(f"Loaded existing index from {self.index_path}.")
-
-
     def create_index(self, embeddings):
+        """Create a new FAISS index or updates an existing.
+
+        Args:
+            embeddings (np.ndarray): numpy array of embeddings to index
+        """
         try:
             if self.index is None:
                 dim = embeddings.shape[1]
@@ -52,8 +50,26 @@ class FaissDB:
 
     
     def search(self, request_embedding):
-        d, ids = self.index.search(request_embedding, self.k)
+        """Nearest-neighbor search in FAISS.
 
+        Args:
+            request_embedding (np.ndarray): Query embedding vector. 
+
+        Returns:
+            np.ndarray: array of indices of the k nearest neighbors.
+        """
+        if self.index is None:
+            raise RuntimeError("Index is not loaded or created")
+        
+        d, ids = self.index.search(request_embedding, self.k)
         return ids[0]
+    
+
+    def delete_index(self):
+        """Deletes the FAISS index."""
+        if os.path.exists(self.index_path):
+            os.remove(self.index_path)
+            self.index = None
+            self.logger.info(f'Deleted index at {self.index_path}')
     
 

@@ -1,7 +1,7 @@
 data:
   index_path: "./data/RuBQ_index.index"
   logs_dir: './logs'
-  processed_data_path: "./data/processed_texts.json"
+  processed_data_path: "./data/processed_data.json"
 
 models:
   emb_model_name: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"

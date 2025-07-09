@@ -68,13 +68,9 @@ def check_data_quality(df, logger=logger, min_len=10):
     empty_docs = df[(df['text'] == '')]
     logger.info(f'Number of empty docs: {len(empty_docs)}')
 
-    # Duplicates uids
-    duplicate_uids = df[df.duplicated(subset=['uid'], keep='first')]
-    logger.info(f"Number of duplicates by uid: {len(duplicate_uids)}")
-
     # Duplicates texts
-    df['text_hash'] = df['text'].apply(compute_text_hash)
-    duplicate_texts = df[df.duplicated(subset=['text_hash'], keep='first')]
+    df['hash'] = df['text'].apply(compute_text_hash)
+    duplicate_texts = df[df.duplicated(subset=['hash'], keep='first')]
     logger.info(f"Number of duplicates by hashes: {len(duplicate_texts)}")
 
     # Short texts
@@ -85,8 +81,6 @@ def check_data_quality(df, logger=logger, min_len=10):
     res = {}
     res['empty_docs'] = {'count': len(empty_docs), 
                          'data': empty_docs.to_dict(orient='records')}
-    res['duplicate_uids'] = {'count': len(duplicate_uids), 
-                             'data': duplicate_uids.to_dict(orient='records')}
     res['duplicate_texts'] = {'count': len(duplicate_texts), 
                               'data': duplicate_texts.to_dict(orient='records')}
     res['short_texts'] = {'count': len(short_texts), 
@@ -96,7 +90,7 @@ def check_data_quality(df, logger=logger, min_len=10):
     df_clean = df[
         (df['text'] != '') & 
         (df['text'].str.len() >= min_len)  
-    ].drop_duplicates(subset=['text_hash'], keep='first')
+    ].drop_duplicates(subset=['hash'], keep='first')
     
     res['remaining_docs'] = len(df_clean)
     res['removed_docs'] = len(df) - len(df_clean)

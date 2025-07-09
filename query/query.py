@@ -62,6 +62,7 @@ class Query:
         try:
             self.index = faiss.read_index(self.index_path)
             self.logger.info(f'Index loaded from {self.index_path}')
+            self.logger.info(f"Count of vectors: {self.index.ntotal}")
         except Exception as e:
             self.logger.error(f"Failed to load FAISS index from {self.index_path}: {str(e)}")
             raise
@@ -71,10 +72,12 @@ class Query:
                 self.data = json.load(f)
                 if not isinstance(self.data, list):
                     raise ValueError("Loaded data is not a list")
-                self.logger.info(f'loaded data from {self.processed_data_path}')
 
                 self.texts = [item['text'] for item in self.data]
-                self.logger.info(f'loaded {len(self.texts)} texts from data')
+                self.logger.info(f'loaded {len(self.texts)} texts from {self.processed_data_path}')
+
+                if self.index.ntotal != len(self.texts):
+                    self.logger.error(f"The number of texts must match the number of vectors in the DB.")
         except Exception as e:
             self.logger.error(f'Failed to load data from {self.texts}: {str(e)}')
     
@@ -90,17 +93,6 @@ class Query:
         """
         if not isinstance(text, str):
             raise ValueError("Input text must be a string.")
-        # text = text.strip()
-        # text = text.lower()
-        # text = re.sub(r'\s+', ' ', text)
-        # text = re.sub(r'[^\w\s]', ' ', text)
-
-        # words = text.split()
-        # lemmas = [self.morph.parse(word)[0].normal_form 
-        #           for word in tqdm(words) 
-        #           if word.isalpha()]
-        
-        # return ' '.join(lemmas)
 
         return text.strip()
 

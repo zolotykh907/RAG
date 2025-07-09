@@ -75,7 +75,7 @@ class DataLoader:
                     return self.from_json(data)
                 elif data.endswith('.txt'):
                     return self.from_text_file(data)
-                elif data.endswith(self.image_types):
+                elif data.endswith(self.pdf_or_image_types):
                     return self.from_pdf_or_img(data)
                 else:
                     return self.from_string(data)
