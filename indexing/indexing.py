@@ -88,7 +88,7 @@ class Indexing:
         Returns:
             DataFrame: DataFrame with loaded data.
         """
-        self.download_data()
+
         try:
             with open(path, 'r') as f:
                 data = json.load(f)
@@ -246,6 +246,7 @@ class Indexing:
     #         self.logger.info(f"Saved updated hashes to {self.hashes_path}.")
 
     def run_indexing(self):
+        self.download_data()
         df = self.load_data(path=self.data_path)
         df_clean = self.check_quality(df)
 

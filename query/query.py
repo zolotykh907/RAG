@@ -128,7 +128,6 @@ class Query:
 
             d, i = self.index.search(request_embedding, self.k)
             for idx in i[0]:
-                print(idx)
                 res.append(self.texts[idx])
 
             return res
