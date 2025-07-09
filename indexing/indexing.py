@@ -1,5 +1,6 @@
 import json
 import os
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -51,10 +52,33 @@ class Indexing:
 
         if self.data_url:
             self.download_data()
-        self.download_emb_model()
+        #self.download_emb_model()
+        self.emb_model = self.local_load_embedding_model()
         
 
-    def download_emb_model(self):
+    def local_load_embedding_model(self):
+        cache_dir = os.path.join(
+            Path.home(), 
+            ".cache", 
+            "huggingface", 
+            "hub", 
+            "models--sentence-transformers--paraphrase-multilingual-MiniLM-L12-v2",
+            "snapshots"
+        )
+        
+        snapshots = [d for d in os.listdir(cache_dir) if os.path.isdir(os.path.join(cache_dir, d))]
+        if not snapshots:
+            raise FileNotFoundError(
+                f"Model {self.emb_model_name} not found in local cache {cache_dir}. "
+            )
+        
+        latest_snapshot = sorted(snapshots)[-1]
+        model_path = os.path.join(cache_dir, latest_snapshot)
+        
+        self.logger.info(f"Load embedding model from local cache: {model_path}")
+        return SentenceTransformer(model_path, device='cpu')
+    
+    def download_embedding_model(self):
         """Download of embedding model."""
         self.logger.info(f"Loading model {self.emb_model_name}...")
         try:
