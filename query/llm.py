@@ -36,14 +36,22 @@ class LLMResponder:
             texts (list[str]): list of texts for context.
 
         Returns:
-            Str: generated answer
+            str: generated answer
         """
         if not isinstance(question, str) or not question.strip():
             raise ValueError("Question must be a non-empty string")
         
+        if not texts or not isinstance(texts, list):
+            raise ValueError("Texts must be a non-empty list")
+        
         try:
             context = '\n'.join(texts)
             response = self.chain.invoke({"question": question, "context": context})
+            
+            if not response or not isinstance(response, str):
+                self.logger.warning("LLM returned empty or invalid response")
+                return "Не удалось сгенерировать ответ."
+                
             return response
         except Exception as e:
             self.logger.error(f'Answer generation failed: {str(e)}')

@@ -85,19 +85,20 @@ class Query:
             raise FileNotFoundError(f"Data file not found at {self.processed_data_path}")
 
         try:
-            with open(self.processed_data_path, 'r') as f:
+            with open(self.processed_data_path, 'r', encoding='utf-8') as f:
                 self.data = json.load(f)
                 if not isinstance(self.data, list):
                     raise ValueError("Loaded data is not a list")
 
                 self.texts = [item['text'] for item in self.data]
-                self.logger.info(f'loaded {len(self.texts)} texts from {self.processed_data_path}')
+                self.logger.info(f'Loaded {len(self.texts)} texts from {self.processed_data_path}')
 
                 if self.data_base.index.ntotal != len(self.texts):
-                    self.logger.error(f"The number of texts != the number of vectors.")
+                    self.logger.error(f"The number of texts ({len(self.texts)}) != the number of vectors ({self.data_base.index.ntotal})")
                     raise ValueError(f"The number of texts must match the number of vectors in the DB.")
         except Exception as e:
             self.logger.error(f"Failed to load data from {self.processed_data_path}: {str(e)}")
+            raise
     
 
     def normalize_text(self, text):
