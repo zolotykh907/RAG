@@ -72,5 +72,3 @@ class FaissDB:
             os.remove(self.index_path)
             self.index = None
             self.logger.info(f'Deleted index at {self.index_path}')
-    
-

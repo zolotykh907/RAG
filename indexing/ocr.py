@@ -1,13 +1,11 @@
 import os
+import sys
 from pathlib import Path
 import pytesseract
 from PIL import Image
 from pdf2image import convert_from_path
 
-
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'shared'))
 from logs import setup_logging 
 
 class OCR:
@@ -45,7 +43,7 @@ class OCR:
                 yield from pages
             except Exception as e:
                 self.logger.error(f"Error processing PDF {path} {path}: {e}")
-                return  # Пустой генератор
+                return  
         
         elif path.is_dir():
             for file in path.iterdir():

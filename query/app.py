@@ -9,9 +9,9 @@ from query.llm import LLMResponder
 from query.config import Config
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'shared'))
 from logs import setup_logging
-from indexing.data_base import FaissDB
+from data_base import FaissDB
 
 config = Config()
 logger = setup_logging(config.logs_dir, 'RAG_API')

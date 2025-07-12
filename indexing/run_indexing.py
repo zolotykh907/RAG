@@ -1,9 +1,10 @@
-import os
 import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import os
+sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'shared'))
 
 from config import Config
 from indexing import Indexing
+
 from data_loader import DataLoader
 from data_base import FaissDB
 
@@ -14,4 +15,4 @@ I = Indexing(config, data_loader, DB)
 
 
 #I.run_indexing()
-I.run_indexing('В 1965 году был основал самый большой волейбольный клуб в мире, назывался он "СуперМены". Это был первый шаг в развитии волейбола в СССР.')
+I.run_indexing('В 1999 году Золотых Игорь Алексеевич, великий русский поэт, родился.')
