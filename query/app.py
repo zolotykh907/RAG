@@ -7,8 +7,11 @@ from query.query import Query
 from query.pipeline import RAGPipeline
 from query.llm import LLMResponder
 from query.config import Config
-from query.logs import setup_logging
-from query.data_base import FaissDB
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from logs import setup_logging
+from indexing.data_base import FaissDB
 
 config = Config()
 logger = setup_logging(config.logs_dir, 'RAG_API')

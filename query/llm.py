@@ -4,7 +4,10 @@ import logging
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama.llms import OllamaLLM
 
-from query.logs import setup_logging
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from logs import setup_logging
 
 
 class LLMResponder:

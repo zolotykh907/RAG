@@ -117,6 +117,7 @@ class Indexing:
             emb_model = self.download_embedding_model()
             return emb_model
 
+
     def download_data(self):
         """Download and sace data from URL"""
         if not os.path.exists(self.data_path):
@@ -179,39 +180,21 @@ class Indexing:
 
         return df_clean
     
-    
-    # def save_processed_data(self, df):
-    #     """Save processed data to file, merging with existing data.
-
-    #     Args:
-    #         df (DataFrame): DataFrame to save.
-    #     """
-    #     if os.path.exists(self.processed_data_path):
-    #         processed_df = self.load_data(path=self.processed_data_path)
-    #         combined_df = pd.concat([processed_df, df], ignore_index=True)
-    #         combined_df.to_json(self.processed_data_path, orient='records', force_ascii=False, indent=4)
-    #     else:
-    #         df.to_json(self.processed_data_path, orient='records', force_ascii=False, indent=4)
-
-    #     self.logger.info(f"Saved updated hashes and texts to {self.processed_data_path}.")
 
     def save_processed_data(self, df):
         """Save processed data, merging with existing if incrementing."""
         try:
             if self.incrementation_flag and os.path.exists(self.processed_data_path):
-                # Load existing data
                 with open(self.processed_data_path, 'r', encoding='utf-8') as f:
                     existing_data = json.load(f)
                 
                 existing_df = pd.DataFrame(existing_data)
                 combined_df = pd.concat([existing_df, df], ignore_index=True)
                 
-                # Remove duplicates
                 combined_df = combined_df.drop_duplicates(subset=['hash'], keep='first')
             else:
                 combined_df = df
             
-            # Save combined data
             combined_df.to_json(
                 self.processed_data_path, 
                 orient='records', 
