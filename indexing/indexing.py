@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -11,12 +12,9 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from data_processing import normalize_text, check_data_quality, compute_text_hash
 from data_vectorize import *
-from .logs import setup_logging
 
-# try:
-#     from logs import setup_logging  
-# except ImportError:
-#     from ..indexing.logs import setup_logging 
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from logs import setup_logging 
 
 class Indexing:
     """Manage text indexing process with embedding creation and FAISS index maintenance."""

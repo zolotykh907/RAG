@@ -5,10 +5,10 @@ from PIL import Image
 from pdf2image import convert_from_path
 
 
-try:
-    from logs import setup_logging  
-except ImportError:
-    from ..indexing.logs import setup_logging 
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from logs import setup_logging 
 
 class OCR:
     def __init__(self, config):
