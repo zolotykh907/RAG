@@ -1,3 +1,7 @@
+import os
+import numpy as np
+
+
 def create_embeddings(texts, model, batch_size=32):
     """creating embeddings for input texts.
 
@@ -17,3 +21,17 @@ def create_embeddings(texts, model, batch_size=32):
     )
 
     return embeddings
+
+
+def check_existing_embeddings(embeddings_path):
+        return os.path.exists(embeddings_path)
+
+
+def load_embeddings(embeddings_path):
+    if check_existing_embeddings(embeddings_path):
+        return np.load(embeddings_path)
+    return None
+
+
+def save_embeddings(embeddings, embeddings_path):
+    np.save(embeddings_path, embeddings)

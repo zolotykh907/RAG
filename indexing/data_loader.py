@@ -12,7 +12,7 @@ from ocr import OCR
 
 class DataLoader:
     def __init__(self, config):
-        self.ocr_types = config.image_types + config.doc_types
+        self.ocr_types = config.ocr_types
         self.logs_dir = config.logs_dir
         self.logger = setup_logging(self.logs_dir, 'DataLoader')
         self.ocr = OCR(config)
@@ -96,7 +96,7 @@ class DataLoader:
                 else:
                     return self.from_string(data)
             elif isinstance(data, list):
-                return self.data_from_list(data)
+                return self.from_list(data)
         except Exception as e:
             self.logger.info(f'Error loaded data: {e}')
             raise

@@ -1,8 +1,6 @@
 import json
 import os
-import re
-import logging
-from logging.handlers import RotatingFileHandler
+from pathlib import Path
 
 import faiss
 from sentence_transformers import SentenceTransformer
@@ -14,26 +12,53 @@ from query.logs import setup_logging
 
 class Query:
     """a class for preprocessing the question and semantic searching"""
-    def __init__(self, config):
+    def __init__(self, config, data_base):
         """Initialize the Query service with configuration parameters.
         
         Args:
             config: configuration object with parameters.
             """
+        self.data_base = data_base
         self.index_path = config.index_path
         self.logs_dir = config.logs_dir
         self.processed_data_path = config.processed_data_path
         self.emb_model_name = config.emb_model_name
-        self.index = None
         self.data = None
         self.texts = None
         self.k = config.k
         self.morph = pymorphy2.MorphAnalyzer()
 
         self.logger = setup_logging(self.logs_dir, 'QueryService')
-        self.load_texts_and_index()
-        self.download_emb_model()
+        self.data_base.load_index(self.index_path)
+        self.load_texts()
+        #self.download_emb_model()
+        self.embedding_model = self.load_local_embedding_model()
         
+    def load_local_embedding_model(self):
+        try:
+            cache_dir = os.path.join(
+                Path.home(), 
+                ".cache", 
+                "huggingface", 
+                "hub", 
+                "models--sentence-transformers--paraphrase-multilingual-MiniLM-L12-v2",
+                "snapshots"
+            )
+            
+            snapshots = [d for d in os.listdir(cache_dir) if os.path.isdir(os.path.join(cache_dir, d))]
+            if not snapshots:
+                raise FileNotFoundError(
+                    f"Model {self.emb_model_name} not found in local cache {cache_dir}. "
+                    )
+            
+            latest_snapshot = sorted(snapshots)[-1]
+            model_path = os.path.join(cache_dir, latest_snapshot)
+            
+            self.logger.info(f"Load embedding model from local cache: {model_path}")
+            return SentenceTransformer(model_path, device='cpu')
+        except Exception as e:
+            self.logger.error(f'Error load model from cache: {e}')
+            raise
 
     def download_emb_model(self):
         """Download and initialize the sentence embedding model."""
@@ -51,21 +76,10 @@ class Query:
             raise
 
 
-    def load_texts_and_index(self):
-        """Load the FAISS index and processed text data from files."""
-        if not os.path.exists(self.index_path):
-            raise FileNotFoundError(f"Index file not found at {self.index_path}")
-        
+    def load_texts(self):
+        """Load the processed text from file."""
         if not os.path.exists(self.processed_data_path):
             raise FileNotFoundError(f"Data file not found at {self.processed_data_path}")
-        
-        try:
-            self.index = faiss.read_index(self.index_path)
-            self.logger.info(f'Index loaded from {self.index_path}')
-            self.logger.info(f"Count of vectors: {self.index.ntotal}")
-        except Exception as e:
-            self.logger.error(f"Failed to load FAISS index from {self.index_path}: {str(e)}")
-            raise
 
         try:
             with open(self.processed_data_path, 'r') as f:
@@ -76,10 +90,11 @@ class Query:
                 self.texts = [item['text'] for item in self.data]
                 self.logger.info(f'loaded {len(self.texts)} texts from {self.processed_data_path}')
 
-                if self.index.ntotal != len(self.texts):
-                    self.logger.error(f"The number of texts must match the number of vectors in the DB.")
+                if self.data_base.index.ntotal != len(self.texts):
+                    self.logger.error(f"The number of texts != the number of vectors.")
+                    raise ValueError(f"The number of texts must match the number of vectors in the DB.")
         except Exception as e:
-            self.logger.error(f'Failed to load data from {self.texts}: {str(e)}')
+            self.logger.error(f"Failed to load data from {self.processed_data_path}: {str(e)}")
     
 
     def normalize_text(self, text):
@@ -118,9 +133,9 @@ class Query:
                 convert_to_numpy=True
                 )
 
-            d, i = self.index.search(request_embedding, self.k)
-            for idx in i[0]:
-                res.append(self.texts[idx])
+            ids = self.data_base.search(request_embedding)
+            for id in ids:
+                res.append(self.texts[id])
 
             return res
         except Exception as e:

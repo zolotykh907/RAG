@@ -2,10 +2,8 @@ import os
 import faiss
 import numpy as np
 
-try:
-    from logs import setup_logging  
-except ImportError:
-    from ..indexing.logs import setup_logging 
+from query.logs import setup_logging  
+
 
 
 class FaissDB:
@@ -37,14 +35,16 @@ class FaissDB:
             raise
 
     def load_index(self, index_path=None):
-        """Load the FAISS index and processed text data from files."""
         if index_path is None:
             index_path = self.index_path
+        """Load the FAISS index and processed text data from files."""
         if not os.path.exists(self.index_path):
             self.logger.info(f"Index file not found at {self.index_path}")
+            return 0
         try:
             self.index = faiss.read_index(self.index_path)
             self.logger.info(f'Index loaded from {self.index_path}')
+            self.logger.info(f"Count of vectors: {self.index.ntotal}")
         except Exception as e:
             self.logger.error(f"Failed to load FAISS index from {self.index_path}: {str(e)}")
             raise

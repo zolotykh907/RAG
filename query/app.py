@@ -8,6 +8,7 @@ from query.pipeline import RAGPipeline
 from query.llm import LLMResponder
 from query.config import Config
 from query.logs import setup_logging
+from query.data_base import FaissDB
 
 config = Config()
 logger = setup_logging(config.logs_dir, 'RAG_API')
@@ -16,7 +17,8 @@ app = FastAPI(title=config.api_title,
               description="RAG API for question answering with context retrieval")
 
 try:
-    query = Query(config)
+    data_base = FaissDB(config)
+    query = Query(config, data_base)
     responder = LLMResponder(config)
     pipeline = RAGPipeline(config=config, query=query, responder=responder)
     logger.info(f'RAG API initialized successfully.')

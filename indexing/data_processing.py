@@ -9,7 +9,7 @@ except ImportError:
 
 logger = setup_logging('./logs', 'DataProcessing')
 
-def normalize_text(text, morph, clear_flag = False):
+def normalize_text(text, morph=None, clear_flag = False):
     """Normalize text.
     
     Args:
