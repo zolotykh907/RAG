@@ -11,6 +11,7 @@ data:
   delete_data_flag: False
   image_types: ['.jpg', '.jpeg', '.png']
   doc_types: ['.pdf', '.doc']
+  ocr_types: ['.jpg', '.jpeg', '.png', '.pdf', '.doc']
 
 
 model:

@@ -12,7 +12,7 @@ from ocr import OCR
 
 class DataLoader:
     def __init__(self, config):
-        self.ocr_types = config.ocr_types
+        self.ocr_types = tuple(config.ocr_types)
         self.logs_dir = config.logs_dir
         self.logger = setup_logging(self.logs_dir, 'DataLoader')
         self.ocr = OCR(config)

@@ -2,9 +2,8 @@ import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'shared'))
 
-from config import Config
 from indexing import Indexing
-
+from my_config import Config
 from data_loader import DataLoader
 from data_base import FaissDB
 
