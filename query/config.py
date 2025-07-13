@@ -8,6 +8,9 @@ class Config:
         self.index_path = cfg['data']['index_path']
         self.logs_dir = cfg['data']['logs_dir']
         self.processed_data_path = cfg['data']['processed_data_path']
+        self.image_types = cfg['data']['image_types']
+        self.doc_types = cfg['data']['doc_types']
+        self.ocr_types = tuple(self.image_types + self.doc_types)
 
         self.emb_model_name = cfg['models']['emb_model_name']
         self.llm = cfg['models']['llm']

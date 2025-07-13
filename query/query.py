@@ -5,7 +5,6 @@ from pathlib import Path
 import faiss
 from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
-import pymorphy2
 
 import sys
 import os
@@ -29,7 +28,6 @@ class Query:
         self.data = None
         self.texts = None
         self.k = config.k
-        self.morph = pymorphy2.MorphAnalyzer()
 
         self.logger = setup_logging(self.logs_dir, 'QueryService')
         self.data_base.load_index(self.index_path)
