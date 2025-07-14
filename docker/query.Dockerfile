@@ -13,6 +13,7 @@ RUN pip install --no-cache-dir -r query/requirements.txt
 
 COPY query/ /app/query
 COPY shared/ /app/shared/
+COPY static/ /app/static/
 COPY docker/wait_for_it.sh /app/wait_for_it.sh
 RUN chmod +x /app/wait_for_it.sh
 

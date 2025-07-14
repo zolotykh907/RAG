@@ -3,7 +3,7 @@ import os
 import shutil
 from tempfile import TemporaryDirectory
 
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Query
 from pydantic import BaseModel
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'shared'))
@@ -20,14 +20,12 @@ from indexing import Indexing
 from query.query import Query
 from query.pipeline import RAGPipeline
 from query.llm import LLMResponder
-from query.config import Config as QueryConfig
 
 import yaml
 from fastapi.responses import JSONResponse
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'query', 'config.yaml')
 
-shared_config = SharedConfig()
-query_config = QueryConfig()
+shared_config = SharedConfig('indexing/config.yaml')
+query_config = SharedConfig('query/config.yaml')
 
 logger = setup_logging(shared_config.logs_dir, 'RAG_API')
 
@@ -69,32 +67,46 @@ class QueryResponse(BaseModel):
     answer: str
     texts: list
 
+def get_config_path(service: str) -> str:
+    """Возвращает путь к конфигурационному файлу в зависимости от сервиса."""
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base_dir, service, 'config.yaml')
+
 @app.get("/config")
-async def get_config():
-    """Получить текущую конфигурацию."""
+async def get_config(service: str):
+    """Получить текущую конфигурацию для указанного сервиса."""
+    config_path = get_config_path(service)
+    if not os.path.exists(config_path):
+        raise HTTPException(status_code=404, detail=f"Конфигурационный файл для {service} не найден")
+    
     try:
-        with open(CONFIG_PATH, 'r') as f:
+        with open(config_path, 'r') as f:
             config_data = yaml.safe_load(f)
         return config_data
     except Exception as e:
-        logger.error(f"Не удалось прочитать конфигурацию: {e}")
+        logger.error(f"Не удалось прочитать конфигурацию для {service}: {e}")
         raise HTTPException(status_code=500, detail="Ошибка при чтении конфигурации")
+
+from typing import Dict
+from fastapi import Body
 
 
 @app.post("/config")
-async def update_config(new_config: dict):
-    """Обновить конфигурацию."""
+async def update_config(service: str, new_config: Dict = Body(...)):
+    """Обновить конфигурацию для указанного сервиса."""
+    config_path = get_config_path(service)
+    if not os.path.exists(config_path):
+        raise HTTPException(status_code=404, detail=f"Конфигурационный файл для {service} не найден")
+    
     try:
         def str_presenter(dumper, data):
-            """Кастомный представление строк для многострочного текста."""
             if '\n' in data:
                 return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
             return dumper.represent_scalar('tag:yaml.org,2002:str', data)
 
-        # Регистрируем кастомный representer
         yaml.add_representer(str, str_presenter)
         
-        with open(CONFIG_PATH, 'w', encoding='utf-8') as f:
+        with open(config_path, 'w', encoding='utf-8') as f:
             yaml.dump(
                 new_config,
                 f,
@@ -105,12 +117,12 @@ async def update_config(new_config: dict):
                 indent=2
             )
         
-        logger.info("Конфигурация успешно обновлена.")
-        return {"message": "Конфигурация обновлена успешно"}
+        logger.info(f"Конфигурация для {service} успешно обновлена.")
+        return {"message": f"Конфигурация для {service} обновлена успешно"}
     except Exception as e:
-        logger.error(f"Ошибка при обновлении конфигурации: {e}")
+        logger.error(f"Ошибка при обновлении конфигурации для {service}: {e}")
         raise HTTPException(status_code=500, detail="Ошибка при обновлении конфигурации")
-        
+
 
 @app.post('/upload-files')
 async def upload_file(file: UploadFile = File(...)):
@@ -142,6 +154,33 @@ async def query_rag(request: QueryRequest):
         logger.error(f"Query failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@app.post("/reload")
+async def reload_pipeline(service: str):
+    global query_config, shared_config, data_base, query_service, responder, pipeline, data_loader, indexing_service
+
+    try:
+        query_config.reload()
+        shared_config.reload()
+        if service == "query":
+            data_base = FaissDB(shared_config)
+            query_service = Query(query_config, data_base)
+            responder = LLMResponder(query_config)
+            pipeline = RAGPipeline(config=query_config, query=query_service, responder=responder)
+        elif service == "indexing":
+            data_loader = DataLoader(shared_config)
+            data_base = FaissDB(shared_config)
+            indexing_service = Indexing(shared_config, data_loader, data_base)
+        else:
+            raise ValueError("Неизвестный сервис")
+
+        logger.info(f"{service} конфигурация перезагружена")
+        return {"message": f"{service} конфигурация перезагружена успешно"}
+    except Exception as e:
+        logger.error(f"Ошибка при перезагрузке: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get('/')
 async def root():
     """Root endpoint with API information."""
@@ -150,7 +189,8 @@ async def root():
         "version": "1.0.0",
         "endpoints": {
             "upload": "/upload-files",
-            "query": "/query"
+            "query": "/query",
+            "config": "/config?service={query|indexing}"
         }
     }
 
@@ -161,4 +201,4 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000) 
+    uvicorn.run(app, host="0.0.0.0", port=8000)

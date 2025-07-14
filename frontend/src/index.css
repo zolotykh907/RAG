@@ -219,6 +219,65 @@ button:disabled {
 } 
 
 /* --- Красивый современный стиль для страницы настроек --- */
+
+/* Стили для раскрывающихся элементов */
+details {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  margin-bottom: 1rem;
+}
+
+summary {
+  list-style: none; /* Убираем стандартный маркер */
+  padding: 0.75rem 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #4b3fa7;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+summary:hover {
+  background: #f0f4f8;
+}
+
+details[open] summary {
+  border-bottom: 1px solid #e1e5e9;
+  margin-bottom: 0.5rem;
+}
+
+/* Стили для раскрывающихся элементов */
+details {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  margin-bottom: 1rem;
+}
+
+summary {
+  list-style: none; /* Убираем стандартный маркер */
+  padding: 0.75rem 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #4b3fa7;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+summary:hover {
+  background: #f0f4f8;
+}
+
+details[open] summary {
+  border-bottom: 1px solid #e1e5e9;
+  margin-bottom: 0.5rem;
+}
+
+details > div {
+  padding: 0 1rem 1rem 1rem;
+}
+
 .config-page {
   max-width: 700px;
   margin: 2.5rem auto 0 auto;
@@ -258,7 +317,7 @@ button:disabled {
   color: #fff;
   box-shadow: 0 4px 16px rgba(102,126,234,0.13);
 }
-.field {
+/* .field {
   margin-bottom: 1.7rem;
 }
 .field label {
@@ -281,7 +340,36 @@ input[type="text"], .code-area, textarea {
 input[type="text"]:focus, .code-area:focus, textarea:focus {
   border-color: #6c63ff;
   box-shadow: 0 2px 8px rgba(102,126,234,0.10);
+} */
+
+.field {
+  margin-bottom: 1rem;
 }
+
+.field label {
+  font-size: 1rem;
+  color: #4b3fa7;
+  font-weight: 500;
+  margin-bottom: 0.3rem;
+}
+
+/* Обновление полей ввода для единообразия */
+input[type="text"], .code-area, textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1.5px solid #e1e5e9;
+  border-radius: 8px;
+  font-size: 1rem;
+  background: #fff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-shadow: 0 1px 4px rgba(102, 126, 234, 0.04);
+}
+
+input[type="text"]:focus, .code-area:focus, textarea:focus {
+  border-color: #6c63ff;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.10);
+}
+
 .code-area {
   font-family: 'Fira Mono', 'Consolas', monospace;
   min-height: 120px;
@@ -419,3 +507,53 @@ button[type="submit"]:hover, .reset-btn:hover {
   visibility: visible;
   opacity: 1;
 } 
+
+/* Навигация для страницы настроек */
+.config-nav {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 1rem 2rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  border-radius: 12px; /* Закругленные края */
+  overflow: hidden;
+  margin: 1rem auto 2rem auto; /* Отступ сверху и снизу */
+  max-width: 700px; /* Совпадение с .config-page */
+}
+
+.config-nav a {
+  text-decoration: none;
+  color: #4b3fa7; /* Цвет, соответствующий стилю .config-page */
+  font-weight: 600;
+  padding: 0.7rem 1.5rem;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+  font-size: 1.08rem; /* Совпадение с .tab */
+}
+
+.config-nav a:hover {
+  background: #ece9f7;
+  color: #6c63ff;
+}
+
+.config-nav a.active {
+  background: #6c63ff;
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.13);
+}
+
+/* Адаптивность для .config-nav */
+@media (max-width: 768px) {
+  .config-nav {
+    padding: 0.8rem 1rem;
+    gap: 1rem;
+    border-radius: 8px;
+  }
+
+  .config-nav a {
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+  }
+}

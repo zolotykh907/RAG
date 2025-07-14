@@ -3,16 +3,23 @@ import React, { useEffect, useState } from 'react';
 function Config() {
   const [config, setConfig] = useState({});
   const [status, setStatus] = useState('');
+  const [selectedService, setSelectedService] = useState('query');
 
   useEffect(() => {
-    fetch('http://localhost:8000/config')
-      .then((res) => res.json())
-      .then((data) => setConfig(data))
-      .catch((err) => {
-        console.error("Ошибка загрузки конфигурации", err);
+    const fetchConfig = async () => {
+      try {
+        const endpoint = `http://localhost:8000/config?service=${selectedService}`;
+        const res = await fetch(endpoint);
+        if (!res.ok) throw new Error('Ошибка сети');
+        const data = await res.json();
+        setConfig(data || {});
+      } catch (err) {
+        console.error(`Ошибка загрузки конфигурации для ${selectedService}`, err);
         setStatus("Ошибка загрузки");
-      });
-  }, []);
+      }
+    };
+    fetchConfig();
+  }, [selectedService]);
 
   const renderFields = (obj, path = []) => {
     return Object.entries(obj).map(([key, value]) => {
@@ -21,10 +28,16 @@ function Config() {
 
       if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
         return (
-          <div key={label} className="border rounded-xl p-4 mb-4 bg-white shadow">
-            <h3 className="text-lg font-semibold mb-2">{key}</h3>
-            {renderFields(value, currentPath)}
-          </div>
+          <details key={label} className="field mb-4">
+            <summary className="cursor-pointer text-lg font-semibold text-gray-700 bg-white p-2 rounded-lg mb-2">
+              {key}
+              <span className="tooltip ml-2">
+                <span className="tooltip-icon">?</span>
+                <span className="tooltip-text">Нажмите, чтобы раскрыть {key}</span>
+              </span>
+            </summary>
+            <div className="ml-4">{renderFields(value, currentPath)}</div>
+          </details>
         );
       } else {
         let inputElement;
@@ -32,9 +45,9 @@ function Config() {
         if (key === 'prompt_template') {
           inputElement = (
             <textarea
-              className="w-full p-2 border rounded-lg font-mono text-sm"
+              className="w-full p-0.75rem border rounded-lg focus:border-indigo-600 transition-all duration-200"
               rows={6}
-              value={value}
+              value={value || ''}
               onChange={(e) => handleChange(currentPath, e.target.value)}
             />
           );
@@ -42,17 +55,21 @@ function Config() {
           inputElement = (
             <input
               type="text"
-              className="w-full p-2 border rounded-lg"
-              value={Array.isArray(value) ? value.join(', ') : value}
+              className="w-full p-0.75rem border rounded-lg focus:border-indigo-600 transition-all duration-200"
+              value={Array.isArray(value) ? value.join(', ') : (value || '')}
               onChange={(e) => handleChange(currentPath, e.target.value)}
             />
           );
         }
 
         return (
-          <div key={label} className="mb-4">
+          <div key={label} className="field mb-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               {label}
+              <span className="tooltip">
+                <span className="tooltip-icon">?</span>
+                <span className="tooltip-text">Введите значение для {label}</span>
+              </span>
             </label>
             {inputElement}
           </div>
@@ -63,10 +80,10 @@ function Config() {
 
   const handleChange = (path, value) => {
     setConfig((prevConfig) => {
-      const newConfig = structuredClone(prevConfig);
+      const newConfig = structuredClone(prevConfig || {});
       let obj = newConfig;
       for (let i = 0; i < path.length - 1; i++) {
-        obj = obj[path[i]];
+        obj = obj[path[i]] = obj[path[i]] || {};
       }
       const lastKey = path[path.length - 1];
       const original = obj[lastKey];
@@ -86,32 +103,76 @@ function Config() {
     });
   };
 
-
   const handleSubmit = (e) => {
     e.preventDefault();
-    fetch('http://localhost:8000/config', {
+    const endpoint = `http://localhost:8000/config?service=${selectedService}`;
+    fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(config)
+      body: JSON.stringify(config),
     })
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error('Ошибка сохранения');
+        return res.json();
+      })
       .then(() => setStatus('✅ Конфигурация сохранена!'))
       .catch(() => setStatus('❌ Ошибка сохранения'));
   };
 
+  const handleReset = () => {
+    setConfig({});
+    setStatus('');
+  };
+
   return (
-    <div className="max-w-4xl mx-auto p-6 bg-gray-50 min-h-screen">
-      <h2 className="text-2xl font-bold mb-6">⚙️ Настройки конфигурации</h2>
-      {status && <div className="mb-4 text-green-600 font-medium">{status}</div>}
-      <form onSubmit={handleSubmit}>
-        {renderFields(config)}
-        <button
-          type="submit"
-          className="mt-4 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
+    <div className="app">
+      <nav className="config-nav">
+        <a
+          href="#"
+          className={selectedService === 'query' ? 'active' : ''}
+          onClick={() => setSelectedService('query')}
         >
-          💾 Сохранить
-        </button>
-      </form>
+          Query
+        </a>
+        <a
+          href="#"
+          className={selectedService === 'indexing' ? 'active' : ''}
+          onClick={() => setSelectedService('indexing')}
+        >
+          Indexing
+        </a>
+      </nav>
+      <main>
+        <div className="config-page">
+          <h2>⚙️ Настройки конфигурации - {selectedService}</h2>
+          {status && <div className={`message ${status.includes('Ошибка') ? 'error' : 'success'}`}>{status}</div>}
+          <form onSubmit={handleSubmit}>
+            {renderFields(config)}
+            <div className="flex gap-4">
+              <button type="submit">Сохранить</button>
+              <button type="button" className="reset-btn" onClick={handleReset}>
+                Сбросить
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`http://localhost:8000/reload?service=${selectedService}`, {
+                      method: 'POST',
+                    });
+                    if (!res.ok) throw new Error("Ошибка перезагрузки");
+                    alert("Сервис перезапущен");
+                  } catch (e) {
+                    alert("Ошибка при перезагрузке сервиса");
+                    console.error(e);
+                  }
+                }}
+              >
+                🔁 Перезапустить сервис
+              </button>
+            </div>
+          </form>
+        </div>
+      </main>
     </div>
   );
 }

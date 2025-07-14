@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Q&A Система</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <h1><i class="fas fa-robot"></i> RAG Q&A Система</h1>
+                <p>Задайте вопрос и получите ответ на основе ваших документов</p>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="chat-container">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message system">
+                        <div class="message-content">
+                            <i class="fas fa-info-circle"></i>
+                            <p>Привет! Я готов ответить на ваши вопросы. Просто введите вопрос в поле ниже.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-input-container">
+                    <form id="questionForm" class="question-form">
+                        <div class="input-group">
+                            <input 
+                                type="text" 
+                                id="questionInput" 
+                                placeholder="Введите ваш вопрос..." 
+                                autocomplete="off"
+                                required
+                            >
+                            <button type="submit" id="sendButton">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <div class="sidebar-section">
+                    <h3><i class="fas fa-chart-bar"></i> Статистика</h3>
+                    <div class="stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Запросов сегодня:</span>
+                            <span class="stat-value" id="requestsToday">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Статус системы:</span>
+                            <span class="stat-value status-online" id="systemStatus">Онлайн</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3><i class="fas fa-cog"></i> Настройки</h3>
+                    <div class="settings">
+                        <label class="setting-item">
+                            <input type="checkbox" id="showSources" checked>
+                            <span>Показывать источники</span>
+                        </label>
+                        <label class="setting-item">
+                            <input type="checkbox" id="autoScroll" checked>
+                            <span>Автопрокрутка</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3><i class="fas fa-history"></i> История</h3>
+                    <div class="history-list" id="historyList">
+                        <p class="empty-history">История пуста</p>
+                    </div>
+                    <button class="clear-history-btn" id="clearHistory">
+                        <i class="fas fa-trash"></i> Очистить историю
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Обрабатываю ваш вопрос...</p>
+        </div>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
