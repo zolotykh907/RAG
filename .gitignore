@@ -6,6 +6,7 @@ __pycache__/
 data/
 logs/
 .DS_Store
+frontend/node_modules/
 
 # C extensions
 *.so
