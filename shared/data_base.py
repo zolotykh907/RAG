@@ -42,12 +42,14 @@ class FaissDB:
             index_path = self.index_path
         if not os.path.exists(self.index_path):
             self.logger.info(f"Index file not found at {self.index_path}")
+            self.index = None
+            return
         try:
             self.index = faiss.read_index(self.index_path)
             self.logger.info(f'Index loaded from {self.index_path}')
         except Exception as e:
             self.logger.error(f"Failed to load FAISS index from {self.index_path}: {str(e)}")
-            raise
+            self.index = None
 
     
     def search(self, request_embedding):
@@ -60,7 +62,8 @@ class FaissDB:
             np.ndarray: array of indices of the k nearest neighbors.
         """
         if self.index is None:
-            raise RuntimeError("Index is not loaded or created")
+            self.logger.warning("Index is not loaded or created. Returning empty result.")
+            return np.array([])
         
         d, ids = self.index.search(request_embedding, self.k)
         return ids[0]

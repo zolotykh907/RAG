@@ -52,8 +52,6 @@ class Indexing:
 
         os.makedirs(self.data_dir, exist_ok=True)
 
-        # if self.data_url:
-        #     self.download_data()
         #self.download_emb_model()
         self.emb_model = self.load_local_embedding_model()
 
@@ -236,6 +234,8 @@ class Indexing:
     def run_indexing(self, data=None):
         try:
             if data is None:
+                if self.data_url:
+                    self.download_data()
                 data = self.data_path
             
             if not self.incrementation_flag:

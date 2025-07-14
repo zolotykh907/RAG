@@ -13,5 +13,5 @@ DB = FaissDB(config)
 I = Indexing(config, data_loader, DB)
 
 
-#I.run_indexing()
-I.run_indexing('В 1999 году Золотых Игорь Алексеевич, великий русский поэт, родился.')
+I.run_indexing()
+#I.run_indexing('В 1999 году Золотых Игорь Алексеевич, великий русский поэт, родился.')

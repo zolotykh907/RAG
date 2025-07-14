@@ -22,6 +22,10 @@ from query.pipeline import RAGPipeline
 from query.llm import LLMResponder
 from query.config import Config as QueryConfig
 
+import yaml
+from fastapi.responses import JSONResponse
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'query', 'config.yaml')
+
 shared_config = SharedConfig()
 query_config = QueryConfig()
 
@@ -64,6 +68,31 @@ class QueryResponse(BaseModel):
     """Response model for RAG query endpoint."""
     answer: str
     texts: list
+
+@app.get("/config")
+async def get_config():
+    """Получить текущую конфигурацию."""
+    try:
+        with open(CONFIG_PATH, 'r') as f:
+            config_data = yaml.safe_load(f)
+        return config_data
+    except Exception as e:
+        logger.error(f"Не удалось прочитать конфигурацию: {e}")
+        raise HTTPException(status_code=500, detail="Ошибка при чтении конфигурации")
+
+
+@app.post("/config")
+async def update_config(new_config: dict):
+    """Обновить конфигурацию."""
+    try:
+        with open(CONFIG_PATH, 'w') as f:
+            yaml.safe_dump(new_config, f)
+        logger.info("Конфигурация успешно обновлена.")
+        return {"message": "Конфигурация обновлена успешно"}
+    except Exception as e:
+        logger.error(f"Ошибка при обновлении конфигурации: {e}")
+        raise HTTPException(status_code=500, detail="Ошибка при обновлении конфигурации")
+        
 
 @app.post('/upload-files')
 async def upload_file(file: UploadFile = File(...)):

@@ -21,6 +21,12 @@ export default function Navbar() {
         >
           📁 Загрузка
         </Link>
+        <Link 
+          to="/config" 
+          className={location.pathname === '/config' ? 'active' : ''}
+        >
+          ⚙️ Настройки
+        </Link>
       </div>
     </nav>
   );
