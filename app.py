@@ -85,8 +85,26 @@ async def get_config():
 async def update_config(new_config: dict):
     """Обновить конфигурацию."""
     try:
-        with open(CONFIG_PATH, 'w') as f:
-            yaml.safe_dump(new_config, f)
+        def str_presenter(dumper, data):
+            """Кастомный представление строк для многострочного текста."""
+            if '\n' in data:
+                return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
+            return dumper.represent_scalar('tag:yaml.org,2002:str', data)
+
+        # Регистрируем кастомный representer
+        yaml.add_representer(str, str_presenter)
+        
+        with open(CONFIG_PATH, 'w', encoding='utf-8') as f:
+            yaml.dump(
+                new_config,
+                f,
+                allow_unicode=True,
+                sort_keys=False,
+                default_flow_style=False,
+                width=float("inf"),
+                indent=2
+            )
+        
         logger.info("Конфигурация успешно обновлена.")
         return {"message": "Конфигурация обновлена успешно"}
     except Exception as e:

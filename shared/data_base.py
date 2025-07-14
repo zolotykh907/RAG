@@ -52,7 +52,7 @@ class FaissDB:
             self.index = None
 
     
-    def search(self, request_embedding):
+    def search(self, request_embedding, k):
         """Nearest-neighbor search in FAISS.
 
         Args:
@@ -65,7 +65,7 @@ class FaissDB:
             self.logger.warning("Index is not loaded or created. Returning empty result.")
             return np.array([])
         
-        d, ids = self.index.search(request_embedding, self.k)
+        d, ids = self.index.search(request_embedding, k)
         return ids[0]
     
 

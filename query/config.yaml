@@ -1,13 +1,23 @@
+api:
+  endpoint: /query
+  host: 0.0.0.0
+  ollama_host: http://localhost:11434
+  port: 8000
+  title: RAG Query API
 data:
-  index_path: "./data/index.index"
-  logs_dir: './logs'
-  processed_data_path: "./data/processed_data.json"
-  image_types: ['.jpg', '.jpeg', '.png']
-  doc_types: ['.pdf', '.doc']
-
+  doc_types:
+  - .pdf
+  - .doc
+  image_types:
+  - .jpg
+  - .jpeg
+  - .png
+  index_path: ./data/index.index
+  logs_dir: ./logs
+  processed_data_path: ./data/processed_data.json
 models:
-  emb_model_name: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-  llm: "llama3"
+  emb_model_name: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+  llm: llama3
   prompt_template: |
     Ты - интеллектуальный помощник, который отвечает только на основе предоставленного контекста из базы знаний. Никогда не используй свои собственные знания.
 
@@ -24,13 +34,5 @@ models:
 
     Пример правильного ответа, когда информации нет:
     "Информация не найдена в базе знаний"
-
 rag:
-  k: 5
-
-api:
-  endpoint: "/query"
-  title: "RAG Query API"
-  host: "0.0.0.0"
-  port: 8000
-  ollama_host: "http://localhost:11434"
+  k: 3

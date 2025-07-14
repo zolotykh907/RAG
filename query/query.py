@@ -135,7 +135,7 @@ class Query:
                 convert_to_numpy=True
                 )
 
-            ids = self.data_base.search(request_embedding)
+            ids = self.data_base.search(request_embedding, self.k)
             for id in ids:
                 res.append(self.texts[id])
 

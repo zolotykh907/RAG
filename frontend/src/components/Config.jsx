@@ -74,12 +74,18 @@ function Config() {
       if (Array.isArray(original)) {
         obj[lastKey] = value.split(',').map((v) => v.trim());
       } else {
-        obj[lastKey] = value;
+        const numValue = Number(value);
+        if (!isNaN(numValue) && value.trim() !== '') {
+          obj[lastKey] = numValue;
+        } else {
+          obj[lastKey] = value;
+        }
       }
 
       return newConfig;
     });
   };
+
 
   const handleSubmit = (e) => {
     e.preventDefault();
