@@ -1,24 +1,23 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Navbar from './components/Navbar';
-import Query from './components/Query';
-import Upload from './components/Upload';
-import Config from './components/Config';
+import React, { useState } from 'react';
+import Header from './components/Header';
+import ChatContainer from './components/ChatContainer';
+import Sidebar from './components/Sidebar';
+import LoadingOverlay from './components/LoadingOverlay';
+import './styles.css';
 
-function App() {
+const App = () => {
+  const [isLoading, setIsLoading] = useState(false);
+
   return (
-    <Router>
-      <div className="app">
-        <Navbar />
-        <main>
-          <Routes>
-            <Route path="/" element={<Query />} />
-            <Route path="/upload" element={<Upload />} />
-            <Route path="/config" element={<Config />} />
-          </Routes>
-        </main>
-      </div>
-    </Router>
+    <div className="container">
+      <Header />
+      <main className="main-content">
+        <ChatContainer onLoadingChange={setIsLoading} />
+        <Sidebar />
+      </main>
+      {isLoading && <LoadingOverlay />}
+    </div>
   );
-}
+};
 
 export default App;
