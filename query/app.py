@@ -1,4 +1,5 @@
-import logging
+import sys
+import os
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -7,11 +8,10 @@ from query.query import Query
 from query.pipeline import RAGPipeline
 from query.llm import LLMResponder
 from query.config import Config
-import sys
-import os
+
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'shared'))
 from logs import setup_logging
-from data_base import FaissDB
+from data_base import ChromaDB, FaissDB
 
 config = Config()
 logger = setup_logging(config.logs_dir, 'RAG_API')
@@ -20,7 +20,7 @@ app = FastAPI(title=config.api_title,
               description="RAG API for question answering with context retrieval")
 
 try:
-    data_base = FaissDB(config)
+    data_base = ChromaDB(config)
     query = Query(config, data_base)
     responder = LLMResponder(config)
     pipeline = RAGPipeline(config=config, query=query, responder=responder)

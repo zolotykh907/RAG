@@ -1,5 +1,5 @@
 data:
-  index_path: "./data/RuBQ_index.index"
+  index_path: "./data/index.index"
   logs_dir: './logs'
   processed_data_path: "./data/processed_data.json"
   image_types: ['.jpg', '.jpeg', '.png']

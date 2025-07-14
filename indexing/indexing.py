@@ -10,10 +10,11 @@ import requests
 from sentence_transformers import SentenceTransformer
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from data_processing import normalize_text, check_data_quality, compute_text_hash
-from data_vectorize import *
 
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'shared'))
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from data_processing import normalize_text, check_data_quality, compute_text_hash
+from data_vectorize import *
 from logs import setup_logging 
 
 class Indexing:
@@ -51,8 +52,8 @@ class Indexing:
 
         os.makedirs(self.data_dir, exist_ok=True)
 
-        if self.data_url:
-            self.download_data()
+        # if self.data_url:
+        #     self.download_data()
         #self.download_emb_model()
         self.emb_model = self.load_local_embedding_model()
 
@@ -106,6 +107,7 @@ class Indexing:
         except Exception as e:
             self.logger.error(f"Failed to download model {self.emb_model_name}: {e}")
             raise
+
 
     def load_embedding_model(self):
         """Load embedding model from local cache or download if needed."""
@@ -293,7 +295,7 @@ class Indexing:
             if self.delete_data_flag:
                 self.logger.error(f"Error {e}")
                 if os.path.exists(self.processed_data_path):
-                    clear_existing_data()
+                    self.clear_existing_data()
                 raise
 
 
