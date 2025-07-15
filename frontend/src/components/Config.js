@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
+import ConfigButtons from './ConfigButtons'
 
-function Config() {
+const Config = ({ selectedService, onLoadingChange }) => {
   const [config, setConfig] = useState({});
   const [status, setStatus] = useState('');
-  const [selectedService, setSelectedService] = useState('query');
 
   useEffect(() => {
     const fetchConfig = async () => {
       try {
+        onLoadingChange(true);
         const endpoint = `http://localhost:8000/config?service=${selectedService}`;
         const res = await fetch(endpoint);
         if (!res.ok) throw new Error('Ошибка сети');
@@ -15,11 +16,13 @@ function Config() {
         setConfig(data || {});
       } catch (err) {
         console.error(`Ошибка загрузки конфигурации для ${selectedService}`, err);
-        setStatus("Ошибка загрузки");
+        setStatus('Ошибка загрузки');
+      } finally {
+        onLoadingChange(false);
       }
     };
     fetchConfig();
-  }, [selectedService]);
+  }, [selectedService, onLoadingChange]);
 
   const renderFields = (obj, path = []) => {
     return Object.entries(obj).map(([key, value]) => {
@@ -29,7 +32,7 @@ function Config() {
       if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
         return (
           <details key={label} className="field mb-4">
-            <summary className="cursor-pointer text-lg font-semibold text-gray-700 bg-white p-2 rounded-lg mb-2">
+            <summary className="cursor-pointer text-lg font-semibold text-primary bg-surface-light p-2 rounded-lg mb-2">
               {key}
               <span className="tooltip ml-2">
                 <span className="tooltip-icon">?</span>
@@ -45,7 +48,7 @@ function Config() {
         if (key === 'prompt_template') {
           inputElement = (
             <textarea
-              className="w-full p-0.75rem border rounded-lg focus:border-indigo-600 transition-all duration-200"
+              className="w-full p-1rem border border-border rounded-lg focus:border-primary transition-all duration-200"
               rows={6}
               value={value || ''}
               onChange={(e) => handleChange(currentPath, e.target.value)}
@@ -55,7 +58,7 @@ function Config() {
           inputElement = (
             <input
               type="text"
-              className="w-full p-0.75rem border rounded-lg focus:border-indigo-600 transition-all duration-200"
+              className="w-full p-1rem border border-border rounded-lg focus:border-primary transition-all duration-200"
               value={Array.isArray(value) ? value.join(', ') : (value || '')}
               onChange={(e) => handleChange(currentPath, e.target.value)}
             />
@@ -64,7 +67,7 @@ function Config() {
 
         return (
           <div key={label} className="field mb-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-text-secondary mb-1">
               {label}
               <span className="tooltip">
                 <span className="tooltip-icon">?</span>
@@ -105,6 +108,7 @@ function Config() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    onLoadingChange(true); // Устанавливаем состояние загрузки
     const endpoint = `http://localhost:8000/config?service=${selectedService}`;
     fetch(endpoint, {
       method: 'POST',
@@ -116,7 +120,8 @@ function Config() {
         return res.json();
       })
       .then(() => setStatus('✅ Конфигурация сохранена!'))
-      .catch(() => setStatus('❌ Ошибка сохранения'));
+      .catch(() => setStatus('❌ Ошибка сохранения'))
+      .finally(() => onLoadingChange(false)); // Снимаем состояние загрузки
   };
 
   const handleReset = () => {
@@ -125,56 +130,20 @@ function Config() {
   };
 
   return (
-    <div className="app">
-      <nav className="config-nav">
-        <a
-          href="#"
-          className={selectedService === 'query' ? 'active' : ''}
-          onClick={() => setSelectedService('query')}
-        >
-          Query
-        </a>
-        <a
-          href="#"
-          className={selectedService === 'indexing' ? 'active' : ''}
-          onClick={() => setSelectedService('indexing')}
-        >
-          Indexing
-        </a>
-      </nav>
-      <main>
-        <div className="config-page">
-          <h2>⚙️ Настройки конфигурации - {selectedService}</h2>
-          {status && <div className={`message ${status.includes('Ошибка') ? 'error' : 'success'}`}>{status}</div>}
-          <form onSubmit={handleSubmit}>
-            {renderFields(config)}
-            <div className="flex gap-4">
-              <button type="submit">Сохранить</button>
-              <button type="button" className="reset-btn" onClick={handleReset}>
-                Сбросить
-              </button>
-              <button
-                onClick={async () => {
-                  try {
-                    const res = await fetch(`http://localhost:8000/reload?service=${selectedService}`, {
-                      method: 'POST',
-                    });
-                    if (!res.ok) throw new Error("Ошибка перезагрузки");
-                    alert("Сервис перезапущен");
-                  } catch (e) {
-                    alert("Ошибка при перезагрузке сервиса");
-                    console.error(e);
-                  }
-                }}
-              >
-                🔁 Перезапустить сервис
-              </button>
-            </div>
-          </form>
+    <div className="config-container">
+      <div className="chat-messages">
+        <div className="message system">
+          <div className="message-content">
+            <h2>⚙️ Настройки конфигурации - {selectedService}</h2>
+            {status && <div className={`message ${status.includes('Ошибка') ? 'error' : 'success'}`}>{status}</div>}
+          </div>
         </div>
-      </main>
+        <form onSubmit={handleSubmit} className="p-1.5rem">
+          {renderFields(config)}
+        </form>
+      </div>
     </div>
   );
-}
+};
 
 export default Config;
