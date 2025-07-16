@@ -3,7 +3,7 @@ import Stats from './Stats';
 import Settings from './Settings';
 import History from './History';
 
-const Sidebar = () => {
+const Sidebar = ({ autoScroll, onToggleAutoScroll }) => {
   const [requestsToday, setRequestsToday] = useState(0);
   const [systemStatus, setSystemStatus] = useState('Онлайн');
 
@@ -27,7 +27,7 @@ const Sidebar = () => {
   return (
     <div className="sidebar">
       <Stats requestsToday={requestsToday} systemStatus={systemStatus} />
-      <Settings />
+      <Settings autoScroll={autoScroll} onToggleAutoScroll={onToggleAutoScroll} />
       <History />
     </div>
   );

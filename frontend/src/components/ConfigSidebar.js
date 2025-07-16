@@ -1,8 +1,15 @@
 import React from 'react';
 import ServiceSelector from './ServiceSelector';
-import ConfigButtons from './ConfigButtons'
+import ConfigButtons from './ConfigButtons';
 
-const ConfigSidebar = ({ selectedService, onSelectService }) => {
+const ConfigSidebar = ({
+  selectedService,
+  onSelectService,
+  onReset,
+  onReload,
+  isLoading,
+  onSave
+}) => {
   return (
     <div className="sidebar">
       <ServiceSelector
@@ -10,7 +17,11 @@ const ConfigSidebar = ({ selectedService, onSelectService }) => {
         onSelectService={onSelectService}
       />
       <ConfigButtons
+        onReset={onReset}
+        onReload={onReload}
+        isLoading={isLoading}
         selectedService={selectedService}
+        onSave={onSave}
       />
     </div>
   );

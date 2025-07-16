@@ -1,15 +1,17 @@
-import React, { useState } from 'react';
+import React from 'react';
 
-const Settings = () => {
-  const [settings, setSettings] = useState({
+const Settings = ({ autoScroll, onToggleAutoScroll }) => {
+  const [settings, setSettings] = React.useState({
     showSources: true,
-    autoScroll: true,
   });
 
   const handleChange = (e) => {
     const { id, checked } = e.target;
-    setSettings((prev) => ({ ...prev, [id]: checked }));
-    // Сохраняйте в localStorage, если нужно
+    if (id === 'autoScroll') {
+      onToggleAutoScroll();
+    } else {
+      setSettings((prev) => ({ ...prev, [id]: checked }));
+    }
   };
 
   return (
@@ -17,11 +19,7 @@ const Settings = () => {
       <h3><i className="fas fa-cog"></i> Настройки</h3>
       <div className="settings">
         <label className="setting-item">
-          <input type="checkbox" id="showSources" checked={settings.showSources} onChange={handleChange} />
-          <span>Показывать источники</span>
-        </label>
-        <label className="setting-item">
-          <input type="checkbox" id="autoScroll" checked={settings.autoScroll} onChange={handleChange} />
+          <input type="checkbox" id="autoScroll" checked={autoScroll} onChange={handleChange} />
           <span>Автопрокрутка</span>
         </label>
       </div>

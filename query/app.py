@@ -148,3 +148,7 @@ async def query_rag(request: QueryRequest):
 async def health_check():
     """Health check endpoint."""
     return {"status": "healthy", "service": "RAG API"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -1,5 +1,3 @@
-import React from 'react';
-
 const ServiceSelector = ({ selectedService, onSelectService }) => {
   const services = ['query', 'indexing'];
 

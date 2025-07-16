@@ -44,11 +44,47 @@ body {
     box-shadow: var(--shadow);
 }
 
+/* --- FLEX HEADER --- */
+.flex-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  min-height: 64px;
+}
+.header-title {
+  flex: 0 0 auto;
+  text-align: left;
+}
+.header-nav {
+  flex: 1 1 0;
+  display: flex;
+  justify-content: center;
+}
+
+/* Корректировка старого .header-content */
 .header-content {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 0 2rem;
-    text-align: center;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  position: relative;
+}
+
+.header-nav {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  justify-content: center;
+  width: max-content;
+  z-index: 2;
+}
+
+.header-title {
+  flex: 0 0 auto;
+  text-align: left;
+  z-index: 1;
 }
 
 .header h1 {
@@ -74,7 +110,7 @@ body {
     gap: 2rem;
     max-width: 1400px;
     margin: 0 auto;
-    padding: 0rem;
+    padding: 1rem;
     width: 100%;
 }
 
@@ -535,7 +571,7 @@ body {
   justify-content: center;
   gap: 1.5rem;
   border-radius: 12px;
-  margin: 2rem auto 2rem auto;
+  margin: 0;
   max-width: 1400px;
 }
 
@@ -822,6 +858,7 @@ button, .service-button, .save-btn, .reload-btn, button[type="submit"], .reset-b
     justify-content: center; /* Горизонтальное центрирование */
 }
 
+
 .upload-container {
     width: 100%;
     background: var(--surface);
@@ -832,4 +869,32 @@ button, .service-button, .save-btn, .reload-btn, button[type="submit"], .reset-b
     height: calc(100vh - 200px);
     min-height: 600px;
     box-shadow: var(--shadow-lg);
+}
+
+/* Toast Notification */
+.toast-notification {
+  position: fixed;
+  top: 32px;
+  right: 32px;
+  z-index: 9999;
+  min-width: 260px;
+  max-width: 400px;
+  padding: 1.1rem 2rem;
+  border-radius: 10px;
+  font-size: 1.1rem;
+  font-weight: 500;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  display: flex;
+  align-items: center;
+  animation: fadeIn 0.3s;
+}
+.toast-success {
+  background: #e6f7e6;
+  color: #3a834f;
+  border: 1.5px solid #b7e4c7;
+}
+.toast-error {
+  background: #fff0f0;
+  color: #c53030;
+  border: 1.5px solid #f5b7b7;
 }
