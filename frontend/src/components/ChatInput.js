@@ -24,7 +24,7 @@ const ChatInput = ({ onSend, disabled }) => {
             disabled={disabled}
           />
           <button type="submit" id="sendButton" disabled={disabled}>
-            <i className="fas fa-paper-plane"></i>
+            <i className="fas fa-paper-plane"> Отправить </i>
           </button>
         </div>
       </form>

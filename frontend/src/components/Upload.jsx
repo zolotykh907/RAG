@@ -57,7 +57,7 @@ export default function Upload() {
   };
 
   return (
-    <div className="card">
+    <div className="upload-container">
       <h2>📁 Загрузка и индексация файлов</h2>
       <p style={{ color: '#666', marginBottom: '1.5rem' }}>
         Загрузите документ для индексации в векторную базу данных. 

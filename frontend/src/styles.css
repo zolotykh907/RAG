@@ -40,7 +40,7 @@ body {
 .header {
     background: var(--surface);
     border-bottom: 1px solid var(--border);
-    padding: 1.5rem 0;
+    padding: 0.5rem 0;
     box-shadow: var(--shadow);
 }
 
@@ -74,7 +74,7 @@ body {
     gap: 2rem;
     max-width: 1400px;
     margin: 0 auto;
-    padding: 2rem;
+    padding: 0rem;
     width: 100%;
 }
 
@@ -252,6 +252,7 @@ body {
     justify-content: center;
     min-width: 50px;
     height: 50px;
+    margin: 1rem auto;
 }
 
 #sendButton:hover {
@@ -278,6 +279,7 @@ body {
     border-radius: 12px;
     padding: 1.5rem;
     box-shadow: var(--shadow);
+    animation: fadeIn 0.3s ease-in-out;
 }
 
 .sidebar-section h3 {
@@ -527,13 +529,13 @@ body {
 .config-nav {
   background: var(--surface);
   backdrop-filter: blur(10px);
-  padding: 1rem 2rem;
+  padding: 1rem 1rem;
   box-shadow: var(--shadow);
   display: flex;
   justify-content: center;
   gap: 1.5rem;
   border-radius: 12px;
-  margin: 1rem auto 2rem auto;
+  margin: 2rem auto 2rem auto;
   max-width: 1400px;
 }
 
@@ -818,4 +820,16 @@ button, .service-button, .save-btn, .reload-btn, button[type="submit"], .reset-b
     display: inline-flex;  /* Для центрирования содержимого */
     align-items: center;   /* Вертикальное центрирование */
     justify-content: center; /* Горизонтальное центрирование */
+}
+
+.upload-container {
+    width: 100%;
+    background: var(--surface);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 200px);
+    min-height: 600px;
+    box-shadow: var(--shadow-lg);
 }
