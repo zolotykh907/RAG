@@ -72,7 +72,8 @@ class Indexing:
             )
             
             if not os.path.exists(cache_dir):
-                raise FileNotFoundError(f"Cache directory not found: {cache_dir}")
+                #raise FileNotFoundError(f"Cache directory not found: {cache_dir}")
+                return self.download_embedding_model()
 
             snapshots = [d for d in os.listdir(cache_dir) 
                         if os.path.isdir(os.path.join(cache_dir, d))]

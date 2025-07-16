@@ -35,6 +35,30 @@ services:
       environment:
         - OLLAMA_HOST=http://ollama:11434
 
+  backend:
+    build: 
+      context: .
+      dockerfile: ./docker/backend.Dockerfile
+    container_name: backend
+    volumes:
+      - shared_data:/app/data
+    
+  frontend:
+    build:
+      context: .
+      dockerfile: ./docker/frontend.Dockerfile
+    container_name: frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app/frontend
+      - /app/frontend/node_modules
+    working_dir: /app/frontend
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    command: npm start
+
+
 volumes:
   ollama:
   shared_data:

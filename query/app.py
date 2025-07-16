@@ -20,7 +20,7 @@ app = FastAPI(title=config.api_title,
               description="RAG API for question answering with context retrieval")
 
 try:
-    data_base = ChromaDB(config)
+    data_base = FaissDB(config)
     query = Query(config, data_base)
     responder = LLMResponder(config)
     pipeline = RAGPipeline(config=config, query=query, responder=responder)
