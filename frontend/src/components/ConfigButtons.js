@@ -25,7 +25,6 @@ const ConfigButtons = ({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onLoadingChange(true);
     const endpoint = `http://localhost:8000/config?service=${selectedService}`;
     fetch(endpoint, {
       method: 'POST',
@@ -38,7 +37,6 @@ const ConfigButtons = ({
       })
       .then(() => setStatus('✅ Конфигурация сохранена!'))
       .catch(() => setStatus('❌ Ошибка сохранения'))
-      .finally(() => onLoadingChange(false));
   };
 
   const handleChange = (path, value) => {
