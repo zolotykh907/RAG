@@ -25,7 +25,7 @@ const ConfigButtons = ({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onLoadingChange(true); // Устанавливаем состояние загрузки
+    onLoadingChange(true);
     const endpoint = `http://localhost:8000/config?service=${selectedService}`;
     fetch(endpoint, {
       method: 'POST',
@@ -38,7 +38,7 @@ const ConfigButtons = ({
       })
       .then(() => setStatus('✅ Конфигурация сохранена!'))
       .catch(() => setStatus('❌ Ошибка сохранения'))
-      .finally(() => onLoadingChange(false)); // Снимаем состояние загрузки
+      .finally(() => onLoadingChange(false));
   };
 
   const handleChange = (path, value) => {
@@ -73,44 +73,47 @@ const ConfigButtons = ({
 
   return (
     <div className='sidebar'>
-        <div className="sidebar-section">
-            <div className="config-buttons">
-                    <button type="submit" className="bg-primary text-white p-0.75rem rounded-lg">
-                    <div className="config-button">
-                    Сохранить
-                    </div>
-                    </button>
-                    <button
-                    type="button"
-                    className="reset-btn bg-surface-light text-text-primary p-0.75rem rounded-lg"
-                    onClick={handleReset}
-                    >
-                    Сбросить
-                    </button>
-                    <button
-                    type="button"
-                    className="reload-btn bg-surface-light text-text-primary p-0.75rem rounded-lg"
-                    onClick={async () => {
-                        try {
-                        onLoadingChange(true);
-                        const res = await fetch(`http://localhost:8000/reload?service=${selectedService}`, {
-                            method: 'POST',
-                        });
-                        if (!res.ok) throw new Error('Ошибка перезагрузки');
-                        alert('Сервис перезапущен');
-                        } catch (e) {
-                        alert('Ошибка при перезагрузке сервиса');
-                        console.error(e);
-                        } finally {
-                        onLoadingChange(false);
-                        }
-                    }}
-                    >
-                    Перезапустить сервис
-                    </button>
-                </div>
-            </div>  
+      <div className="sidebar-section">
+        <div className="config-buttons">
+            <form onSubmit={handleSubmit}>
+              <button
+                type="submit"
+                className="mt-4 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
+              >
+                💾 Сохранить
+              </button>
+            </form>
+          <button
+            type="button"
+            className="reset-btn bg-surface-light text-text-primary p-0.75rem rounded-lg"
+            onClick={handleReset}
+            >
+            Сбросить
+          </button>
+          <button
+            type="button"
+            className="reload-btn bg-surface-light text-text-primary p-0.75rem rounded-lg"
+            onClick={async () => {
+              try {
+                onLoadingChange(true);
+                  const res = await fetch(`http://localhost:8000/reload?service=${selectedService}`, {
+                    method: 'POST',
+                  });
+                  if (!res.ok) throw new Error('Ошибка перезагрузки');
+                    alert('Сервис перезапущен');
+                  } catch (e) {
+                    alert('Ошибка при перезагрузке сервиса');
+                    console.error(e);
+                  } finally {
+                    onLoadingChange(false);
+                  }
+                  }}
+                  >
+                  Перезапустить сервис
+          </button>
         </div>
+      </div>  
+    </div>
   );
 };
 
