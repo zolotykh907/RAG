@@ -15,6 +15,7 @@ const App = () => {
   const [activeTab, setActiveTab] = useState('chat');
   const [selectedService, setSelectedService] = useState('query');
   const [config, setConfig] = useState({});
+  const [initialConfig, setInitialConfig] = useState({}); // добавлено для хранения начального состояния
   const [status, setStatus] = useState('');
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
   const [autoScroll, setAutoScroll] = useState(true);
@@ -38,6 +39,8 @@ const App = () => {
       if (!res.ok) throw new Error('Ошибка сети');
       const data = await res.json();
       setConfig(data || {});
+      // Сохраняем initialConfig только если он ещё не был установлен
+      setInitialConfig(prev => (Object.keys(prev).length === 0 ? (data || {}) : prev));
       setStatus('✅ Конфигурация загружена');
     } catch (err) {
       setStatus('❌ Ошибка загрузки');
@@ -99,7 +102,7 @@ const App = () => {
   };
 
   const handleReset = () => {
-    setConfig({});
+    setConfig(initialConfig); // сбрасываем к начальному состоянию
     setStatus('');
   };
 
@@ -173,7 +176,7 @@ const App = () => {
               onLoadingChange={setIsLoading}
               autoScroll={autoScroll}
             />
-            <Sidebar autoScroll={autoScroll} onToggleAutoScroll={handleToggleAutoScroll} />
+            <Sidebar autoScroll={autoScroll} onToggleAutoScroll={handleToggleAutoScroll} activeTab={activeTab} />
           </>
         )}
         {activeTab === 'config' && (

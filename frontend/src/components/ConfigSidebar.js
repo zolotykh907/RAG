@@ -11,18 +11,19 @@ const ConfigSidebar = ({
   onSave
 }) => {
   return (
+
     <div className="sidebar">
-      <ServiceSelector
-        selectedService={selectedService}
-        onSelectService={onSelectService}
-      />
-      <ConfigButtons
-        onReset={onReset}
-        onReload={onReload}
-        isLoading={isLoading}
-        selectedService={selectedService}
-        onSave={onSave}
-      />
+        <ServiceSelector
+          selectedService={selectedService}
+          onSelectService={onSelectService}
+        />
+        <ConfigButtons
+          onReset={onReset}
+          onReload={onReload}
+          isLoading={isLoading}
+          selectedService={selectedService}
+          onSave={onSave}
+        />
     </div>
   );
 };

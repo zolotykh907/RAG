@@ -533,3 +533,15 @@ button[type="submit"]:hover, .reset-btn:hover {
     font-size: 1rem;
   }
 }
+
+.upload-container {
+  width: 100%;
+  background: var(--surface);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 200px);
+  min-height: 600px;
+  box-shadow: var(--shadow-lg);
+}

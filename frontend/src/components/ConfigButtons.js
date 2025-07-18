@@ -24,33 +24,35 @@ const ConfigButtons = ({
   };
 
   return (
-    <div className="config-buttons mt-4 flex gap-2">
-      <button
-        type="button"
-        className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
-        disabled={isLoading}
-        onClick={onSave}
-      >
-        💾 Сохранить
-      </button>
+    <div className="sidebar-section">
+      <div className="config-buttons mt-4 flex gap-2">
+        <button
+          type="button"
+          className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
+          disabled={isLoading}
+          onClick={onSave}
+        >
+          💾 Сохранить
+        </button>
 
-      <button
-        type="button"
-        className="bg-gray-300 text-black px-4 py-2 rounded-lg hover:bg-gray-400"
-        onClick={onReset}
-        disabled={isLoading}
-      >
-        Сбросить
-      </button>
+        <button
+          type="button"
+          className="bg-gray-300 text-black px-4 py-2 rounded-lg hover:bg-gray-400"
+          onClick={onReset}
+          disabled={isLoading}
+        >
+          Сбросить
+        </button>
 
-      <button
-        type="button"
-        className="bg-yellow-400 text-black px-4 py-2 rounded-lg hover:bg-yellow-500"
-        onClick={handleReload}
-        disabled={isLoading}
-      >
-        🔄 Перезапустить
-      </button>
+        <button
+          type="button"
+          className="bg-yellow-400 text-black px-4 py-2 rounded-lg hover:bg-yellow-500"
+          onClick={handleReload}
+          disabled={isLoading}
+        >
+          🔄 Перезапустить
+        </button>
+      </div>
     </div>
   );
 };
