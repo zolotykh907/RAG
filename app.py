@@ -39,19 +39,47 @@ logger = setup_logging(shared_config.logs_dir, 'RAG_APP')
 # Глобальное хранилище для временных индексов (session_id -> embeddings)
 temp_indexes: Dict[str, List] = {}
 
+# Глобальные переменные для сервисов
+data_loader = None
+data_base = None
+indexing_service = None
+query_service = None
+responder = None
+pipeline = None
+
 try:
     data_loader = DataLoader(shared_config)
     data_base = FaissDB(shared_config)
     indexing_service = Indexing(shared_config, data_loader, data_base)
     
-    query_service = Query(query_config, data_base)
-    responder = LLMResponder(query_config)
-    pipeline = RAGPipeline(config=query_config, query=query_service, responder=responder)
+    # Инициализируем query_service с обработкой ошибок
+    try:
+        query_service = Query(query_config, data_base)
+        logger.info('Query service initialized successfully.')
+    except Exception as e:
+        logger.warning(f'Failed to initialize Query service (index may not exist): {str(e)}')
+        query_service = None
+    
+    # Инициализируем responder
+    try:
+        responder = LLMResponder(query_config)
+        logger.info('LLM responder initialized successfully.')
+    except Exception as e:
+        logger.error(f'Failed to initialize LLM responder: {str(e)}')
+        raise
+    
+    # Инициализируем pipeline только если query_service доступен
+    if query_service is not None:
+        pipeline = RAGPipeline(config=query_config, query=query_service, responder=responder)
+        logger.info('RAG pipeline initialized successfully.')
+    else:
+        logger.warning('RAG pipeline not initialized - no index available.')
     
     logger.info('RAG API initialized successfully.')
 except Exception as e:
     logger.error(f'Failed to initialize RAG API: {str(e)}')
-    raise
+    # Не падаем, а продолжаем работу с ограниченной функциональностью
+    logger.warning('Continuing with limited functionality...')
 
 app = FastAPI(
     title="RAG System API",
@@ -118,6 +146,13 @@ def process_file_temp(file_path: str) -> List:
 @app.post('/upload-temp')
 async def upload_temp_file(file: UploadFile = File(...)):
     """Upload and temporarily index a file for session use."""
+    # Проверяем, доступен ли indexing_service
+    if indexing_service is None:
+        raise HTTPException(
+            status_code=503, 
+            detail="Indexing service not available. Please check configuration and try again."
+        )
+   
     try:
         # Генерируем session_id
         session_id = str(uuid.uuid4())
@@ -215,6 +250,13 @@ async def update_config(service: str, new_config: Dict = Body(...)):
 @app.post('/upload-files')
 async def upload_file(file: UploadFile = File(...)):
     """Upload and index a file."""
+    # Проверяем, доступен ли indexing_service
+    if indexing_service is None:
+        raise HTTPException(
+            status_code=503, 
+            detail="Indexing service not available. Please check configuration and try again."
+        )
+   
     with TemporaryDirectory() as temp_dir:
         temp_path = os.path.join(temp_dir, file.filename)
         logger.info(f"File saved to temp directory: {temp_path}")
@@ -225,6 +267,16 @@ async def upload_file(file: UploadFile = File(...)):
             logger.info("Start indexing...")
             indexing_service.run_indexing(data=temp_path)
             logger.info("End indexing!")
+           
+            # Переинициализируем query_service после создания индекса
+            global query_service, pipeline
+            try:
+                query_service = Query(query_config, data_base)
+                pipeline = RAGPipeline(config=query_config, query=query_service, responder=responder)
+                logger.info('Query service and pipeline reinitialized after indexing.')
+            except Exception as e:
+                logger.warning(f'Failed to reinitialize query service after indexing: {str(e)}')
+           
             return {"message": "File processed and indexed successfully."}
         except Exception as e:
             logger.error(f"Indexing failed: {str(e)}")
@@ -255,12 +307,13 @@ async def query_rag(request: QueryRequest):
                 def query(self, question):
                     results = []
                     
-                    # Ищем в постоянном индексе
-                    try:
-                        permanent_results = self.permanent_query.query(question)
-                        results.extend(permanent_results)
-                    except Exception as e:
-                        logger.warning(f"Failed to search in permanent index: {e}")
+                    # Ищем в постоянном индексе (если доступен)
+                    if self.permanent_query is not None:
+                        try:
+                            permanent_results = self.permanent_query.query(question)
+                            results.extend(permanent_results)
+                        except Exception as e:
+                            logger.warning(f"Failed to search in permanent index: {e}")
                     
                     # Ищем во временном индексе
                     try:
@@ -268,7 +321,13 @@ async def query_rag(request: QueryRequest):
                         D, I = self.temp_index.search(query_embedding.astype('float32'), k=min(self.k, len(self.temp_chunks)))
                         
                         # Получаем релевантные тексты из временного индекса
-                        temp_results = [self.temp_chunks[i] for i in I[0] if i < len(self.temp_chunks)]
+                        temp_results = []
+                        for i in I[0]:
+                            if i < len(self.temp_chunks):
+                                temp_results.append(self.temp_chunks[i])
+                            else:
+                                logger.warning(f"Temporary index returned invalid index {i} (max: {len(self.temp_chunks)-1})")
+                        
                         results.extend(temp_results)
                     except Exception as e:
                         logger.warning(f"Failed to search in temporary index: {e}")
@@ -283,7 +342,7 @@ async def query_rag(request: QueryRequest):
             
             # Создаем объединенный query сервис
             combined_query_service = CombinedQueryService(
-                query_service,  # постоянный query сервис
+                query_service,  # постоянный query сервис (может быть None)
                 temp_index,     # временный FAISS индекс
                 temp_chunks,    # временные чанки
                 indexing_service.emb_model,  # модель эмбеддингов
@@ -299,10 +358,18 @@ async def query_rag(request: QueryRequest):
             logger.info(f"Combined query processed successfully for session {session_id}")
             return QueryResponse(answer=result['answer'], texts=result['texts'])
         else:
-            # Используем обычный pipeline
-            result = pipeline.answer(request.question)
-            logger.info(f'Successfully processed question')
-            return result
+            # Проверяем, доступен ли обычный pipeline
+            if pipeline is None:
+                # Возвращаем сообщение о том, что индекс не загружен
+                return QueryResponse(
+                    answer="Индекс не загружен или не существует. Пожалуйста, загрузите и проиндексируйте файлы через вкладку 'Upload', или прикрепите временный файл через кнопку скрепки в чате.",
+                    texts=[]
+                )
+            else:
+                # Используем обычный pipeline
+                result = pipeline.answer(request.question)
+                logger.info(f'Successfully processed question')
+                return result
          
     except Exception as e:
         logger.error(f"Query failed: {str(e)}")
@@ -317,10 +384,18 @@ async def reload_pipeline(service: str):
         query_config.reload()
         shared_config.reload()
         if service == "query":
+            # Переинициализируем data_base
             data_base = FaissDB(shared_config)
-            query_service = Query(query_config, data_base)
-            responder = LLMResponder(query_config)
-            pipeline = RAGPipeline(config=query_config, query=query_service, responder=responder)
+           
+            # Пытаемся инициализировать query_service
+            try:
+                query_service = Query(query_config, data_base)
+                pipeline = RAGPipeline(config=query_config, query=query_service, responder=responder)
+                logger.info('Query service and pipeline reinitialized successfully.')
+            except Exception as e:
+                logger.warning(f'Failed to reinitialize Query service: {str(e)}')
+                query_service = None
+                pipeline = None
         elif service == "indexing":
             data_loader = DataLoader(shared_config)
             data_base = FaissDB(shared_config)

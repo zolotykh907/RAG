@@ -240,26 +240,46 @@ class Indexing:
             
             if not self.incrementation_flag:
                 self.clear_existing_data()
+                self.existing_hashes = []
+            else:
+                self.load_existing_hashes()
 
             df = self.load_data(data_source=data)
             df_clean = self.check_quality(df)
-            df_new = df_clean[~df_clean['hash'].isin(self.existing_hashes)]
+            
+            if not self.incrementation_flag:
+                df_new = df_clean
+            else:
+                df_new = df_clean[~df_clean['hash'].isin(self.existing_hashes)]
 
             if df_new.empty:
-                self.logger.info("No new unique texts to index.")
+                if not self.incrementation_flag:
+                    self.logger.info("No texts to index.")
+                else:
+                    self.logger.info("No new unique texts to index.")
                 return
 
             df_chunks = self.split_to_chunks(df_new)
             df_chunks['hash'] = df_chunks['text'].apply(compute_text_hash)
 
-            df_chunks_new = df_chunks[~df_chunks['hash'].isin(self.existing_hashes)]
+            if not self.incrementation_flag:
+                df_chunks_new = df_chunks
+            else:
+                df_chunks_new = df_chunks[~df_chunks['hash'].isin(self.existing_hashes)]
 
             if df_chunks_new.empty:
-                self.logger.info("No new unique chunks to index.")
+                if not self.incrementation_flag:
+                    self.logger.info("No chunks to index.")
+                else:
+                    self.logger.info("No new unique chunks to index.")
                 return
 
             new_hashes = df_chunks_new['hash'].tolist()
-            self.existing_hashes.extend(new_hashes)
+            if self.incrementation_flag:
+                self.existing_hashes.extend(new_hashes)
+            else:
+                self.existing_hashes = new_hashes
+                
             self.logger.info(f"Found {len(df_chunks_new)} new chunks to index.")
 
             self.logger.info("Normalizing chunk texts...")
@@ -289,7 +309,7 @@ class Indexing:
                 self.logger.info("Created new embeddings")
 
             save_embeddings(embeddings, self.embeddings_path)
-            self.data_base.create_index(embeddings)
+            self.data_base.create_index(embeddings, replace=not self.incrementation_flag)
             
         except Exception as e:
             if self.delete_data_flag:
@@ -311,3 +331,7 @@ class Indexing:
             if os.path.exists(file_path):
                 os.remove(file_path)
                 self.logger.info(f"Removed existing file: {file_path}")
+        
+        if not self.incrementation_flag:
+            self.existing_hashes = []
+            self.logger.info("Cleared existing hashes (incrementation disabled)")
