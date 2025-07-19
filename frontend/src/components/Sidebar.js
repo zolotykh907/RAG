@@ -3,8 +3,7 @@ import Stats from './Stats';
 import Settings from './Settings';
 import History from './History';
 
-const Sidebar = ({ autoScroll, onToggleAutoScroll }) => {
-  const [requestsToday, setRequestsToday] = useState(0);
+const Sidebar = ({ autoScroll, onToggleAutoScroll, requestsToday }) => {
   const [systemStatus, setSystemStatus] = useState('Онлайн');
 
   useEffect(() => {

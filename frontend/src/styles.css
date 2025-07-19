@@ -563,9 +563,9 @@ body {
 }
 
 .config-nav {
-  background: var(--surface);
+  background: var(--surface-light);
   backdrop-filter: blur(10px);
-  padding: 1rem 1rem;
+  padding: 0.5rem 1rem;
   box-shadow: var(--shadow);
   display: flex;
   justify-content: center;
@@ -844,6 +844,29 @@ font-weight: bold;
     border-radius: 4px;
     cursor: pointer;
 }
+
+button {
+    background: #667eea;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+button:hover {
+    background: #5a6fd8;
+    transform: translateY(-1px);
+    }
+
+button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    transform: none;
+    }
 
 button, .service-button, .save-btn, .reload-btn, button[type="submit"], .reset-btn {
     width: 200px;          /* Фиксированная ширина */

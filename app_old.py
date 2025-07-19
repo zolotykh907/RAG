@@ -36,10 +36,8 @@ query_config = SharedConfig('query/config.yaml')
 
 logger = setup_logging(shared_config.logs_dir, 'RAG_APP')
 
-# Глобальное хранилище для временных индексов (session_id -> embeddings)
 temp_indexes: Dict[str, List] = {}
 
-# Глобальные переменные для сервисов
 data_loader = None
 data_base = None
 indexing_service = None

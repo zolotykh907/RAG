@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import Header from './components/Header';
 import ChatContainer from './components/ChatContainer';
 import Sidebar from './components/Sidebar';
@@ -11,17 +11,46 @@ import Toast from './components/Toast';
 import './styles.css';
 
 const App = () => {
+  const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [showSources, setShowSources] = useState({});
+  const [autoScroll, setAutoScroll] = useState(true);
   const [activeTab, setActiveTab] = useState('chat');
   const [selectedService, setSelectedService] = useState('query');
   const [config, setConfig] = useState({});
   const [initialConfig, setInitialConfig] = useState({}); // добавлено для хранения начального состояния
   const [status, setStatus] = useState('');
-  const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
-  const [autoScroll, setAutoScroll] = useState(true);
-  const [messages, setMessages] = useState([]);
-  const [showSources, setShowSources] = useState({});
+  const [toast, setToast] = useState({ message: '', type: 'success', visible: false });
   const [tempSessionId, setTempSessionId] = useState(null);
+  const [requestsToday, setRequestsToday] = useState(0); // Добавляем счетчик запросов
+
+  // Загружаем счетчик запросов из localStorage при инициализации
+  useEffect(() => {
+    const savedRequests = localStorage.getItem('requestsToday');
+    if (savedRequests) {
+      const { count, date } = JSON.parse(savedRequests);
+      const today = new Date().toDateString();
+      if (date === today) {
+        setRequestsToday(count);
+      } else {
+        // Если дата изменилась, сбрасываем счетчик
+        setRequestsToday(0);
+        localStorage.setItem('requestsToday', JSON.stringify({ count: 0, date: today }));
+      }
+    } else {
+      // Если нет сохраненных данных, инициализируем
+      const today = new Date().toDateString();
+      localStorage.setItem('requestsToday', JSON.stringify({ count: 0, date: today }));
+    }
+  }, []);
+
+  // Функция для увеличения счетчика запросов
+  const incrementRequestsCount = () => {
+    const today = new Date().toDateString();
+    const newCount = requestsToday + 1;
+    setRequestsToday(newCount);
+    localStorage.setItem('requestsToday', JSON.stringify({ count: newCount, date: today }));
+  };
 
   const showToast = (message, type = 'success') => {
     setToast({ visible: true, message, type });
@@ -188,6 +217,7 @@ const App = () => {
       if (!response.ok) throw new Error('API error');
       const data = await response.json();
       addMessage(data.answer, 'assistant', data.texts);
+      incrementRequestsCount(); // Увеличиваем счетчик запросов только при успешном запросе
     } catch (error) {
       addMessage(`Ошибка: ${error.message}`, 'assistant');
     } finally {
@@ -213,7 +243,12 @@ const App = () => {
               autoScroll={autoScroll}
               uploadTempFile={uploadTempFile}
             />
-            <Sidebar autoScroll={autoScroll} onToggleAutoScroll={handleToggleAutoScroll} activeTab={activeTab} />
+            <Sidebar 
+              autoScroll={autoScroll} 
+              onToggleAutoScroll={handleToggleAutoScroll} 
+              activeTab={activeTab}
+              requestsToday={requestsToday}
+            />
           </>
         )}
         {activeTab === 'config' && (
