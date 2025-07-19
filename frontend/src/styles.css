@@ -237,7 +237,7 @@ body {
 
 /* Chat Input */
 .chat-input-container {
-    padding: 1.5rem;
+    padding: 0rem 1rem;
     border-top: 1px solid var(--border);
     background: var(--surface);
     border-bottom-left-radius: 12px;

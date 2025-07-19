@@ -2,6 +2,12 @@ import sys
 import os
 import shutil
 from tempfile import TemporaryDirectory
+from typing import Dict, List
+import uuid
+import numpy as np
+import pandas as pd
+import faiss
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from fastapi import FastAPI, UploadFile, File, HTTPException, Query
 from pydantic import BaseModel
@@ -14,6 +20,7 @@ from logs import setup_logging
 from my_config import Config as SharedConfig
 from data_loader import DataLoader
 from data_base import FaissDB, ChromaDB
+from data_processing import normalize_text
 
 from indexing import Indexing
 
@@ -27,7 +34,10 @@ from fastapi.responses import JSONResponse
 shared_config = SharedConfig('indexing/config.yaml')
 query_config = SharedConfig('query/config.yaml')
 
-logger = setup_logging(shared_config.logs_dir, 'RAG_API')
+logger = setup_logging(shared_config.logs_dir, 'RAG_APP')
+
+# Глобальное хранилище для временных индексов (session_id -> embeddings)
+temp_indexes: Dict[str, List] = {}
 
 try:
     data_loader = DataLoader(shared_config)
@@ -61,6 +71,7 @@ app.add_middleware(
 class QueryRequest(BaseModel):
     """Request model for RAG query endpoint."""
     question: str
+    session_id: str = None
 
 class QueryResponse(BaseModel):
     """Response model for RAG query endpoint."""
@@ -71,6 +82,84 @@ def get_config_path(service: str) -> str:
     """Возвращает путь к конфигурационному файлу в зависимости от сервиса."""
     base_dir = os.path.dirname(os.path.abspath(__file__))
     return os.path.join(base_dir, service, 'config.yaml')
+
+def process_file_temp(file_path: str) -> List:
+    """Обработать файл и создать эмбеддинги без сохранения на диск."""
+    try:
+        # Загружаем данные из файла
+        df = data_loader.load_data(file_path)
+        
+        # Нормализуем текст
+        df['text'] = df['text'].apply(lambda x: normalize_text(x) if pd.notna(x) else '')
+        
+        # Разбиваем на чанки
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
+        chunks = []
+        for text in df['text']:
+            if text.strip():
+                chunks.extend(text_splitter.split_text(text))
+        
+        # Создаем эмбеддинги
+        embeddings = indexing_service.emb_model.encode(chunks, show_progress_bar=True)
+        
+        # Сохраняем чанки и эмбеддинги в памяти
+        temp_data = {
+            'chunks': chunks,
+            'embeddings': embeddings.tolist()
+        }
+        
+        logger.info(f"Temporary indexing completed. Created {len(chunks)} chunks with embeddings.")
+        return temp_data
+        
+    except Exception as e:
+        logger.error(f"Temporary indexing failed: {str(e)}")
+        raise
+
+@app.post('/upload-temp')
+async def upload_temp_file(file: UploadFile = File(...)):
+    """Upload and temporarily index a file for session use."""
+    try:
+        # Генерируем session_id
+        session_id = str(uuid.uuid4())
+        
+        with TemporaryDirectory() as temp_dir:
+            temp_path = os.path.join(temp_dir, file.filename)
+            logger.info(f"Temporary file saved: {temp_path}")
+            
+            with open(temp_path, "wb") as f:
+                shutil.copyfileobj(file.file, f)
+ 
+            # Обрабатываем файл и создаем временные эмбеддинги
+            temp_data = process_file_temp(temp_path)
+            
+            # Сохраняем в глобальном хранилище
+            temp_indexes[session_id] = temp_data
+            
+            logger.info(f"Temporary file indexed successfully. Session ID: {session_id}")
+            return {
+                "message": "File processed and temporarily indexed successfully.",
+                "session_id": session_id,
+                "chunks_count": len(temp_data['chunks'])
+            }
+            
+    except Exception as e:
+        logger.error(f"Temporary indexing failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete('/clear-temp/{session_id}')
+async def clear_temp_session(session_id: str):
+    """Clear temporary session data."""
+    try:
+        if session_id in temp_indexes:
+            del temp_indexes[session_id]
+            logger.info(f"Temporary session {session_id} cleared")
+            return {"message": "Session cleared successfully"}
+        else:
+            raise HTTPException(status_code=404, detail="Session not found")
+    except Exception as e:
+        logger.error(f"Failed to clear session {session_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.get("/config")
 async def get_config(service: str):
@@ -87,7 +176,6 @@ async def get_config(service: str):
         logger.error(f"Не удалось прочитать конфигурацию для {service}: {e}")
         raise HTTPException(status_code=500, detail="Ошибка при чтении конфигурации")
 
-from typing import Dict
 from fastapi import Body
 
 
@@ -147,9 +235,75 @@ async def query_rag(request: QueryRequest):
     """Handle RAG query request."""
     try:
         logger.info(f"Processing question: {request.question[:25]}...")
-        result = pipeline.answer(request.question)
-        logger.info(f'Successfully processed question')
-        return result
+        
+        # Если передан session_id, используем объединенные данные
+        if request.session_id and request.session_id in temp_indexes:
+            session_id = request.session_id
+            temp_data = temp_indexes[session_id]
+            temp_chunks = temp_data['chunks']
+            temp_embeddings = np.array(temp_data['embeddings'])
+            
+            # Создаем объединенный query сервис
+            class CombinedQueryService:
+                def __init__(self, permanent_query, temp_index, temp_chunks, emb_model, k=5):
+                    self.permanent_query = permanent_query
+                    self.temp_index = temp_index
+                    self.temp_chunks = temp_chunks
+                    self.emb_model = emb_model
+                    self.k = k
+                
+                def query(self, question):
+                    results = []
+                    
+                    # Ищем в постоянном индексе
+                    try:
+                        permanent_results = self.permanent_query.query(question)
+                        results.extend(permanent_results)
+                    except Exception as e:
+                        logger.warning(f"Failed to search in permanent index: {e}")
+                    
+                    # Ищем во временном индексе
+                    try:
+                        query_embedding = self.emb_model.encode([question])
+                        D, I = self.temp_index.search(query_embedding.astype('float32'), k=min(self.k, len(self.temp_chunks)))
+                        
+                        # Получаем релевантные тексты из временного индекса
+                        temp_results = [self.temp_chunks[i] for i in I[0] if i < len(self.temp_chunks)]
+                        results.extend(temp_results)
+                    except Exception as e:
+                        logger.warning(f"Failed to search in temporary index: {e}")
+                    
+                    # Убираем дубликаты и ограничиваем количество результатов
+                    unique_results = list(dict.fromkeys(results))  # Сохраняет порядок
+                    return unique_results[:self.k * 2]  # Возвращаем больше результатов, так как объединили два источника
+            
+            # Создаем временный FAISS индекс для временных данных
+            temp_index = faiss.IndexFlatIP(temp_embeddings.shape[1])
+            temp_index.add(temp_embeddings.astype('float32'))
+            
+            # Создаем объединенный query сервис
+            combined_query_service = CombinedQueryService(
+                query_service,  # постоянный query сервис
+                temp_index,     # временный FAISS индекс
+                temp_chunks,    # временные чанки
+                indexing_service.emb_model,  # модель эмбеддингов
+                k=5  # количество результатов из каждого источника
+            )
+            
+            # Создаем объединенный pipeline
+            combined_pipeline = RAGPipeline(config=query_config, query=combined_query_service, responder=responder)
+            
+            # Используем объединенный pipeline
+            result = combined_pipeline.answer(request.question)
+            
+            logger.info(f"Combined query processed successfully for session {session_id}")
+            return QueryResponse(answer=result['answer'], texts=result['texts'])
+        else:
+            # Используем обычный pipeline
+            result = pipeline.answer(request.question)
+            logger.info(f'Successfully processed question')
+            return result
+         
     except Exception as e:
         logger.error(f"Query failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

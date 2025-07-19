@@ -21,6 +21,7 @@ const App = () => {
   const [autoScroll, setAutoScroll] = useState(true);
   const [messages, setMessages] = useState([]);
   const [showSources, setShowSources] = useState({});
+  const [tempSessionId, setTempSessionId] = useState(null);
 
   const showToast = (message, type = 'success') => {
     setToast({ visible: true, message, type });
@@ -138,16 +139,51 @@ const App = () => {
   // Переключение показа источников
   const handleToggleSources = (id) => setShowSources((prev) => ({ ...prev, [id]: !prev[id] }));
 
+  // Временное индексирование файла для чата
+  const uploadTempFile = async (file) => {
+    if (!file) return;
+    
+    addMessage(`📎 Прикрепляю файл: ${file.name}`, 'user');
+    setIsLoading(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch('http://localhost:8000/upload-temp', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) throw new Error('Ошибка загрузки файла');
+      const data = await response.json();
+      
+      // Сохраняем session_id для использования в запросах
+      setTempSessionId(data.session_id);
+      
+      addMessage(`✅ Файл "${file.name}" успешно прикреплен и готов к использованию в чате!`, 'assistant');
+    } catch (error) {
+      addMessage(`❌ Ошибка при прикреплении файла: ${error.message}`, 'assistant');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Отправка вопроса
   const sendQuestion = async (question) => {
     if (!question) return;
     addMessage(question, 'user');
     setIsLoading(true);
     try {
+      // Отправляем запрос на единый endpoint с session_id, если он есть
+      const requestBody = tempSessionId 
+        ? { question, session_id: tempSessionId }
+        : { question };
+      
       const response = await fetch('http://localhost:8000/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question }),
+        body: JSON.stringify(requestBody),
       });
       if (!response.ok) throw new Error('API error');
       const data = await response.json();
@@ -175,6 +211,7 @@ const App = () => {
               sendQuestion={sendQuestion}
               onLoadingChange={setIsLoading}
               autoScroll={autoScroll}
+              uploadTempFile={uploadTempFile}
             />
             <Sidebar autoScroll={autoScroll} onToggleAutoScroll={handleToggleAutoScroll} activeTab={activeTab} />
           </>

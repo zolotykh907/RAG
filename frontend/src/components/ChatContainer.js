@@ -11,7 +11,8 @@ const ChatContainer = ({
   onToggleSources,
   sendQuestion,
   onLoadingChange,
-  autoScroll
+  autoScroll,
+  uploadTempFile
 }) => {
   const [loading, setLoading] = React.useState(false);
   const chatMessagesRef = useRef(null);
@@ -38,7 +39,7 @@ const ChatContainer = ({
         showSources={showSources}
         onToggleSources={onToggleSources}
       />
-      <ChatInput onSend={sendQuestion} disabled={loading} />
+      <ChatInput onSend={sendQuestion} disabled={loading} uploadTempFile={uploadTempFile} />
     </div>
   );
 };
