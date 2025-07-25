@@ -12,16 +12,33 @@ class TempIndexManager:
         self.temp_indexes: Dict[str, List] = {}
     
     def add_temp_index(self, session_id: str, temp_data: List) -> None:
-        """Add temporary index data for a session."""
+        """Add temporary index data for a session.
+        
+        Args:
+            session_id (str): Unique identifier for the session.
+            temp_data (List): List of temporary data to store.
+        """
         self.temp_indexes[session_id] = temp_data
         logger.info(f"Added temporary index for session {session_id}")
     
     def get_temp_index(self, session_id: str) -> List:
-        """Get temporary index data for a session."""
+        """Get temporary index data for a session.
+        
+        Args:
+            session_id (str): Unique identifier for the session.
+            
+        Returns:
+            List: Temporary index data if exists, otherwise None."""
         return self.temp_indexes.get(session_id)
     
     def remove_temp_index(self, session_id: str) -> bool:
-        """Remove temporary index data for a session."""
+        """Remove temporary index data for a session.
+        
+        Args:
+            session_id (str): Unique identifier for the session.
+        
+        Returns:
+            bool: True if removed, False if session does not exist."""
         if session_id in self.temp_indexes:
             del self.temp_indexes[session_id]
             logger.info(f"Removed temporary index for session {session_id}")
@@ -29,15 +46,27 @@ class TempIndexManager:
         return False
     
     def has_session(self, session_id: str) -> bool:
-        """Check if session exists."""
+        """Check if session exists.
+        
+        Args:
+            session_id (str): Unique identifier for the session.
+        
+        Returns:
+            bool: True if session exists, False otherwise."""
         return session_id in self.temp_indexes
     
     def generate_session_id(self) -> str:
-        """Generate a new session ID."""
+        """Generate a new session ID.
+        
+        Returns:
+            str: Unique session ID."""
         return str(uuid.uuid4())
     
     def get_all_sessions(self) -> List[str]:
-        """Get all active session IDs."""
+        """Get all active session IDs.
+
+        Returns:
+            List[str]: List of all active session IDs."""
         return list(self.temp_indexes.keys())
     
     def clear_all(self) -> None:
@@ -46,5 +75,4 @@ class TempIndexManager:
         logger.info("Cleared all temporary indexes")
 
 
-# Глобальный экземпляр менеджера
 temp_index_manager = TempIndexManager() 

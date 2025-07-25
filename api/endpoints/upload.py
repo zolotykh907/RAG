@@ -15,11 +15,15 @@ router = APIRouter()
 
 @router.post('/upload-temp')
 async def upload_temp_file(file: UploadFile = File(...)):
-    """Upload and temporarily index a file for session use."""
-    # Импортируем глобальные переменные из main
+    """Upload and temporarily index a file for session use.
+    
+    Args:
+        file (UploadFile): The file to be uploaded and indexed.
+    
+    Returns:
+        dict: Confirmation message with session ID and chunk count."""
     from ..main import indexing_service, data_loader
     
-    # Проверяем, доступен ли indexing_service
     if indexing_service is None:
         raise HTTPException(
             status_code=503, 
@@ -27,7 +31,6 @@ async def upload_temp_file(file: UploadFile = File(...)):
         )
    
     try:
-        # Генерируем session_id
         session_id = temp_index_manager.generate_session_id()
         
         with TemporaryDirectory() as temp_dir:
@@ -37,10 +40,8 @@ async def upload_temp_file(file: UploadFile = File(...)):
             with open(temp_path, "wb") as f:
                 shutil.copyfileobj(file.file, f)
  
-            # Обрабатываем файл и создаем временные эмбеддинги
             temp_data = process_file_temp(temp_path, data_loader, indexing_service)
             
-            # Сохраняем в глобальном хранилище
             temp_index_manager.add_temp_index(session_id, temp_data)
             
             logger.info(f"Temporary file indexed successfully. Session ID: {session_id}")
@@ -57,11 +58,16 @@ async def upload_temp_file(file: UploadFile = File(...)):
 
 @router.post('/upload-files')
 async def upload_file(file: UploadFile = File(...)):
-    """Upload and index a file."""
-    # Импортируем глобальные переменные из main
+    """Upload and index a file.
+    
+    Args:
+        file (UploadFile): The file to be uploaded and indexed.
+        
+    Returns:
+        dict: Confirmation message indicating successful indexing.
+    """
     from ..main import indexing_service, query_config, data_base, responder
     
-    # Проверяем, доступен ли indexing_service
     if indexing_service is None:
         raise HTTPException(
             status_code=503, 
@@ -79,7 +85,6 @@ async def upload_file(file: UploadFile = File(...)):
             indexing_service.run_indexing(data=temp_path)
             logger.info("End indexing!")
            
-            # Переинициализируем query_service после создания индекса
             try:
                 query_service = Query(query_config, data_base)
                 pipeline = RAGPipeline(config=query_config, query=query_service, responder=responder)
@@ -96,7 +101,14 @@ async def upload_file(file: UploadFile = File(...)):
 
 @router.delete('/clear-temp/{session_id}')
 async def clear_temp_session(session_id: str):
-    """Clear temporary session data."""
+    """Clear temporary session data.
+
+    Args:
+        session_id (str): The ID of the session to clear.
+    
+    Returns:
+        dict: Confirmation message indicating successful session clearance.
+    """
     try:
         if temp_index_manager.remove_temp_index(session_id):
             return {"message": "Session cleared successfully"}

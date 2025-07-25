@@ -15,26 +15,21 @@ router = APIRouter()
 async def reload_pipeline(service: str):
     """Reload pipeline configuration."""
     try:
-        # Импортируем глобальные переменные из main
         from ..main import (
             query_config, shared_config, responder,
             data_loader, data_base, indexing_service, query_service, pipeline
         )
         
-        # Перезагружаем конфигурации
         query_config.reload()
         shared_config.reload()
         
         if service == "query":
-            # Переинициализируем data_base
             new_data_base = FaissDB(shared_config)
            
-            # Пытаемся инициализировать query_service
             try:
                 new_query_service = Query(query_config, new_data_base)
                 new_pipeline = RAGPipeline(config=query_config, query=new_query_service, responder=responder)
                 
-                # Обновляем глобальные переменные
                 import sys
                 main_module = sys.modules['api.main']
                 main_module.data_base = new_data_base
@@ -52,18 +47,17 @@ async def reload_pipeline(service: str):
             new_data_base = FaissDB(shared_config)
             new_indexing_service = Indexing(shared_config, new_data_loader, new_data_base)
             
-            # Обновляем глобальные переменные
             import sys
             main_module = sys.modules['api.main']
             main_module.data_loader = new_data_loader
             main_module.data_base = new_data_base
             main_module.indexing_service = new_indexing_service
             
-            logger.info(f"{service} конфигурация перезагружена")
-            return {"message": f"{service} конфигурация перезагружена успешно"}
+            logger.info(f"{service} service reinitialized successfully.")
+            return {"message": f"{service} configuration reloaded successfully"}
         else:
-            raise ValueError("Неизвестный сервис")
+            raise ValueError("Invalid service name. Use 'query' or 'indexing'.")
 
     except Exception as e:
-        logger.error(f"Ошибка при перезагрузке: {e}")
+        logger.error(f"Error reload: {e}")
         raise HTTPException(status_code=500, detail=str(e)) 

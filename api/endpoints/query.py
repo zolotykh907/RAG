@@ -11,38 +11,35 @@ router = APIRouter()
 
 @router.post('/query', response_model=QueryResponse)
 async def query_rag(request: QueryRequest):
-    """Handle RAG query request."""
+    """Handle RAG query request.
+    Args:
+        request (QueryRequest): The query request containing the question and optional session ID.
+    Returns:
+        QueryResponse: The response containing the answer and relevant texts."""
     try:
         logger.info(f"Processing question: {request.question[:25]}...")
         
-        # Импортируем глобальные переменные из main
         from ..main import query_service, pipeline, indexing_service, query_config, responder
         
-        # Если передан session_id, используем объединенные данные
         if request.session_id and temp_index_manager.has_session(request.session_id):
             session_id = request.session_id
             temp_data = temp_index_manager.get_temp_index(session_id)
             
-            # Создаем объединенный pipeline
             combined_pipeline = create_combined_pipeline(
                 query_service, temp_data, indexing_service, query_config, responder
             )
             
-            # Используем объединенный pipeline
             result = combined_pipeline.answer(request.question)
             
             logger.info(f"Combined query processed successfully for session {session_id}")
             return QueryResponse(answer=result['answer'], texts=result['texts'])
         else:
-            # Проверяем, доступен ли обычный pipeline
             if pipeline is None:
-                # Возвращаем сообщение о том, что индекс не загружен
                 return QueryResponse(
-                    answer="Индекс не загружен или не существует. Пожалуйста, загрузите и проиндексируйте файлы через вкладку 'Upload', или прикрепите временный файл через кнопку скрепки в чате.",
+                    answer="Index not available. Please upload documents first.",
                     texts=[]
                 )
             else:
-                # Используем обычный pipeline
                 result = pipeline.answer(request.question)
                 logger.info(f'Successfully processed question')
                 return result

@@ -4,7 +4,6 @@ import os
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 
-# Добавляем пути для импорта
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'shared'))
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'indexing'))
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'query'))
@@ -19,17 +18,14 @@ from query.query import Query
 from query.pipeline import RAGPipeline
 from query.llm import LLMResponder
 
-# Импортируем наши модули
 from .models import QueryRequest, QueryResponse
 from .endpoints import query, upload, config, health, reload
 
-# Инициализация конфигурации
 shared_config = SharedConfig('indexing/config.yaml')
 query_config = SharedConfig('query/config.yaml')
 
 logger = setup_logging(shared_config.logs_dir, 'RAG_APP')
 
-# Глобальные переменные для сервисов
 data_loader = None
 data_base = None
 indexing_service = None
@@ -47,7 +43,6 @@ def initialize_services():
         data_base = FaissDB(shared_config)
         indexing_service = Indexing(shared_config, data_loader, data_base)
         
-        # Инициализируем query_service с обработкой ошибок
         try:
             query_service = Query(query_config, data_base)
             logger.info('Query service initialized successfully.')
@@ -55,7 +50,6 @@ def initialize_services():
             logger.warning(f'Failed to initialize Query service (index may not exist): {str(e)}')
             query_service = None
         
-        # Инициализируем responder
         try:
             responder = LLMResponder(query_config)
             logger.info('LLM responder initialized successfully.')
@@ -63,7 +57,6 @@ def initialize_services():
             logger.error(f'Failed to initialize LLM responder: {str(e)}')
             raise
         
-        # Инициализируем pipeline только если query_service доступен
         if query_service is not None:
             pipeline = RAGPipeline(config=query_config, query=query_service, responder=responder)
             logger.info('RAG pipeline initialized successfully.')
@@ -73,21 +66,17 @@ def initialize_services():
         logger.info('RAG API initialized successfully.')
     except Exception as e:
         logger.error(f'Failed to initialize RAG API: {str(e)}')
-        # Не падаем, а продолжаем работу с ограниченной функциональностью
         logger.warning('Continuing with limited functionality...')
 
 
-# Инициализируем сервисы
 initialize_services()
 
-# Создаем FastAPI приложение
 app = FastAPI(
     title="RAG System API",
     description="Unified API for document indexing and RAG querying",
     version="1.0.0"
 )
 
-# Добавляем CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],
@@ -97,7 +86,6 @@ app.add_middleware(
 )
 
 
-# Включаем все роутеры
 app.include_router(
     query.router,
     tags=["query"]

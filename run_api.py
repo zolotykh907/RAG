@@ -1,9 +1,3 @@
-#!/usr/bin/env python3
-"""
-RAG System API Runner
-Запускает FastAPI приложение из модуля api
-"""
-
 import uvicorn
 from api.main import app
 

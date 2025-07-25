@@ -76,7 +76,7 @@ try:
     logger.info('RAG API initialized successfully.')
 except Exception as e:
     logger.error(f'Failed to initialize RAG API: {str(e)}')
-    # Не падаем, а продолжаем работу с ограниченной функциональностью
+
     logger.warning('Continuing with limited functionality...')
 
 app = FastAPI(
@@ -144,7 +144,6 @@ def process_file_temp(file_path: str) -> List:
 @app.post('/upload-temp')
 async def upload_temp_file(file: UploadFile = File(...)):
     """Upload and temporarily index a file for session use."""
-    # Проверяем, доступен ли indexing_service
     if indexing_service is None:
         raise HTTPException(
             status_code=503, 
@@ -152,7 +151,6 @@ async def upload_temp_file(file: UploadFile = File(...)):
         )
    
     try:
-        # Генерируем session_id
         session_id = str(uuid.uuid4())
         
         with TemporaryDirectory() as temp_dir:
@@ -162,10 +160,8 @@ async def upload_temp_file(file: UploadFile = File(...)):
             with open(temp_path, "wb") as f:
                 shutil.copyfileobj(file.file, f)
  
-            # Обрабатываем файл и создаем временные эмбеддинги
             temp_data = process_file_temp(temp_path)
             
-            # Сохраняем в глобальном хранилище
             temp_indexes[session_id] = temp_data
             
             logger.info(f"Temporary file indexed successfully. Session ID: {session_id}")
@@ -248,7 +244,6 @@ async def update_config(service: str, new_config: Dict = Body(...)):
 @app.post('/upload-files')
 async def upload_file(file: UploadFile = File(...)):
     """Upload and index a file."""
-    # Проверяем, доступен ли indexing_service
     if indexing_service is None:
         raise HTTPException(
             status_code=503, 
@@ -266,7 +261,6 @@ async def upload_file(file: UploadFile = File(...)):
             indexing_service.run_indexing(data=temp_path)
             logger.info("End indexing!")
            
-            # Переинициализируем query_service после создания индекса
             global query_service, pipeline
             try:
                 query_service = Query(query_config, data_base)
@@ -286,14 +280,12 @@ async def query_rag(request: QueryRequest):
     try:
         logger.info(f"Processing question: {request.question[:25]}...")
         
-        # Если передан session_id, используем объединенные данные
         if request.session_id and request.session_id in temp_indexes:
             session_id = request.session_id
             temp_data = temp_indexes[session_id]
             temp_chunks = temp_data['chunks']
             temp_embeddings = np.array(temp_data['embeddings'])
             
-            # Создаем объединенный query сервис
             class CombinedQueryService:
                 def __init__(self, permanent_query, temp_index, temp_chunks, emb_model, k=5):
                     self.permanent_query = permanent_query
@@ -305,7 +297,6 @@ async def query_rag(request: QueryRequest):
                 def query(self, question):
                     results = []
                     
-                    # Ищем в постоянном индексе (если доступен)
                     if self.permanent_query is not None:
                         try:
                             permanent_results = self.permanent_query.query(question)
@@ -313,12 +304,10 @@ async def query_rag(request: QueryRequest):
                         except Exception as e:
                             logger.warning(f"Failed to search in permanent index: {e}")
                     
-                    # Ищем во временном индексе
                     try:
                         query_embedding = self.emb_model.encode([question])
                         D, I = self.temp_index.search(query_embedding.astype('float32'), k=min(self.k, len(self.temp_chunks)))
                         
-                        # Получаем релевантные тексты из временного индекса
                         temp_results = []
                         for i in I[0]:
                             if i < len(self.temp_chunks):
@@ -330,41 +319,33 @@ async def query_rag(request: QueryRequest):
                     except Exception as e:
                         logger.warning(f"Failed to search in temporary index: {e}")
                     
-                    # Убираем дубликаты и ограничиваем количество результатов
-                    unique_results = list(dict.fromkeys(results))  # Сохраняет порядок
-                    return unique_results[:self.k * 2]  # Возвращаем больше результатов, так как объединили два источника
-            
-            # Создаем временный FAISS индекс для временных данных
+                    unique_results = list(dict.fromkeys(results))  
+                    return unique_results[:self.k * 2]  
+
             temp_index = faiss.IndexFlatIP(temp_embeddings.shape[1])
             temp_index.add(temp_embeddings.astype('float32'))
             
-            # Создаем объединенный query сервис
             combined_query_service = CombinedQueryService(
-                query_service,  # постоянный query сервис (может быть None)
-                temp_index,     # временный FAISS индекс
-                temp_chunks,    # временные чанки
-                indexing_service.emb_model,  # модель эмбеддингов
-                k=5  # количество результатов из каждого источника
+                query_service,  
+                temp_index,    
+                temp_chunks,    
+                indexing_service.emb_model,  
+                k=5  
             )
             
-            # Создаем объединенный pipeline
             combined_pipeline = RAGPipeline(config=query_config, query=combined_query_service, responder=responder)
             
-            # Используем объединенный pipeline
             result = combined_pipeline.answer(request.question)
             
             logger.info(f"Combined query processed successfully for session {session_id}")
             return QueryResponse(answer=result['answer'], texts=result['texts'])
         else:
-            # Проверяем, доступен ли обычный pipeline
             if pipeline is None:
-                # Возвращаем сообщение о том, что индекс не загружен
                 return QueryResponse(
                     answer="Индекс не загружен или не существует. Пожалуйста, загрузите и проиндексируйте файлы через вкладку 'Upload', или прикрепите временный файл через кнопку скрепки в чате.",
                     texts=[]
                 )
             else:
-                # Используем обычный pipeline
                 result = pipeline.answer(request.question)
                 logger.info(f'Successfully processed question')
                 return result
@@ -382,10 +363,8 @@ async def reload_pipeline(service: str):
         query_config.reload()
         shared_config.reload()
         if service == "query":
-            # Переинициализируем data_base
             data_base = FaissDB(shared_config)
            
-            # Пытаемся инициализировать query_service
             try:
                 query_service = Query(query_config, data_base)
                 pipeline = RAGPipeline(config=query_config, query=query_service, responder=responder)
