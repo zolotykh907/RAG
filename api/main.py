@@ -17,6 +17,7 @@ from indexing import Indexing
 from query.query import Query
 from query.pipeline import RAGPipeline
 from query.llm import LLMResponder
+from query.redis_client import RedisDB
 
 from .models import QueryRequest, QueryResponse
 from .endpoints import query, upload, config, health, reload
@@ -42,6 +43,7 @@ def initialize_services():
         data_loader = DataLoader(shared_config)
         data_base = FaissDB(shared_config)
         indexing_service = Indexing(shared_config, data_loader, data_base)
+        redis_client = RedisDB()
         
         try:
             query_service = Query(query_config, data_base)
@@ -58,7 +60,7 @@ def initialize_services():
             raise
         
         if query_service is not None:
-            pipeline = RAGPipeline(config=query_config, query=query_service, responder=responder)
+            pipeline = RAGPipeline(config=query_config, query=query_service, responder=responder, redis_client=redis_client)
             logger.info('RAG pipeline initialized successfully.')
         else:
             logger.warning('RAG pipeline not initialized - no index available.')
