@@ -1,0 +1,471 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', 'Source Sans Pro', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    line-height: 1.7;
+    color: #2c3e50;
+    background-color: #f8f9fa;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+}
+
+.container {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* Левая панель навигации */
+.sidebar {
+    width: 20%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    position: fixed;
+    height: 100vh;
+    overflow-y: auto;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+}
+
+.sidebar h2 {
+    margin: 20px 0 20px 0;
+    margin-bottom: 10px;
+    text-align: center;
+    font-size: 1.6em;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    font-family: 'Inter', sans-serif;
+}
+
+.nav-menu {
+    list-style: none;
+}
+
+.nav-menu li {
+    margin-bottom: 1rem;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.nav-menu a {
+    color: white;
+    text-decoration: none;
+    padding: 10px 15px;
+    display: block;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: -0.005em;
+}
+
+.nav-menu a:hover {
+    background-color: rgba(255,255,255,0.2);
+    transform: translateX(5px);
+}
+
+/* Выделение элемента "Описание" - просто жирный шрифт */
+.nav-menu li:nth-child(2) a {
+    font-weight: 700;
+}
+
+.nav-menu li:nth-child(2) a:hover {
+    background-color: rgba(255,255,255,0.2);
+    transform: translateX(5px);
+}
+
+/* Выделение выбранного раздела прямоугольником */
+.nav-menu a.active {
+    background-color: rgba(255,255,255,0.15);
+    border: 2px solid rgba(255,255,255,0.3);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.nav-menu a.active:hover {
+    background-color: rgba(255,255,255,0.25);
+    transform: translateX(5px);
+}
+
+/* Основной контент */
+.main-content {
+    width: 80%;
+    margin-left: 20%;
+    padding: 40px;
+    background-color: white;
+    min-height: 100vh;
+}
+
+h1 {
+    color: #2c3e50;
+    margin-bottom: 30px;
+    font-size: 2.8em;
+    text-align: center;
+    border-bottom: 3px solid #3498db;
+    padding-bottom: 20px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    font-family: 'Inter', sans-serif;
+}
+
+h2 {
+    color: #34495e;
+    margin: 40px 0 20px 0;
+    font-size: 1.9em;
+    text-align: center;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    font-family: 'Inter', sans-serif;
+}
+
+h3 {
+    color: #2c3e50;
+    margin: 30px 0 15px 0;
+    font-size: 1.5em;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    font-family: 'Inter', sans-serif;
+}
+
+h4 {
+    color: #34495e;
+    margin: 20px 0 10px 0;
+    font-size: 1.3em;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    font-family: 'Inter', sans-serif;
+}
+
+p {
+    margin-bottom: 18px;
+    text-align: justify;
+    font-weight: 400;
+    line-height: 1.8;
+}
+
+.highlight {
+    background-color: #fff3cd;
+    padding: 15px;
+    border-left: 4px solid #ffc107;
+    margin: 20px 0;
+    border-radius: 0 5px 5px 0;
+}
+
+.code-block {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 5px;
+    padding: 15px;
+    margin: 15px 0;
+    font-family: 'Courier New', monospace;
+    overflow-x: auto;
+}
+
+.inline-code {
+    background-color: #f1f3f4;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+}
+
+/* Изображение */
+.image-container {
+    text-align: center;
+    margin: 30px 0;
+}
+
+.image-container img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.image-caption {
+    margin-top: 10px;
+    font-style: italic;
+    color: #666;
+    font-size: 0.9em;
+}
+
+/* Таблица */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    background-color: white;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+th, td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+th {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: 600;
+}
+
+tr:hover {
+    background-color: #f5f5f5;
+}
+
+/* Списки */
+ul, ol {
+    margin: 15px 0;
+    padding-left: 30px;
+}
+
+li {
+    margin-bottom: 8px;
+}
+
+/* Блочные элементы */
+.info-box {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    border: 1px solid #2196f3;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.warning-box {
+    background: linear-gradient(135deg, #fff3e0 0%, #ffcc80 100%);
+    border: 1px solid #ff9800;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.success-box {
+    background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%);
+    border: 1px solid #4caf50;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+/* Строчные элементы */
+.badge {
+    display: inline-block;
+    padding: 4px 8px;
+    background-color: #3498db;
+    color: white;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: bold;
+    margin: 2px;
+}
+
+.tech-stack {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 20px 0;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .container {
+        flex-direction: column;
+    }
+    
+    .sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+    }
+    
+    .main-content {
+        width: 100%;
+        margin-left: 0;
+        padding: 20px;
+    }
+}
+
+/* Анимации */
+.fade-in {
+    animation: fadeIn 0.6s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+
+.my-link {
+    color: #ff6b6b;          /* Цвет текста */
+    text-decoration: none;   /* Убираем подчёркивание */
+    font-weight: bold;       /* Жирный шрифт */
+}
+
+.my-link:hover {
+    color: #ff0000;          /* Цвет при наведении */
+    text-decoration: underline; /* Подчёркивание при наведении */
+}
+
+/* Красивое выделение с помощью mark */
+mark {
+    background: linear-gradient(135deg, #a0aff5 0%, #8e75a7 100%);
+    color: white;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    transition: all 0.3s ease;
+    display: inline-block;
+    margin: 0 1px;
+    font-size: 0.9em;
+}
+
+/* Технологические бейджи */
+.tech-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin: 30px 0;
+}
+
+.tech-badges .badge {
+    font-size: 0.9em;
+    padding: 6px 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 20px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    transition: all 0.3s ease;
+}
+
+.tech-badges .badge:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* Контактная информация */
+.contact-info {
+    text-align: center;
+    padding: 30px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 10px;
+    margin: 20px 0;
+}
+
+.contact-info p {
+    margin: 10px 0;
+    font-size: 1.1em;
+}
+
+/* Улучшенные стили для кода */
+code {
+    background-color: #f1f3f4;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+    color: #e74c3c;
+    font-weight: 600;
+}
+
+/* Улучшенные стили для таблиц */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    background-color: white;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+th, td {
+    padding: 15px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+th {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: 600;
+    font-size: 1.1em;
+}
+
+tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+tr:nth-child(odd) {
+    background-color: white;
+}
+
+tr:hover {
+    background-color: #e3f2fd !important;
+    transform: scale(1.01);
+    transition: all 0.2s ease;
+}
+
+/* Улучшенные стили для списков */
+ul, ol {
+    margin: 15px 0;
+    padding-left: 30px;
+}
+
+li {
+    margin-bottom: 8px;
+    line-height: 1.6;
+}
+
+/* Стили для вложенных списков */
+ul ul, ol ol, ul ol, ol ul {
+    margin: 8px 0;
+    padding-left: 25px;
+}
+
+/* Улучшенные стили для заголовков в секциях */
+section h3 {
+    color: #2c3e50;
+    margin: 25px 0 15px 0;
+    font-size: 1.4em;
+    font-weight: 600;
+    border-left: 3px solid #3498db;
+    padding-left: 15px;
+}
+
+section h4 {
+    color: #34495e;
+    margin: 20px 0 10px 0;
+    font-size: 1.2em;
+    font-weight: 600;
+}
+
+
+.code-block {
+  background: #1e1e1e;
+  color: #f8f8f2;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-family: "Fira Code", monospace;
+  font-size: 14px;
+  overflow-x: auto;
+  margin: 10px 0;
+  white-space: pre-wrap;
+  line-height: 1.5;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+.code-block code {
+  color: inherit;
+}
