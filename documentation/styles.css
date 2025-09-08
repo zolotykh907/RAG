@@ -5,10 +5,12 @@
 }
 
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    line-height: 1.6;
-    color: #333;
+    font-family: 'Inter', 'Source Sans Pro', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    line-height: 1.7;
+    color: #2c3e50;
     background-color: #f8f9fa;
+    font-weight: 400;
+    letter-spacing: -0.01em;
 }
 
 .container {
@@ -29,11 +31,13 @@ body {
 }
 
 .sidebar h2 {
-    margin-bottom: 30px;
+    margin: 20px 0 20px 0;
+    margin-bottom: 10px;
     text-align: center;
-    font-size: 1.5em;
-    border-bottom: 2px solid rgba(255,255,255,0.3);
-    padding-bottom: 10px;
+    font-size: 1.6em;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    font-family: 'Inter', sans-serif;
 }
 
 .nav-menu {
@@ -41,8 +45,11 @@ body {
 }
 
 .nav-menu li {
-    margin-bottom: 1rem; /* Изменено на 1rem */
-    text-align: center; /* Центрирование элементов */
+    margin-bottom: 1rem;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .nav-menu a {
@@ -53,6 +60,8 @@ body {
     border-radius: 5px;
     transition: all 0.3s ease;
     font-weight: 500;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: -0.005em;
 }
 
 .nav-menu a:hover {
@@ -60,15 +69,24 @@ body {
     transform: translateX(5px);
 }
 
-/* Выделение элемента "Описание" */
+/* Выделение элемента "Описание" - просто жирный шрифт */
 .nav-menu li:nth-child(2) a {
-    background-color: rgba(255,255,255,0.15);
-    border: 2px solid rgba(255,255,255,0.3);
-    font-weight: 600;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    font-weight: 700;
 }
 
 .nav-menu li:nth-child(2) a:hover {
+    background-color: rgba(255,255,255,0.2);
+    transform: translateX(5px);
+}
+
+/* Выделение выбранного раздела прямоугольником */
+.nav-menu a.active {
+    background-color: rgba(255,255,255,0.15);
+    border: 2px solid rgba(255,255,255,0.3);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.nav-menu a.active:hover {
     background-color: rgba(255,255,255,0.25);
     transform: translateX(5px);
 }
@@ -85,35 +103,48 @@ body {
 h1 {
     color: #2c3e50;
     margin-bottom: 30px;
-    font-size: 2.5em;
+    font-size: 2.8em;
     text-align: center;
     border-bottom: 3px solid #3498db;
     padding-bottom: 20px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    font-family: 'Inter', sans-serif;
 }
 
 h2 {
     color: #34495e;
     margin: 40px 0 20px 0;
-    font-size: 1.8em;
-    border-left: 4px solid #3498db;
-    padding-left: 15px;
+    font-size: 1.9em;
+    text-align: center;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    font-family: 'Inter', sans-serif;
 }
 
 h3 {
     color: #2c3e50;
     margin: 30px 0 15px 0;
-    font-size: 1.4em;
+    font-size: 1.5em;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    font-family: 'Inter', sans-serif;
 }
 
 h4 {
     color: #34495e;
     margin: 20px 0 10px 0;
-    font-size: 1.2em;
+    font-size: 1.3em;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    font-family: 'Inter', sans-serif;
 }
 
 p {
-    margin-bottom: 15px;
+    margin-bottom: 18px;
     text-align: justify;
+    font-weight: 400;
+    line-height: 1.8;
 }
 
 .highlight {
@@ -270,4 +301,152 @@ li {
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
+}
+
+
+.my-link {
+    color: #ff6b6b;          /* Цвет текста */
+    text-decoration: none;   /* Убираем подчёркивание */
+    font-weight: bold;       /* Жирный шрифт */
+}
+
+.my-link:hover {
+    color: #ff0000;          /* Цвет при наведении */
+    text-decoration: underline; /* Подчёркивание при наведении */
+}
+
+/* Красивое выделение с помощью mark */
+mark {
+    background: linear-gradient(135deg, #a0aff5 0%, #8e75a7 100%);
+    color: white;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    transition: all 0.3s ease;
+    display: inline-block;
+    margin: 0 1px;
+    font-size: 0.9em;
+}
+
+/* Технологические бейджи */
+.tech-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin: 30px 0;
+}
+
+.tech-badges .badge {
+    font-size: 0.9em;
+    padding: 6px 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 20px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    transition: all 0.3s ease;
+}
+
+.tech-badges .badge:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* Контактная информация */
+.contact-info {
+    text-align: center;
+    padding: 30px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 10px;
+    margin: 20px 0;
+}
+
+.contact-info p {
+    margin: 10px 0;
+    font-size: 1.1em;
+}
+
+/* Улучшенные стили для кода */
+code {
+    background-color: #f1f3f4;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+    color: #e74c3c;
+    font-weight: 600;
+}
+
+/* Улучшенные стили для таблиц */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    background-color: white;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+th, td {
+    padding: 15px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+th {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: 600;
+    font-size: 1.1em;
+}
+
+tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+tr:nth-child(odd) {
+    background-color: white;
+}
+
+tr:hover {
+    background-color: #e3f2fd !important;
+    transform: scale(1.01);
+    transition: all 0.2s ease;
+}
+
+/* Улучшенные стили для списков */
+ul, ol {
+    margin: 15px 0;
+    padding-left: 30px;
+}
+
+li {
+    margin-bottom: 8px;
+    line-height: 1.6;
+}
+
+/* Стили для вложенных списков */
+ul ul, ol ol, ul ol, ol ul {
+    margin: 8px 0;
+    padding-left: 25px;
+}
+
+/* Улучшенные стили для заголовков в секциях */
+section h3 {
+    color: #2c3e50;
+    margin: 25px 0 15px 0;
+    font-size: 1.4em;
+    font-weight: 600;
+    border-left: 3px solid #3498db;
+    padding-left: 15px;
+}
+
+section h4 {
+    color: #34495e;
+    margin: 20px 0 10px 0;
+    font-size: 1.2em;
+    font-weight: 600;
 }
