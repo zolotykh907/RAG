@@ -1,5 +1,3 @@
-import React from 'react';
-
 const Introduction = () => (
   <section id="introduction" className="fade-in">
     <h1 className="fade-in">RAG Q&A System</h1>

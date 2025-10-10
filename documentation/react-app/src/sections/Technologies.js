@@ -1,5 +1,3 @@
-import React from 'react';
-
 const Technologies = () => (
   <section id="technologies" className="fade-in">
     <h2>Используемые технологии</h2>
@@ -31,10 +29,10 @@ const Technologies = () => (
 
     <h3>Модели и алгоритмы</h3>
     <ul>
-      <li><strong>LLM:</strong> Llama3 (8b) - языковая модель с поддержкой русского языка</li>
-      <li><strong>Эмбеддинги:</strong> sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2</li>
-      <li><strong>Векторный поиск:</strong> FAISS для быстрого поиска похожих векторов</li>
-      <li><strong>OCR:</strong> Tesseract для извлечения текста из изображений</li>
+      <li className="base"><strong>LLM:</strong> Llama3 (8b) - языковая модель с поддержкой русского языка</li>
+      <li className="base"><strong>Эмбеддинги:</strong> sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2</li>
+      <li className="base"><strong>Векторный поиск:</strong> FAISS для быстрого поиска похожих векторов</li>
+      <li className="base"><strong>OCR:</strong> Tesseract для извлечения текста из изображений</li>
     </ul>
   </section>
 );

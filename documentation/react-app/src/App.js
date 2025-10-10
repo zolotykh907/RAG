@@ -1,16 +1,13 @@
-
 import './App.css';
-import Sidebar from './Sidebar';
-import MainPanel from './MainPanel';
+import Sidebar from './components/Sidebar';
+import MainPanel from './components/MainPanel';
 import { BrowserRouter } from 'react-router-dom';
 
 function App() {
   return (
     <BrowserRouter>
-      <div className="container">
         <Sidebar />
         <MainPanel />
-      </div>
     </BrowserRouter>
   );
 }
