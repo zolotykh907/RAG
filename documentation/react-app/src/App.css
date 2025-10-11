@@ -442,13 +442,16 @@ li.highlight-li::before {
     transform: translateY(-2px);
 }
 
-.posts-meta {
+.posts-config {
     display: flex;
     gap: 20px;
     align-items: center;
     margin-bottom: 18px;
     flex-wrap: wrap;
+    margin-bottom: 30px;
 }
+
+
 
 .posts-list {
     display: grid;
@@ -659,4 +662,32 @@ pre {
 
 .slider-container button:hover {
     background-color: #9de0e6;
+}
+
+.method-toggle {
+    display: flex;
+    gap: 10px;
+}
+
+.method-btn {
+    font-size: 18px;
+    padding: 8px 20px;
+    border: none;
+    border-radius: 8px;
+    background-color: #d4f6f9;
+    color: #2c3e50;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.2s, transform 0.2s;
+}
+
+.method-btn:hover {
+    background-color: #c1eef0;
+    transform: translateY(-2px);
+}
+
+.method-btn.active {
+    background-color: #9de0e6;
+    color: #1a2c34;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
