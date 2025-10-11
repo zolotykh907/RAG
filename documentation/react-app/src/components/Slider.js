@@ -1,23 +1,30 @@
-import React, { useState } from 'react';
+function Slider({ value, onChange, min = 0, max = 100 }) {
+  const handleChange = (e) => {
+    onChange(Number(e.target.value));
+  };
 
-function Slider() {
-    const [value, setValue] = useState(50); // Начальное значение 50
+  const increment = () => {
+    if (value < max) onChange(value + 1);
+  };
 
-    const handleChange = (event) => {
-    setValue(event.target.value);
-    };
+  const decrement = () => {
+    if (value > min) onChange(value - 1);
+  };
 
-    return (
-    <div>
-        <input
+  return (
+    <div className="slider-container">
+      <button onClick={decrement}>−</button>
+      <input
         type="range"
-        min="0"
-        max="100"
+        min={min}
+        max={max}
         value={value}
         onChange={handleChange}
-        />
-        <p>Текущее значение: {value}</p>
+        className="slider"
+      />
+      <button onClick={increment}>+</button>
     </div>
-    );
+  );
 }
+
 export default Slider;
