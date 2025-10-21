@@ -1,7 +1,7 @@
 import React from 'react';
 import Navigation from './Navigation';
 
-const Header = ({ onTabChange }) => {
+const Header = () => {
   return (
     <header className="header">
       <div className="header-content flex-header">
@@ -9,7 +9,7 @@ const Header = ({ onTabChange }) => {
           <h1><i className="fas fa-robot"></i> RAG Q&A Система</h1>
         </div>
         <div className="header-nav">
-          <Navigation onTabChange={onTabChange} />
+          <Navigation />
         </div>
       </div>
     </header>

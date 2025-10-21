@@ -1,36 +1,34 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { NavLink } from 'react-router-dom';
 
-const Navigation = ({ onTabChange }) => {
-  const [activeTab, setActiveTab] = useState('chat');
-
-  const handleTabClick = (tab) => {
-    setActiveTab(tab);
-    onTabChange(tab);
-  };
-
+const Navigation = () => {
   return (
     <nav className="config-nav">
-      <a
-        href="#"
-        className={activeTab === 'chat' ? 'active' : ''}
-        onClick={() => handleTabClick('chat')}
+      <NavLink
+        to="/"
+        className={({ isActive }) => (isActive ? 'active' : '')}
+        end
       >
         Чат
-      </a>
-      <a
-        href="#"
-        className={activeTab === 'config' ? 'active' : ''}
-        onClick={() => handleTabClick('config')}
+      </NavLink>
+      <NavLink
+        to="/config"
+        className={({ isActive }) => (isActive ? 'active' : '')}
       >
         Конфигурация
-      </a>
-      <a
-        href="#"
-        className={activeTab === 'upload' ? 'active' : ''}
-        onClick={() => handleTabClick('upload')}
+      </NavLink>
+      <NavLink
+        to="/upload"
+        className={({ isActive }) => (isActive ? 'active' : '')}
       >
         Индексирование
-      </a>
+      </NavLink>
+      <NavLink
+        to="/documentation"
+        className={({ isActive }) => (isActive ? 'active' : '')}
+      >
+        Документация
+      </NavLink>
     </nav>
   );
 };

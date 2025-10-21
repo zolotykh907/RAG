@@ -124,6 +124,7 @@ body {
     height: calc(100vh - 200px);
     min-height: 600px;
     box-shadow: var(--shadow-lg);
+    margin: 40px;
 }
 
 .config-container {
@@ -307,6 +308,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
+    margin: 40px 0 40px 0;
 }
 
 .sidebar-section {

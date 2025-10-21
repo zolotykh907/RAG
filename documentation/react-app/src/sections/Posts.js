@@ -2,32 +2,41 @@ import {useState, useEffect, useMemo} from 'react'
 import axios from 'axios';
 import Slider from '../components/Slider';
 
-const POSTS_URL = 'https://jsonplaceholder.typicode.com/posts';
+const URL = 'http://localhost:8000/posts';
 
 function Posts() {
     const [posts, setPosts] = useState([])
     const [countPosts, setCountPosts] = useState(5)
-    const [useAxios, setUseAxios] = useState(false); // false = fetch, true = axios
+    // const [useAxios, setUseAxios] = useState(false);
+
+    const [useAxios, setUseAxios] = useState(() => {
+        const saved = localStorage.getItem('useAxios');
+        return saved ? JSON.parse(saved) : false;
+    });
 
     const fetchPosts = async () => {
-                const response = await fetch(POSTS_URL)
+                const response = await fetch(URL)
+                console.log('Fetch response:', response);
                 const data = await response.json()
                 setPosts(data)
         }
 
     const axiosPosts = async () => {
-        const response = await axios.get(POSTS_URL)
+        const response = await axios.get(URL)
+        console.log('Axios response:', response);
         setPosts(response.data)
     }
-    useEffect(() => {
-        if (useAxios) {
-            axiosPosts()
-        }
-        else {
-            fetchPosts()
-        }
 
-    }, [useAxios])
+    useEffect(() => {
+        localStorage.setItem('useAxios', JSON.stringify(useAxios));
+
+        if (useAxios) {
+        axiosPosts();
+        } else {
+        fetchPosts();
+        }
+    }, [useAxios]);
+
 
     const visiblePosts = useMemo(() => posts.slice(0, countPosts), [posts, countPosts]);
 
@@ -56,7 +65,7 @@ function Posts() {
 
             <div className='posts-list'>
                 {visiblePosts.map((post, index) => (
-                    <div className='post-card'>
+                    <div className='post-card' key={post.id}>
                         <span className='post-number'>{index + 1}</span>
                         <h3>{post.title}</h3>
                         <p>{post.body}</p>
