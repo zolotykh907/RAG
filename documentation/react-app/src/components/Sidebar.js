@@ -10,6 +10,7 @@ const pages = [
   { to: '/api', label: 'API' },
   { to: '/testing', label: 'Тестирование' },
   { to: '/posts', label: 'Посты'},
+  {to: '/flip', label: 'Картинка'}
 ];
 
 function Sidebar() {

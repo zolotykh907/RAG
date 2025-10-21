@@ -7,7 +7,8 @@ import Installation from '../sections/Installation';
 import Usage from '../sections/Usage';
 import Api from '../sections/Api';
 import Testing from '../sections/Testing';
-import Posts from '../sections/Posts'
+import Posts from '../sections/Posts';
+import Flip from '../sections/Flip'
 
 const MainPanel = () => (
   <main className="main-content">
@@ -22,6 +23,7 @@ const MainPanel = () => (
       <Route path="/api" element={<Api />} />
       <Route path="/testing" element={<Testing />} />
       < Route path="/posts" element={<Posts />} />
+      < Route path="/flip" element={<Flip />} />
     </Routes>
   </main>
 );
