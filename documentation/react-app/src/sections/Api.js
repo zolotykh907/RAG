@@ -1,35 +1,48 @@
-import ExpandableBlock from '../components/ExpandableBlock';
+// import ExpandableBlock from '../components/ExpandableBlock';
 
-const Api = () => (
-  <section id="api" className="fade-in">
-    <h2>API</h2>
-    <p>Система предоставляет REST API для интеграции и автоматизации:</p>
-    <div>
-      <ExpandableBlock title={<h4>POST <mark>/query</mark> </h4>}>
-        <p>Эндпоинт для введения вопроса.</p>
-        <p>Возвращает сгенерированный ответ и тексты, которые были использованы в качестве контекста.</p>
-        <p>📤 Формат запроса:</p>
-        <pre className='code-block'>{`{
-  "question": "..."
-}`}</pre>
+// const Api = () => (
+//   <section id="api" className="fade-in">
+//     <h2>API</h2>
+//     <p>Система предоставляет REST API для интеграции и автоматизации:</p>
+//     <div>
+//       <ExpandableBlock title={<h4>POST <mark>/query</mark> </h4>}>
+//         <p>Эндпоинт для введения вопроса.</p>
+//         <p>Возвращает сгенерированный ответ и тексты, которые были использованы в качестве контекста.</p>
+//         <p>📤 Формат запроса:</p>
+//         <pre className='code-block'>{`{
+//   "question": "..."
+// }`}</pre>
 
-        <p>📥 Формат ответа:</p>
-        <pre className='code-block'>{`{
-  "answer": "...",
-  "texts": [
-    {
-      ...
-    },
-    ...
-  ]
-}`}</pre>
-      </ExpandableBlock>    
+//         <p>📥 Формат ответа:</p>
+//         <pre className='code-block'>{`{
+//   "answer": "...",
+//   "texts": [
+//     {
+//       ...
+//     },
+//     ...
+//   ]
+// }`}</pre>
+//       </ExpandableBlock>    
+//     </div>
+//     <ExpandableBlock title={<h4>POST <mark>/upload-files</mark> </h4>}>
+//       <p>Эндпоинт для загрузки файлов для дальнейшого индексирования</p>
+
+//     </ExpandableBlock> 
+//   </section>
+// );
+
+// export default Api;
+
+import SwaggerUI from "swagger-ui-react";
+import "swagger-ui-react/swagger-ui.css";
+
+const Api = () => {
+  return (
+    <div style={{ height: "100vh" }}>
+      <SwaggerUI url="http://127.0.0.1:8000/openapi.json" />
     </div>
-    <ExpandableBlock title={<h4>POST <mark>/upload-files</mark> </h4>}>
-      <p>Эндпоинт для загрузки файлов для дальнейшого индексирования</p>
-
-    </ExpandableBlock> 
-  </section>
-);
+  );
+};
 
 export default Api;
