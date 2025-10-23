@@ -428,7 +428,7 @@ li.highlight-li::before {
 }
 
 .btn {
-    background: linear-gradient(90deg, #667eea, #764ba2);
+    background: linear-gradient(90deg, #7289ee, #8d6cae);
     color: white;
     border: none;
     padding: 8px 12px;
@@ -690,4 +690,54 @@ pre {
     background-color: #9de0e6;
     color: #1a2c34;
     box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+
+.flip-controls {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+}
+
+.flip-images {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 40px; /* Расстояние между изображениями */
+    margin: 20px 0;
+}
+
+.flip-image-block {
+    text-align: center;
+    animation: fadeIn 0.5s ease-in;
+}
+
+.flip-image-block h3 {
+    color: #2c3e50;
+    margin-bottom: 12px;
+    font-size: 1.3em;
+    font-weight: 600;
+}
+
+.flip-image {
+    width: 640px;
+    max-width: 100%;
+    height: auto;
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(50, 50, 93, 0.15);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.flip-image:hover {
+    transform: scale(1.02);
+    box-shadow: 0 8px 24px rgba(50, 50, 93, 0.25);
+}
+
+.flip-error {
+    color: #e74c3c;
+    text-align: center;
+    margin-bottom: 1rem;
+    font-weight: 600;
 }
