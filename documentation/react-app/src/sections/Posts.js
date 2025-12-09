@@ -15,16 +15,41 @@ function Posts() {
     });
 
     const fetchPosts = async () => {
-                const response = await fetch(URL)
-                console.log('Fetch response:', response);
-                const data = await response.json()
-                setPosts(data)
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(URL, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            console.log('Fetch response:', response);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            setPosts(Array.isArray(data) ? data : []);
+        } catch (error) {
+            console.error('Error fetching posts:', error);
+            setPosts([]);
         }
+    }
 
     const axiosPosts = async () => {
-        const response = await axios.get(URL)
-        console.log('Axios response:', response);
-        setPosts(response.data)
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.get(URL, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            console.log('Axios response:', response);
+            setPosts(Array.isArray(response.data) ? response.data : []);
+        } catch (error) {
+            console.error('Error fetching posts with axios:', error);
+            setPosts([]);
+        }
     }
 
     useEffect(() => {

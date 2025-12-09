@@ -36,13 +36,55 @@
 
 import SwaggerUI from "swagger-ui-react";
 import "swagger-ui-react/swagger-ui.css";
+import usePageTracking from '../hooks/usePageTracking';
+import './Api.css';
 
 const Api = () => {
+  usePageTracking(4); // ID страницы "API"
+
   return (
-    <div style={{ height: "100vh" }}>
-      <SwaggerUI url="http://127.0.0.1:8000/openapi.json" />
-    </div>
+    <section id="api" className="api-section fade-in">
+      <div className="api-header">
+        <h1>📚 API Документация</h1>
+        <p className="api-description">
+          Интерактивная документация REST API с возможностью тестирования эндпоинтов
+        </p>
+        <div className="api-info-cards">
+          <div className="info-card">
+            <span className="card-icon">🔗</span>
+            <div className="card-content">
+              <h3>Base URL</h3>
+              <code>http://localhost:8000</code>
+            </div>
+          </div>
+          <div className="info-card">
+            <span className="card-icon">🔐</span>
+            <div className="card-content">
+              <h3>Авторизация</h3>
+              <code>Bearer Token</code>
+            </div>
+          </div>
+          <div className="info-card">
+            <span className="card-icon">📄</span>
+            <div className="card-content">
+              <h3>Формат</h3>
+              <code>JSON</code>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="swagger-container">
+        <SwaggerUI
+          url="http://127.0.0.1:8000/openapi.json"
+          docExpansion="list"
+          defaultModelsExpandDepth={1}
+          displayRequestDuration={true}
+        />
+      </div>
+    </section>
   );
 };
 
 export default Api;
+

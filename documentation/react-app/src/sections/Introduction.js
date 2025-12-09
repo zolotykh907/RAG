@@ -1,4 +1,9 @@
-const Introduction = () => (
+import usePageTracking from '../hooks/usePageTracking';
+
+const Introduction = () => {
+  usePageTracking(1); // ID страницы "Введение"
+
+  return (
   <section id="introduction" className="fade-in">
     <h1 className="fade-in">RAG Q&A System</h1>
 
@@ -34,6 +39,7 @@ const Introduction = () => (
       <li><strong>Кэширование</strong> — часто задаваемые вопросы сохраняются в Redis для ускорения ответов</li>
     </ol>
   </section>
-);
+  );
+};
 
 export default Introduction;

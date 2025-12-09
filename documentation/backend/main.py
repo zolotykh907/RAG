@@ -1,17 +1,28 @@
 import os
 import json
-import shutil
+import io
+from urllib.parse import quote
 
-import requests
-from fastapi import FastAPI
+from dotenv import load_dotenv
+from fastapi import FastAPI, Depends, HTTPException, status, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi import FastAPI, File, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import Response
+import requests
+from sqlalchemy.orm import Session
 import uvicorn
-from tempfile import TemporaryDirectory
-
 from PIL import Image
 
+from app.database import SessionLocal, engine, Base
+from app import crud, schemas, db_models, auth
+from app.auth_router import router as auth_router
+
+
+load_dotenv()
+DATABASE_URL = os.getenv("DATABASE_URL")
+POSTS_URL = os.getenv("POSTS_URL")
+POSTS_PATH = os.getenv("POSTS_PATH")
+
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Documentation",
@@ -27,12 +38,83 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-POSTS_URL = 'https://jsonplaceholder.typicode.com/posts'
-POSTS_PATH = 'posts.json'
+app.include_router(auth_router)
+
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+@app.post("/pages", response_model=schemas.PageWithKPI, status_code=status.HTTP_201_CREATED)
+def create_page(
+    page: schemas.PageCreate,
+    db: Session = Depends(get_db),
+    current_user: db_models.User = Depends(auth.get_current_user)
+):
+    """Create a new page with associated KPI record"""
+    db_page = crud.create_page(db=db, page=page)
+    return db_page
+
+
+@app.get("/pages/{page_id}", response_model=schemas.PageWithKPI)
+def get_page(
+    page_id: int,
+    db: Session = Depends(get_db),
+    current_user: db_models.User = Depends(auth.get_current_user)
+):
+    """Get page by ID with its KPI data"""
+    db_page = crud.get_page_by_id(db=db, page_id=page_id)
+    if db_page is None:
+        raise HTTPException(status_code=404, detail="Page not found")
+    return db_page
+
+
+@app.post("/pages/{page_id}/visit")
+def visit_page(
+    page_id: int,
+    db: Session = Depends(get_db),
+    current_user: db_models.User = Depends(auth.get_current_user)
+):
+    """Increment visit counter for a page"""
+    db_page = crud.get_page_by_id(db=db, page_id=page_id)
+    if db_page is None:
+        raise HTTPException(status_code=404, detail="Page not found")
+
+    kpi = crud.increment_page_visit(db=db, page_id=page_id)
+    return {"message": "Visit recorded", "visits": kpi.visits}
+
+
+@app.post("/pages/{page_id}/time")
+def update_time_spent(
+    page_id: int,
+    time_data: schemas.TimeUpdate,
+    db: Session = Depends(get_db),
+    current_user: db_models.User = Depends(auth.get_current_user)
+):
+    """Update time spent on a page"""
+    db_page = crud.get_page_by_id(db=db, page_id=page_id)
+    if db_page is None:
+        raise HTTPException(status_code=404, detail="Page not found")
+
+    kpi = crud.update_page_time(db=db, page_id=page_id, time_seconds=time_data.time_seconds)
+    return {"message": "Time updated", "total_time_seconds": kpi.total_time_seconds}
+
+
+@app.get("/kpi", response_model=list[schemas.PageWithKPI])
+def get_all_kpi(
+    db: Session = Depends(get_db),
+    current_user: db_models.User = Depends(auth.get_current_admin_user)
+):
+    """Get KPI data for all pages"""
+    return crud.get_all_pages_with_kpi(db=db)
 
 
 @app.get('/posts')
-async def get_posts():
+async def get_posts(current_user: db_models.User = Depends(auth.get_current_user)):
     if not os.path.exists(POSTS_PATH):
         data = requests.get(POSTS_URL).json()
         with open(POSTS_PATH, 'w') as f:
@@ -44,23 +126,26 @@ async def get_posts():
     return data
 
 
-# @app.get('/flip')
-# async def flip_image(file: UploadFile = File(...)):
-#     with TemporaryDirectory() as temp_dir:
-#         temp_path = os.path.join(temp_dir, file.filename)
+@app.post("/flip")
+async def flip_image(
+    file: UploadFile = File(...),
+    current_user: db_models.User = Depends(auth.get_current_user)
+):
+    image = Image.open(file.file)
+    converted = image.transpose(Image.FLIP_TOP_BOTTOM)
 
-#         with open(temp_path, "wb") as f:
-#                 shutil.copyfileobj(file.file, f)
+    buf = io.BytesIO()
+    converted.save(buf, format=image.format or "PNG")
+    buf.seek(0)
 
-#         image = Image.open(temp_path)
-#         converted_img = image.transpose(Image.FLIP_TOP_BOTTOM)
-#         converted_img.save(temp_path)
+    filename = f"flipped_{file.filename}"
+    encoded_filename = quote(filename.encode('utf-8'))
 
-#         return FileResponse(
-#                 temp_path,
-#                 media_type=f"image/{image.format.lower() if image.format else 'png'}",
-#                 filename=f"flipped_{file.filename}"
-#             )
+    return Response(
+        buf.read(),
+        media_type=f"image/{image.format.lower() if image.format else 'png'}",
+        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"}
+    )
     
 
 if __name__ == "__main__":

@@ -1,4 +1,9 @@
-const Description = () => (
+import usePageTracking from '../hooks/usePageTracking';
+
+const Description = () => {
+  usePageTracking(2); // ID страницы "Описание"
+
+  return (
   <section id="description" className="fade-in">
     <h2>Описание системы</h2>
 
@@ -57,6 +62,7 @@ const Description = () => (
       </tbody>
     </table>
   </section>
-);
+  );
+};
 
 export default Description;

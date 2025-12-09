@@ -1,4 +1,9 @@
-const Testing = () => (
+import usePageTracking from '../hooks/usePageTracking';
+
+const Testing = () => {
+  usePageTracking(3); // ID страницы "Заключение"
+
+  return (
   <section id="testing" className="fade-in">
     <h2>Тестирование</h2>
     <ul>
@@ -8,6 +13,7 @@ const Testing = () => (
       <li className="base">Использование <code>pytest</code> для запуска тестов</li>
     </ul>
   </section>
-);
+  );
+};
 
 export default Testing;
