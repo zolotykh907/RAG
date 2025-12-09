@@ -16,7 +16,7 @@ const pages = [
 ];
 
 function Sidebar() {
-  const { user, logout, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
   const location = useLocation();
 
   // Hide sidebar on login and register pages
