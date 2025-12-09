@@ -22,7 +22,7 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 POSTS_URL = os.getenv("POSTS_URL")
 POSTS_PATH = os.getenv("POSTS_PATH")
 
-Base.metadata.create_all(bind=engine)
+# Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Documentation",
@@ -111,6 +111,19 @@ def get_all_kpi(
 ):
     """Get KPI data for all pages"""
     return crud.get_all_pages_with_kpi(db=db)
+
+
+@app.delete("/pages/{page_id}", status_code=status.HTTP_200_OK)
+def delete_page(
+    page_id: int,
+    db: Session = Depends(get_db),
+    current_user: db_models.User = Depends(auth.get_current_admin_user)
+):
+    """Delete a page and its KPI data (admin only)"""
+    deleted = crud.delete_page(db=db, page_id=page_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Page not found")
+    return {"message": f"Page with ID {page_id} deleted successfully"}
 
 
 @app.get('/posts')

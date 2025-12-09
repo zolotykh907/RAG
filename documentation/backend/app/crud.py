@@ -40,3 +40,13 @@ def update_page_time(db: Session, page_id: int, time_seconds: int):
         db.commit()
         db.refresh(kpi)
     return kpi
+
+
+def delete_page(db: Session, page_id: int):
+    """Delete a page and its KPI data (CASCADE)"""
+    db_page = db.query(db_models.Page).filter(db_models.Page.id == page_id).first()
+    if db_page:
+        db.delete(db_page)
+        db.commit()
+        return True
+    return False
