@@ -1,0 +1,69 @@
+.header-with-help {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.upload-cards-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.upload-card {
+  background: white;
+  border: 2px solid #e5e5e5;
+  border-radius: 16px;
+  padding: 24px;
+  transition: all 0.2s ease;
+}
+
+.upload-card:hover {
+  border-color: #cc785c;
+  box-shadow: 0 4px 16px rgba(204, 120, 92, 0.1);
+  transform: translateY(-2px);
+}
+
+.upload-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.upload-card-header svg {
+  color: #cc785c;
+  flex-shrink: 0;
+}
+
+.upload-card-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #2f2f2f;
+}
+
+.upload-card-desc {
+  font-size: 14px;
+  color: #666;
+  margin: 0 0 20px 0;
+  line-height: 1.5;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .upload-cards-container {
+    grid-template-columns: 1fr;
+  }
+
+  .header-with-help {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .upload-card {
+    padding: 20px;
+  }
+}
