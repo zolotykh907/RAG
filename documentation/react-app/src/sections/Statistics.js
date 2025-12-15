@@ -23,7 +23,6 @@ const Statistics = () => {
 
     fetchKPI();
 
-    // Обновляем данные каждые 5 секунд
     const interval = setInterval(fetchKPI, 5000);
 
     return () => clearInterval(interval);

@@ -40,7 +40,7 @@ import usePageTracking from '../hooks/usePageTracking';
 import './Api.css';
 
 const Api = () => {
-  usePageTracking(4); // ID страницы "API"
+  usePageTracking(4);
 
   return (
     <section id="api" className="api-section fade-in">

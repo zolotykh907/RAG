@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 import uvicorn
 from PIL import Image
 
-from app.database import SessionLocal, engine, Base
+from app.database import SessionLocal
 from app import crud, schemas, db_models, auth
 from app.auth_router import router as auth_router
 
@@ -21,8 +21,6 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 POSTS_URL = os.getenv("POSTS_URL")
 POSTS_PATH = os.getenv("POSTS_PATH")
-
-# Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Documentation",

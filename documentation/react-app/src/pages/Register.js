@@ -14,7 +14,6 @@ const Register = () => {
   const navigate = useNavigate();
   const { register } = useAuth();
 
-  // Password strength calculation
   const passwordStrength = useMemo(() => {
     if (!password) return { level: 0, text: '', color: '' };
 
@@ -50,7 +49,7 @@ const Register = () => {
       await register(email, password);
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.detail || 'Ошибка регистрации. Возможно, email уже используется.');
+      setError(err.response?.data?.detail || 'Ошибка регистрации. email уже используется.');
     } finally {
       setLoading(false);
     }
