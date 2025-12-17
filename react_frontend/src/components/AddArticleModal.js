@@ -20,13 +20,11 @@ function AddArticleModal({ isOpen, onClose, onAdd }) {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Валидация
     if (!formData.title.trim() || !formData.description.trim() || !formData.url.trim()) {
       alert('Пожалуйста, заполните все обязательные поля');
       return;
     }
 
-    // Преобразуем теги из строки в массив
     const tagsArray = formData.tags
       .split(',')
       .map(tag => tag.trim())
@@ -41,7 +39,6 @@ function AddArticleModal({ isOpen, onClose, onAdd }) {
 
     onAdd(newArticle);
 
-    // Очищаем форму
     setFormData({
       title: '',
       description: '',

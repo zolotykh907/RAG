@@ -66,7 +66,7 @@ async def upload_file(file: UploadFile = File(...)):
     Returns:
         dict: Confirmation message indicating successful indexing.
     """
-    from ..main import indexing_service, query_config, data_base, responder
+    from ..main import indexing_service, query_config, data_base, responder, redis_client
     
     if indexing_service is None:
         raise HTTPException(
@@ -84,14 +84,30 @@ async def upload_file(file: UploadFile = File(...)):
             logger.info("Start indexing...")
             indexing_service.run_indexing(data=temp_path)
             logger.info("End indexing!")
-           
-            try:
-                query_service = Query(query_config, data_base)
-                pipeline = RAGPipeline(config=query_config, query=query_service, responder=responder)
-                logger.info('Query service and pipeline reinitialized after indexing.')
-                return {"message": "File processed and indexed successfully.", "query_service_restarted": True}
-            except Exception as e:
-                logger.warning(f'Failed to reinitialize query service after indexing: {str(e)}')
+
+            # Check if data file exists before reinitializing
+            if os.path.exists(query_config.processed_data_path) and os.path.exists(query_config.index_path):
+                try:
+                    from ..main import query_service as global_query_service, pipeline as global_pipeline
+                    import api.main as main_module
+
+                    # Reload the database index
+                    data_base.load_index(query_config.index_path)
+
+                    query_service = Query(query_config, data_base)
+                    pipeline = RAGPipeline(config=query_config, query=query_service, responder=responder, redis_client=redis_client)
+
+                    # Update global variables
+                    main_module.query_service = query_service
+                    main_module.pipeline = pipeline
+
+                    logger.info('Query service and pipeline reinitialized after indexing.')
+                    return {"message": "File processed and indexed successfully.", "query_service_restarted": True}
+                except Exception as e:
+                    logger.warning(f'Failed to reinitialize query service after indexing: {str(e)}')
+                    return {"message": "File processed and indexed successfully.", "query_service_restarted": False}
+            else:
+                logger.warning('Data files not found after indexing, skipping query service reinitialization.')
                 return {"message": "File processed and indexed successfully.", "query_service_restarted": False}
            
         except Exception as e:
@@ -105,7 +121,7 @@ async def clear_temp_session(session_id: str):
 
     Args:
         session_id (str): The ID of the session to clear.
-    
+
     Returns:
         dict: Confirmation message indicating successful session clearance.
     """
@@ -116,4 +132,118 @@ async def clear_temp_session(session_id: str):
             raise HTTPException(status_code=404, detail="Session not found")
     except Exception as e:
         logger.error(f"Failed to clear session {session_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete('/clear-index')
+async def clear_permanent_index():
+    """Clear all permanently indexed data.
+
+    Returns:
+        dict: Confirmation message indicating successful index clearance.
+    """
+    from ..main import indexing_service, data_base
+    import api.main as main_module
+
+    if indexing_service is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Indexing service not available."
+        )
+
+    try:
+        # Clear the index
+        data_base.clear_index()
+
+        # Clear processed data
+        indexing_service.clear_data()
+
+        # Clear existing hashes in memory
+        indexing_service.existing_hashes = []
+
+        # Reset query service and pipeline
+        main_module.query_service = None
+        main_module.pipeline = None
+
+        logger.info("Permanent index cleared successfully")
+        return {"message": "All indexed data cleared successfully"}
+    except Exception as e:
+        logger.error(f"Failed to clear index: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get('/temp-files/{session_id}')
+async def get_temp_files_info(session_id: str):
+    """Get information about all temporary files for a specific session.
+
+    Args:
+        session_id (str): The session ID to get temp files info for.
+
+    Returns:
+        dict: List of temporary files info including filename, chunks count, etc.
+    """
+    try:
+        temp_data_list = temp_index_manager.get_temp_index(session_id)
+
+        if not temp_data_list:
+            return {"temp_files": [], "total_files": 0}
+
+        temp_files = []
+
+        for temp_data in temp_data_list:
+            if 'chunks' not in temp_data or not temp_data['chunks']:
+                continue
+
+            # Extract filename from first chunk if available
+            filename = "Unknown"
+            if temp_data['chunks'] and len(temp_data['chunks']) > 0:
+                first_chunk = temp_data['chunks'][0]
+                if isinstance(first_chunk, dict) and 'source' in first_chunk:
+                    filename = first_chunk['source']
+
+            chunks_count = len(temp_data['chunks'])
+            total_chars = sum(len(chunk.get('text', '')) if isinstance(chunk, dict) else 0
+                             for chunk in temp_data['chunks'])
+
+            temp_files.append({
+                "filename": filename,
+                "chunks_count": chunks_count,
+                "total_chars": total_chars
+            })
+
+        logger.info(f"Found {len(temp_files)} temporary files for session {session_id}")
+        return {
+            "temp_files": temp_files,
+            "total_files": len(temp_files)
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to get temp files info: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete('/temp-files/{session_id}/{filename}')
+async def delete_temp_file(session_id: str, filename: str):
+    """Delete a specific temporary file from a session.
+
+    Args:
+        session_id (str): The session ID.
+        filename (str): Name of the file to delete.
+
+    Returns:
+        dict: Confirmation message.
+    """
+    try:
+        removed = temp_index_manager.remove_temp_file(session_id, filename)
+
+        if not removed:
+            raise HTTPException(status_code=404, detail=f"File '{filename}' not found in session {session_id}")
+
+        logger.info(f"Deleted temporary file '{filename}' from session {session_id}")
+        return {"message": f"File '{filename}' deleted successfully"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to delete temp file: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e)) 

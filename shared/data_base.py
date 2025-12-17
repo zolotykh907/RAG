@@ -90,6 +90,10 @@ class FaissDB:
             self.index = None
             self.logger.info(f'Deleted index at {self.index_path}')
 
+    def clear_index(self):
+        """Clears the FAISS index (alias for delete_index)."""
+        self.delete_index()
+
 
 class ChromaDB:
     """Chroma-based vector database implementation."""

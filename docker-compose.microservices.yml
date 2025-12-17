@@ -1,0 +1,153 @@
+services:
+  # Redis - Shared cache and session storage
+  redis:
+    image: redis:7-alpine
+    container_name: rag_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    networks:
+      - rag_network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  # Indexing Service - Document processing and indexing
+  indexing:
+    build:
+      context: .
+      dockerfile: services/indexing/Dockerfile
+    container_name: rag_indexing
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    volumes:
+      - shared_data:/app/data
+      - model_cache:/root/.cache/huggingface/hub
+      - logs:/app/logs
+    environment:
+      - PYTHONUNBUFFERED=1
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - QUERY_SERVICE_URL=http://query:8002
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - rag_network
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 2G
+    # For horizontal scaling:
+    # deploy:
+    #   replicas: 2
+
+  # Query Service - RAG queries and search
+  query:
+    build:
+      context: .
+      dockerfile: services/query/Dockerfile
+    container_name: rag_query
+    restart: unless-stopped
+    ports:
+      - "8002:8002"  # Exposed for direct access (optional)
+    volumes:
+      - shared_data:/app/data:ro  # Read-only access to indexed data
+      - model_cache:/root/.cache/huggingface/hub:ro
+      - logs:/app/logs
+    environment:
+      - PYTHONUNBUFFERED=1
+      - LM_STUDIO_HOST=http://host.docker.internal:1234/v1
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - rag_network
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 2G
+    # For horizontal scaling:
+    # deploy:
+    #   replicas: 3
+
+  # API Gateway - Nginx reverse proxy
+  gateway:
+    build:
+      context: .
+      dockerfile: services/gateway/Dockerfile
+    container_name: rag_gateway
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "3000:80"  # Alternative port for frontend
+    depends_on:
+      - indexing
+      - query
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - rag_network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  shared_data:
+    driver: local
+  model_cache:
+    driver: local
+  redis_data:
+    driver: local
+  logs:
+    driver: local
+
+networks:
+  rag_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

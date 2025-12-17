@@ -70,11 +70,11 @@
 }
 
 .message {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   animation: fadeIn 0.3s ease;
   max-width: 700px;
   display: flex;
-  flex-direction: column;
+  gap: 12px;
 }
 
 @keyframes fadeIn {
@@ -90,7 +90,45 @@
 
 .message-user {
   margin-left: auto;
-  align-items: flex-end;
+  flex-direction: row-reverse;
+}
+
+.message-bot,
+.message-system,
+.message-error {
+  margin-right: auto;
+  flex-direction: row;
+}
+
+.message-avatar {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.message-user .message-avatar {
+  background: #f0ebe5;
+  color: #cc785c;
+}
+
+.message-bot .message-avatar {
+  background: #e8eef7;
+  color: #5c7acc;
+}
+
+.message-system .message-avatar {
+  background: #e8f7f3;
+  color: #5cccb0;
+}
+
+.message-error .message-avatar {
+  background: #ffe8e8;
+  color: #cc5c5c;
 }
 
 .message-user .message-text {
@@ -98,25 +136,19 @@
   color: #2f2f2f;
   padding: 12px 16px;
   border-radius: 18px 18px 4px 18px;
-  display: inline-block;
   max-width: 100%;
   text-align: left;
-}
-
-.message-bot,
-.message-system {
-  margin-right: auto;
-  align-items: flex-start;
 }
 
 .message-bot .message-text,
 .message-system .message-text {
   background: white;
   color: #2f2f2f;
-  padding: 16px;
+  padding: 12px 16px;
   border-radius: 4px 18px 18px 18px;
   border: 1px solid #e5e5e5;
   line-height: 1.6;
+  max-width: 100%;
 }
 
 .message-system .message-text {
@@ -132,23 +164,6 @@
   color: #cc0000;
   padding: 12px 16px;
   border-radius: 8px;
-}
-
-.message-header {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 6px;
-  font-size: 12px;
-  color: #999;
-  padding: 0 4px;
-}
-
-.message-sender {
-  font-weight: 600;
-}
-
-.message-time {
-  font-size: 11px;
 }
 
 .message-text {

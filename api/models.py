@@ -1,10 +1,11 @@
 from pydantic import BaseModel
+from typing import Optional
 
 
 class QueryRequest(BaseModel):
     """Request model for RAG query endpoint."""
     question: str
-    session_id: str = None
+    session_id: Optional[str] = None
 
 
 class QueryResponse(BaseModel):

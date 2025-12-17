@@ -20,7 +20,7 @@ from query.llm import LLMResponder
 from query.redis_client import RedisDB
 
 from .models import QueryRequest, QueryResponse
-from .endpoints import query, upload, config, health, reload
+from .endpoints import query, upload, config, health, reload, documents, articles
 
 shared_config = SharedConfig('indexing/config.yaml')
 query_config = SharedConfig('query/config.yaml')
@@ -33,17 +33,22 @@ indexing_service = None
 query_service = None
 responder = None
 pipeline = None
+redis_client = None
 
 
 def initialize_services():
     """Initialize all services with error handling."""
-    global data_loader, data_base, indexing_service, query_service, responder, pipeline
-    
+    global data_loader, data_base, indexing_service, query_service, responder, pipeline, redis_client
+
     try:
         data_loader = DataLoader(shared_config)
         data_base = FaissDB(shared_config)
         indexing_service = Indexing(shared_config, data_loader, data_base)
-        redis_client = RedisDB()
+
+        # Initialize Redis with environment variables
+        redis_host = os.getenv('REDIS_HOST', 'localhost')
+        redis_port = int(os.getenv('REDIS_PORT', 6379))
+        redis_client = RedisDB(host=redis_host, port=redis_port)
         
         try:
             query_service = Query(query_config, data_base)
@@ -111,6 +116,16 @@ app.include_router(
 app.include_router(
     reload.router,
     tags=["reload"]
+)
+
+app.include_router(
+    documents.router,
+    tags=["documents"]
+)
+
+app.include_router(
+    articles.router,
+    tags=["articles"]
 )
 
 

@@ -19,14 +19,14 @@ async def query_rag(request: QueryRequest):
         QueryResponse: The response containing the answer and relevant texts."""
     try:
         
-        from ..main import query_service, pipeline, indexing_service, query_config, responder
-        
+        from ..main import query_service, pipeline, indexing_service, query_config, responder, redis_client
+
         if request.session_id and temp_index_manager.has_session(request.session_id):
             session_id = request.session_id
             temp_data = temp_index_manager.get_temp_index(session_id)
-            
+
             combined_pipeline = create_combined_pipeline(
-                query_service, temp_data, indexing_service, query_config, responder
+                query_service, temp_data, indexing_service, query_config, responder, redis_client
             )
             
             result = combined_pipeline.answer(request.question)

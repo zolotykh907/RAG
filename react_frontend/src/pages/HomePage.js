@@ -9,7 +9,6 @@ import ArticlesPage from './ArticlesPage';
 import apiService from '../services/api';
 import './HomePage.css';
 
-// Главная страница приложения
 function HomePage() {
   const location = useLocation();
   const [sessionId, setSessionId] = useState(() => {
@@ -17,7 +16,6 @@ function HomePage() {
   });
   const [apiStatus, setApiStatus] = useState('checking');
 
-  // Определяем активную вкладку по URL
   const getActiveTab = () => {
     const path = location.pathname;
     if (path === '/' || path === '/chat') return 'chat';
@@ -30,12 +28,10 @@ function HomePage() {
 
   const activeTab = getActiveTab();
 
-  // Проверка здоровья API при загрузке
   useEffect(() => {
     checkApiHealth();
   }, []);
 
-  // Сохранение текущего sessionId в localStorage
   useEffect(() => {
     if (sessionId) {
       localStorage.setItem('currentSessionId', sessionId);
@@ -53,17 +49,14 @@ function HomePage() {
     }
   };
 
-  // Выбор чата из истории
   const handleSelectChat = useCallback((chatId) => {
     setSessionId(chatId);
   }, []);
 
-  // Создание нового чата
   const handleNewChat = useCallback(() => {
     setSessionId(null);
   }, []);
 
-  // Очистка сообщений чата (документ остается)
   const handleClearSession = () => {
     if (sessionId) {
       try {
@@ -77,7 +70,6 @@ function HomePage() {
 
   return (
     <div className="home-page">
-      {/* Боковая панель */}
       <aside className="sidebar">
         <div className="sidebar-header">
           <h1 className="logo">RAG System</h1>
@@ -157,7 +149,6 @@ function HomePage() {
         )}
       </aside>
 
-      {/* Основной контент */}
       <main className="main-content">
         <Routes>
           <Route path="/" element={<Navigate to="/chat" replace />} />

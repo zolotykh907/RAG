@@ -9,3 +9,4 @@ pytesseract
 pillow
 fitz
 langchain_text_splitters
+python-multipart

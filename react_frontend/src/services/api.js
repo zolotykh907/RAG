@@ -1,16 +1,15 @@
 // Базовый URL для API
-const API_BASE_URL = 'http://localhost:8000';
+// В микросервисной архитектуре все запросы идут через Gateway
+const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
 
-// Класс для работы с API
 class ApiService {
   constructor() {
     this.baseUrl = API_BASE_URL;
   }
 
-  // Отправка запроса к RAG системе
   async sendQuery(question, sessionId = null) {
     try {
-      const response = await fetch(`${this.baseUrl}/query`, {
+      const response = await fetch(`${this.baseUrl}/query/ask`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -33,13 +32,12 @@ class ApiService {
     }
   }
 
-  // Загрузка файла для постоянной индексации
   async uploadFile(file) {
     try {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch(`${this.baseUrl}/upload-files`, {
+      const response = await fetch(`${this.baseUrl}/indexing/upload`, {
         method: 'POST',
         body: formData,
       });
@@ -56,13 +54,12 @@ class ApiService {
     }
   }
 
-  // Загрузка файла для временной сессии
   async uploadTempFile(file) {
     try {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch(`${this.baseUrl}/upload-temp`, {
+      const response = await fetch(`${this.baseUrl}/query/upload-temp`, {
         method: 'POST',
         body: formData,
       });
@@ -79,10 +76,9 @@ class ApiService {
     }
   }
 
-  // Очистка временной сессии
   async clearTempSession(sessionId) {
     try {
-      const response = await fetch(`${this.baseUrl}/clear-temp/${sessionId}`, {
+      const response = await fetch(`${this.baseUrl}/query/sessions/${sessionId}`, {
         method: 'DELETE',
       });
 
@@ -98,7 +94,6 @@ class ApiService {
     }
   }
 
-  // Проверка здоровья API
   async healthCheck() {
     try {
       const response = await fetch(`${this.baseUrl}/health`);
@@ -115,10 +110,9 @@ class ApiService {
     }
   }
 
-  // Получение конфигурации сервиса
   async getConfig(service) {
     try {
-      const response = await fetch(`${this.baseUrl}/config?service=${service}`);
+      const response = await fetch(`${this.baseUrl}/indexing/config?service=${service}`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -132,10 +126,9 @@ class ApiService {
     }
   }
 
-  // Обновление конфигурации сервиса
   async updateConfig(service, config) {
     try {
-      const response = await fetch(`${this.baseUrl}/config?service=${service}`, {
+      const response = await fetch(`${this.baseUrl}/indexing/config?service=${service}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -155,10 +148,9 @@ class ApiService {
     }
   }
 
-  // Перезагрузка сервиса с новой конфигурацией
   async reloadService(service) {
     try {
-      const response = await fetch(`${this.baseUrl}/reload?service=${service}`, {
+      const response = await fetch(`${this.baseUrl}/indexing/reload?service=${service}`, {
         method: 'POST',
       });
 
@@ -174,10 +166,9 @@ class ApiService {
     }
   }
 
-  // Очистка всех индексированных данных
   async clearIndex() {
     try {
-      const response = await fetch(`${this.baseUrl}/clear-index`, {
+      const response = await fetch(`${this.baseUrl}/indexing/clear-index`, {
         method: 'DELETE',
       });
 
@@ -193,10 +184,9 @@ class ApiService {
     }
   }
 
-  // Получение списка документов
   async getDocuments() {
     try {
-      const response = await fetch(`${this.baseUrl}/documents`);
+      const response = await fetch(`${this.baseUrl}/indexing/documents`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -210,12 +200,11 @@ class ApiService {
     }
   }
 
-  // Получение содержимого документа (постоянного или временного)
   async getDocumentContent(filename, sessionId = null) {
     try {
       const url = sessionId
-        ? `${this.baseUrl}/documents/${encodeURIComponent(filename)}?session_id=${sessionId}`
-        : `${this.baseUrl}/documents/${encodeURIComponent(filename)}`;
+        ? `${this.baseUrl}/indexing/documents/${encodeURIComponent(filename)}?session_id=${sessionId}`
+        : `${this.baseUrl}/indexing/documents/${encodeURIComponent(filename)}`;
 
       const response = await fetch(url);
 
@@ -231,10 +220,9 @@ class ApiService {
     }
   }
 
-  // Удаление документа
   async deleteDocument(filename) {
     try {
-      const response = await fetch(`${this.baseUrl}/documents/${encodeURIComponent(filename)}`, {
+      const response = await fetch(`${this.baseUrl}/indexing/documents/${encodeURIComponent(filename)}`, {
         method: 'DELETE',
       });
 
@@ -250,10 +238,9 @@ class ApiService {
     }
   }
 
-  // Поиск документов по содержимому
   async searchDocuments(query) {
     try {
-      const response = await fetch(`${this.baseUrl}/search-documents?query=${encodeURIComponent(query)}`);
+      const response = await fetch(`${this.baseUrl}/indexing/search-documents?query=${encodeURIComponent(query)}`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -267,14 +254,13 @@ class ApiService {
     }
   }
 
-  // Получение информации о временных файлах для сессии
   async getTempFilesInfo(sessionId) {
     try {
       if (!sessionId) {
         return { temp_files: [], total_files: 0 };
       }
 
-      const response = await fetch(`${this.baseUrl}/temp-files/${sessionId}`);
+      const response = await fetch(`${this.baseUrl}/query/sessions/${sessionId}/files`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -288,10 +274,9 @@ class ApiService {
     }
   }
 
-  // Удаление временного файла
   async deleteTempFile(sessionId, filename) {
     try {
-      const response = await fetch(`${this.baseUrl}/temp-files/${sessionId}/${encodeURIComponent(filename)}`, {
+      const response = await fetch(`${this.baseUrl}/query/sessions/${sessionId}/files/${encodeURIComponent(filename)}`, {
         method: 'DELETE',
       });
 
@@ -307,10 +292,10 @@ class ApiService {
     }
   }
 
-  // Получение всех статей
+  // Статьи
   async getArticles() {
     try {
-      const response = await fetch(`${this.baseUrl}/articles`);
+      const response = await fetch(`${this.baseUrl}/indexing/articles`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -324,10 +309,9 @@ class ApiService {
     }
   }
 
-  // Добавление новой статьи
   async addArticle(article) {
     try {
-      const response = await fetch(`${this.baseUrl}/articles`, {
+      const response = await fetch(`${this.baseUrl}/indexing/articles`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -347,10 +331,9 @@ class ApiService {
     }
   }
 
-  // Удаление статьи
   async deleteArticle(articleId) {
     try {
-      const response = await fetch(`${this.baseUrl}/articles/${articleId}`, {
+      const response = await fetch(`${this.baseUrl}/indexing/articles/${articleId}`, {
         method: 'DELETE',
       });
 
@@ -366,10 +349,9 @@ class ApiService {
     }
   }
 
-  // Обновление статьи
   async updateArticle(articleId, article) {
     try {
-      const response = await fetch(`${this.baseUrl}/articles/${articleId}`, {
+      const response = await fetch(`${this.baseUrl}/indexing/articles/${articleId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -390,6 +372,5 @@ class ApiService {
   }
 }
 
-// Экспортируем единственный экземпляр сервиса
 const apiService = new ApiService();
 export default apiService;

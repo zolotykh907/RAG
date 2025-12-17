@@ -10,7 +10,7 @@ class DummyConfig:
         "Если точного ответа нет, напиши что не нашел информацию. Ответ пиши всегда на русском языке.\n\n"
         "Если нашел - то процитируй или перефразируй, оставляя только самое важное для ответа на вопрос"
     )
-    ollama_host = "http://localhost:11434"
+    lm_studio_host = "http://localhost:1234/v1"
     logs_dir = "./logs"
 
 def test_generate_prompt_format_with_mock():
