@@ -17,17 +17,21 @@ class FaissDB:
         self.logger = setup_logging(self.logs_dir, 'FaissDB')
 
 
-    def create_index(self, embeddings):
+    def create_index(self, embeddings, replace=False):
         """Create a new FAISS index or updates an existing.
 
         Args:
             embeddings (np.ndarray): numpy array of embeddings to index
+            replace (bool): if True, replace existing index instead of adding to it
         """
         try:
-            if self.index is None:
+            if self.index is None or replace:
+                if replace and self.index is not None:
+                    self.logger.info("Replacing existing FAISS index.")
+                
                 dim = embeddings.shape[1]
                 self.index = faiss.IndexFlatL2(dim)
-                self.logger.info(f"Created new FAISS index with dimension {dim}.")
+                self.logger.info(f"Created {'new' if self.index is None else 'replacement'} FAISS index with dimension {dim}.")
 
             self.index.add(np.array(embeddings, dtype=np.float32))
             faiss.write_index(self.index, self.index_path)
@@ -65,8 +69,18 @@ class FaissDB:
             self.logger.warning("Index is not loaded or created. Returning empty result.")
             return np.array([])
         
-        d, ids = self.index.search(request_embedding, k)
-        return ids[0]
+        if self.index.ntotal == 0:
+            self.logger.warning("Index is empty. Returning empty result.")
+            return np.array([])
+        
+        actual_k = min(k, self.index.ntotal)
+        
+        d, ids = self.index.search(request_embedding, actual_k)
+        
+        valid_ids = ids[0][ids[0] != -1] 
+        
+        self.logger.debug(f"Search returned {len(valid_ids)} valid results out of {actual_k} requested")
+        return valid_ids
     
 
     def delete_index(self):
@@ -75,6 +89,10 @@ class FaissDB:
             os.remove(self.index_path)
             self.index = None
             self.logger.info(f'Deleted index at {self.index_path}')
+
+    def clear_index(self):
+        """Clears the FAISS index (alias for delete_index)."""
+        self.delete_index()
 
 
 class ChromaDB:

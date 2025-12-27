@@ -5,7 +5,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import faiss
 import requests
 from sentence_transformers import SentenceTransformer
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -14,7 +13,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'shared'))
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from data_processing import normalize_text, check_data_quality, compute_text_hash
-from data_vectorize import *
+from data_vectorize import load_embeddings,  save_embeddings, create_embeddings
 from logs import setup_logging 
 
 class Indexing:
@@ -159,8 +158,10 @@ class Indexing:
                 self.existing_hashes = df['hash'].tolist()
                 self.logger.info(f"Loaded {len(self.existing_hashes)} existing hashes")
             else:
+                self.existing_hashes = []
                 self.logger.info("No existing hashes found")
         else:
+            self.existing_hashes = []
             self.logger.info(f"No existing hashes found at {self.processed_data_path}. Creating a new DataFrame.")
 
 
@@ -210,21 +211,26 @@ class Indexing:
             raise
     
 
-    def split_to_chunks(self, df):
+    def split_to_chunks(self, df, source_file=None):
         """Split texts into chunks.
 
         Args:
             df (DataFrame): DataFrame with 'uid' and 'text'.
+            source_file (str): Optional source filename for tracking
 
         Returns:
             DataFrame: new DataFrame with chunks.
         """
+        from datetime import datetime
+
         res = []
         for _, row in df.iterrows():
             chunks = self.text_splitter.split_text(row['text'])
             for i, chunk in enumerate(chunks):
                 res.append({
-                    'text': chunk
+                    'text': chunk,
+                    'source': source_file if source_file else 'unknown',
+                    'timestamp': datetime.now().isoformat()
                 })
 
         res_df = pd.DataFrame(res)
@@ -238,29 +244,52 @@ class Indexing:
                 if self.data_url:
                     self.download_data()
                 data = self.data_path
-            
+
+            # Extract source filename
+            source_file = os.path.basename(data) if data else 'unknown'
+
             if not self.incrementation_flag:
                 self.clear_existing_data()
+                self.existing_hashes = []
+            else:
+                self.load_existing_hashes()
 
             df = self.load_data(data_source=data)
             df_clean = self.check_quality(df)
-            df_new = df_clean[~df_clean['hash'].isin(self.existing_hashes)]
+
+            if not self.incrementation_flag:
+                df_new = df_clean
+            else:
+                df_new = df_clean[~df_clean['hash'].isin(self.existing_hashes)]
 
             if df_new.empty:
-                self.logger.info("No new unique texts to index.")
+                if not self.incrementation_flag:
+                    self.logger.info("No texts to index.")
+                else:
+                    self.logger.info("No new unique texts to index.")
                 return
 
-            df_chunks = self.split_to_chunks(df_new)
+            df_chunks = self.split_to_chunks(df_new, source_file=source_file)
             df_chunks['hash'] = df_chunks['text'].apply(compute_text_hash)
 
-            df_chunks_new = df_chunks[~df_chunks['hash'].isin(self.existing_hashes)]
+            if not self.incrementation_flag:
+                df_chunks_new = df_chunks
+            else:
+                df_chunks_new = df_chunks[~df_chunks['hash'].isin(self.existing_hashes)]
 
             if df_chunks_new.empty:
-                self.logger.info("No new unique chunks to index.")
+                if not self.incrementation_flag:
+                    self.logger.info("No chunks to index.")
+                else:
+                    self.logger.info("No new unique chunks to index.")
                 return
 
             new_hashes = df_chunks_new['hash'].tolist()
-            self.existing_hashes.extend(new_hashes)
+            if self.incrementation_flag:
+                self.existing_hashes.extend(new_hashes)
+            else:
+                self.existing_hashes = new_hashes
+                
             self.logger.info(f"Found {len(df_chunks_new)} new chunks to index.")
 
             self.logger.info("Normalizing chunk texts...")
@@ -273,24 +302,33 @@ class Indexing:
             new_embeddings = create_embeddings(df_chunks_new['text'].tolist(),
                                                self.emb_model,
                                                batch_size=self.batch_size)
-            
+
             if self.incrementation_flag:
+                # Load existing index to append new embeddings
+                self.data_base.load_index()
+
+                # Combine embeddings for saving
                 existing_embeddings = load_embeddings(self.embeddings_path)
                 if existing_embeddings is not None:
-                    embeddings = np.vstack([existing_embeddings, new_embeddings])
+                    all_embeddings = np.vstack([existing_embeddings, new_embeddings])
                     self.logger.info(
                         f"Combined embeddings: existing {existing_embeddings.shape[0]} + "
-                        f"new {new_embeddings.shape[0]} = {embeddings.shape[0]}"
+                        f"new {new_embeddings.shape[0]} = {all_embeddings.shape[0]}"
                     )
                 else:
-                    embeddings = new_embeddings
+                    all_embeddings = new_embeddings
                     self.logger.info("Created new embeddings (no existing found)")
-            else:
-                embeddings = new_embeddings
-                self.logger.info("Created new embeddings")
 
-            save_embeddings(embeddings, self.embeddings_path)
-            self.data_base.create_index(embeddings)
+                # Save all embeddings
+                save_embeddings(all_embeddings, self.embeddings_path)
+
+                # Add only new embeddings to index
+                self.data_base.create_index(new_embeddings, replace=False)
+            else:
+                # Replace mode: create new index with all embeddings
+                save_embeddings(new_embeddings, self.embeddings_path)
+                self.data_base.create_index(new_embeddings, replace=True)
+                self.logger.info("Created new embeddings")
             
         except Exception as e:
             if self.delete_data_flag:
@@ -307,8 +345,16 @@ class Indexing:
             self.embeddings_path,
             self.index_path
         ]
-        
+
         for file_path in files_to_remove:
             if os.path.exists(file_path):
                 os.remove(file_path)
                 self.logger.info(f"Removed existing file: {file_path}")
+
+        if not self.incrementation_flag:
+            self.existing_hashes = []
+            self.logger.info("Cleared existing hashes (incrementation disabled)")
+
+    def clear_data(self):
+        """Clear all indexed data (alias for clear_existing_data)."""
+        self.clear_existing_data()

@@ -1,19 +1,27 @@
 data:
-  data_dir: './data'
-  logs_dir: './logs'
-  data_url: "https://raw.githubusercontent.com/vladislavneon/RuBQ/refs/heads/master/RuBQ_2.0/RuBQ_2.0_paragraphs.json"
-  data_path: "./data/RuBQ_2.0_paragraphs.json"
-  index_path: "./data/index.index"
-  hashes_path: "./data/existing_hashes.json"
-  quality_log_path: "./logs/data_quality.json"
-  processed_data_path: "./data/processed_data.json"
-  incrementation_flag: False
-  delete_data_flag: True
-  image_types: ['.jpg', '.jpeg', '.png']
-  doc_types: ['.pdf', '.doc']
-  ocr_types: ['.jpg', '.jpeg', '.png', '.pdf', '.doc']
-
-
+  data_dir: ./data
+  logs_dir: ./logs
+  data_url: https://raw.githubusercontent.com/vladislavneon/RuBQ/refs/heads/master/RuBQ_2.0/RuBQ_2.0_paragraphs.json
+  data_path: ./data/RuBQ_2.0_paragraphs.json
+  index_path: ./data/index.index
+  hashes_path: ./data/existing_hashes.json
+  quality_log_path: ./logs/data_quality.json
+  processed_data_path: ./data/processed_data.json
+  incrementation_flag: true
+  delete_data_flag: true
+  image_types:
+  - .jpg
+  - .jpeg
+  - .png
+  doc_types:
+  - .pdf
+  - .doc
+  ocr_types:
+  - .jpg
+  - .jpeg
+  - .png
+  - .pdf
+  - .doc
 model:
-  emb_model_name: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+  emb_model_name: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
   batch_size: 32

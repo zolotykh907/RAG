@@ -9,7 +9,7 @@ from logs import setup_logging
 
 class RAGPipeline:
     """Class of pipeline for RAG"""
-    def __init__(self, config, query, responder):
+    def __init__(self, config, query, responder, redis_client):
         """Initialize RAG pipeline.
 
         args:
@@ -19,7 +19,7 @@ class RAGPipeline:
         self.query = query
         self.responder = responder
         self.logger = setup_logging(config.logs_dir, 'RAGPipeline')
-
+        self.redis_client = redis_client
 
     def answer(self, question):
         """Generate answer using RAG.
@@ -34,9 +34,21 @@ class RAGPipeline:
             raise ValueError("Question must be a non-empty string")
         
         try:
+            self.logger.info(f"Searching for relevant texts for question in Redis cache...")
+            cached_answer = self.redis_client.get_from_cache(question)
+            if cached_answer:
+                self.logger.info(f"Returning cached answer for question.")
+                return {
+                    "answer": cached_answer['answer'], 
+                    "texts": cached_answer['texts']
+                }
+            
+            self.logger.info(f"Searching for relevant texts for question")
             results = self.query.query(question)
 
             answer = self.responder.generate_answer(question, results)
+
+            self.redis_client.save_to_cache(question, {"answer": answer, "texts": results})
             return {
                 "answer": answer,
                 "texts": results

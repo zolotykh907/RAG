@@ -16,6 +16,8 @@ COPY shared/ /app/shared/
 COPY docker/wait_for_it.sh /app/wait_for_it.sh
 RUN chmod +x /app/wait_for_it.sh
 
+RUN mkdir -p /app/static
+
 EXPOSE 8000
 
 CMD ["/app/wait_for_it.sh","uvicorn", "query.app:app", "--host", "0.0.0.0", "--port", "8000"]

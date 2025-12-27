@@ -1,19 +1,21 @@
-FROM node:20
+FROM node:18-alpine as build
 
-# Устанавливаем рабочую директорию
-WORKDIR /app/frontend
+WORKDIR /app
 
-# Копируем только package.json и lock-файл для install
-COPY frontend/package*.json ./
+COPY react_frontend/package*.json ./
 
-# Устанавливаем зависимости
-RUN npm install
+RUN npm ci
 
-# Копируем остальной исходный код
-COPY frontend/ ./
+COPY react_frontend/ ./
 
-# Открываем порт dev-сервера
+RUN npm run build
+
+FROM nginx:alpine
+
+COPY --from=build /app/build /usr/share/nginx/html
+
+COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+
 EXPOSE 3000
 
-# Запускаем dev-сервер React
-CMD ["npm", "start"]
+CMD ["nginx", "-g", "daemon off;"]

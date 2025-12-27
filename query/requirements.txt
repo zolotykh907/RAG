@@ -2,10 +2,13 @@ fastapi
 pydantic
 langchain
 langchain-community
-langchain_ollama
+langchain-openai
+openai
 faiss-cpu
 pandas
 numpy
 sentence_transformers
 uvicorn
 pymorphy2
+redis
+python-multipart

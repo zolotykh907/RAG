@@ -2,7 +2,7 @@ import os
 import logging
 
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_ollama.llms import OllamaLLM
+from langchain_openai import ChatOpenAI
 
 import sys
 import os
@@ -19,11 +19,14 @@ class LLMResponder:
             config : configuration object with parameters.
         """
         self.model_name = config.llm
-        self.ollama_host = config.ollama_host
+        self.lm_studio_host = config.lm_studio_host
         self.prompt_template = ChatPromptTemplate.from_template(config.prompt_template)
-        self.llm = OllamaLLM(model=self.model_name,
-                             base_url=os.getenv("OLLAMA_HOST", self.ollama_host)
-                             )
+        self.llm = ChatOpenAI(
+            model=self.model_name,
+            base_url=os.getenv("LM_STUDIO_HOST", self.lm_studio_host),
+            api_key="lm-studio",  # LM Studio doesn't require real API key
+            temperature=0.7
+        )
         self.chain = self.prompt_template | self.llm
         self.logger = setup_logging(config.logs_dir, 'RAG_LLM')
 
@@ -47,12 +50,18 @@ class LLMResponder:
         try:
             context = '\n'.join(texts)
             response = self.chain.invoke({"question": question, "context": context})
-            
-            if not response or not isinstance(response, str):
-                self.logger.warning("LLM returned empty or invalid response")
+
+            # Extract content from AIMessage object
+            if hasattr(response, 'content'):
+                answer = response.content
+            else:
+                answer = str(response)
+
+            if not answer or not answer.strip():
+                self.logger.warning("LLM returned empty response")
                 return "Не удалось сгенерировать ответ."
-                
-            return response
+
+            return answer.strip()
         except Exception as e:
             self.logger.error(f'Answer generation failed: {str(e)}')
             raise

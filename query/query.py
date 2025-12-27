@@ -91,9 +91,9 @@ class Query:
                 self.texts = [item['text'] for item in self.data]
                 self.logger.info(f'Loaded {len(self.texts)} texts from {self.processed_data_path}')
 
-                # if self.data_base.index.ntotal != len(self.texts):
-                #     self.logger.error(f"The number of texts ({len(self.texts)}) != the number of vectors ({self.data_base.index.ntotal})")
-                #     raise ValueError(f"The number of texts must match the number of vectors in the DB.")
+                if self.data_base.index is not None and self.data_base.index.ntotal != len(self.texts):
+                    self.logger.error(f"The number of texts ({len(self.texts)}) != the number of vectors ({self.data_base.index.ntotal})")
+                    raise ValueError(f"The number of texts must match the number of vectors in the DB.")
         except Exception as e:
             self.logger.error(f"Failed to load data from {self.processed_data_path}: {str(e)}")
             raise
@@ -136,8 +136,16 @@ class Query:
                 )
 
             ids = self.data_base.search(request_embedding, self.k)
+           
+            if self.data_base.index is not None and self.data_base.index.ntotal != len(self.texts):
+                self.logger.error(f"The number of texts ({len(self.texts)}) != the number of vectors ({self.data_base.index.ntotal})")
+                raise ValueError(f"The number of texts must match the number of vectors in the DB.")
+           
             for id in ids:
-                res.append(self.texts[id])
+                if id < len(self.texts):
+                    res.append(self.texts[id])
+                else:
+                    self.logger.warning(f"Index {id} is out of range for texts array (length: {len(self.texts)})")
 
             return res
         except Exception as e:
