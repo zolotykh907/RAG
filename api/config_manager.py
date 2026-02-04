@@ -5,8 +5,11 @@ from typing import Dict
 
 logger = logging.getLogger(__name__)
 
+ALLOWED_SERVICES = {"indexing", "query"}
 
 def get_config_path(service: str) -> str:
+    if service not in ALLOWED_SERVICES:
+        raise ValueError(f"Invalid service name: {service}")
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     return os.path.join(base_dir, service, 'config.yaml')
 

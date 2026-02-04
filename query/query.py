@@ -37,12 +37,13 @@ class Query:
         
     def load_local_embedding_model(self):
         try:
+            model_cache_name = self.emb_model_name.replace('/', '--')
             cache_dir = os.path.join(
                 Path.home(), 
                 ".cache", 
                 "huggingface", 
                 "hub", 
-                "models--sentence-transformers--paraphrase-multilingual-MiniLM-L12-v2",
+                f"models--{model_cache_name}",
                 "snapshots"
             )
             

@@ -20,6 +20,8 @@ async def get_config(service: str):
     try:
         config_data = load_config(service)
         return config_data
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"Configuration file for {service} not found")
     except Exception as e:
@@ -39,8 +41,10 @@ async def update_config(service: str, new_config: Dict = Body(...)):
     try:
         save_config(service, new_config)
         return {"message": f"Конфигурация для {service} обновлена успешно"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"Конфигурационный файл для {service} не найден")
     except Exception as e:
         logger.error(f"Ошибка при обновлении конфигурации для {service}: {e}")
-        raise HTTPException(status_code=500, detail="Ошибка при обновлении конфигурации") 
+        raise HTTPException(status_code=500, detail="Ошибка при обновлении конфигурации")

@@ -1,5 +1,6 @@
 import os
 import shutil
+import uuid
 from tempfile import TemporaryDirectory
 from fastapi import APIRouter, HTTPException, UploadFile, File
 import logging
@@ -11,6 +12,12 @@ from query.pipeline import RAGPipeline
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+def _safe_filename(filename: str) -> str:
+    base = os.path.basename(filename or "").strip().replace("\x00", "")
+    if base in ("", ".", ".."):
+        base = f"upload-{uuid.uuid4().hex}"
+    return base
 
 
 @router.post('/upload-temp')
@@ -34,7 +41,8 @@ async def upload_temp_file(file: UploadFile = File(...)):
         session_id = temp_index_manager.generate_session_id()
         
         with TemporaryDirectory() as temp_dir:
-            temp_path = os.path.join(temp_dir, file.filename)
+            safe_name = _safe_filename(file.filename)
+            temp_path = os.path.join(temp_dir, safe_name)
             logger.info(f"Temporary file saved: {temp_path}")
             
             with open(temp_path, "wb") as f:
@@ -75,7 +83,8 @@ async def upload_file(file: UploadFile = File(...)):
         )
    
     with TemporaryDirectory() as temp_dir:
-        temp_path = os.path.join(temp_dir, file.filename)
+        safe_name = _safe_filename(file.filename)
+        temp_path = os.path.join(temp_dir, safe_name)
         logger.info(f"File saved to temp directory: {temp_path}")
         with open(temp_path, "wb") as f:
             shutil.copyfileobj(file.file, f)

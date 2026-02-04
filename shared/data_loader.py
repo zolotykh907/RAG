@@ -68,18 +68,27 @@ class DataLoader:
     
 
     def from_dir(self, path):
-        if os.path.exists(path):
-            res_df = []
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"Directory not found: {path}")
+        if not os.path.isdir(path):
+            raise NotADirectoryError(f"Path is not a directory: {path}")
 
-            for file in os.listdir(path):
-                file_path = os.path.join(path, file)
-                try:
-                    df = self.load_data(file_path)
+        res_df = []
+
+        for file in os.listdir(path):
+            file_path = os.path.join(path, file)
+            try:
+                df = self.load_data(file_path)
+                if df is not None:
                     res_df.append(df)
-                except Exception as e:
-                    self.logger.warning(f"Error download {file_path}: {e}")
+            except Exception as e:
+                self.logger.warning(f"Error download {file_path}: {e}")
 
-            return pd.concat(res_df, ignore_index=True)
+        if not res_df:
+            self.logger.warning(f"No valid files found in directory: {path}")
+            return pd.DataFrame({'text': []})
+
+        return pd.concat(res_df, ignore_index=True)
             
 
     def load_data(self, data):

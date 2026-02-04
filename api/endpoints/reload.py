@@ -28,7 +28,8 @@ async def reload_pipeline(service: str):
            
             try:
                 new_query_service = Query(query_config, new_data_base)
-                new_pipeline = RAGPipeline(config=query_config, query=new_query_service, responder=responder)
+                from ..main import redis_client
+                new_pipeline = RAGPipeline(config=query_config, query=new_query_service, responder=responder, redis_client=redis_client)
                 
                 import sys
                 main_module = sys.modules['api.main']
