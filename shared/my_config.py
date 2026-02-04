@@ -17,7 +17,7 @@ class Config:
                     items.append((new_key, value))
         return items
 
-    
+
     def set_items(self):
         with open(self.config_file_path, "r", encoding="utf-8") as f:
             cfg = yaml.safe_load(f)
@@ -27,7 +27,7 @@ class Config:
         for key, value in cfg_items:
             setattr(self, key, value)
 
-    
+
     def reload(self):
         for attr in list(self.__dict__.keys()):
             if attr != "config_file_path":

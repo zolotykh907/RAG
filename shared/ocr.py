@@ -6,7 +6,7 @@ from PIL import Image
 from pdf2image import convert_from_path
 
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'shared'))
-from logs import setup_logging 
+from logs import setup_logging
 
 class OCR:
     def __init__(self, config):
@@ -31,11 +31,11 @@ class OCR:
         text = pytesseract.image_to_string(image=img, lang='rus+eng')
 
         return text
-    
+
 
     def load_pages(self, path, dpi=150):
         path = Path(path)
-        
+
         if path.suffix.lower() == '.pdf':
             try:
                 pages = convert_from_path(path, dpi=dpi)
@@ -43,8 +43,8 @@ class OCR:
                 yield from pages
             except Exception as e:
                 self.logger.error(f"Error processing PDF {path} {path}: {e}")
-                return  
-        
+                return
+
         elif path.is_dir():
             for file in path.iterdir():
                 if file.suffix.lower() == '.pdf':
@@ -57,7 +57,7 @@ class OCR:
                         yield Image.open(file)
                     except Exception as e:
                         self.logger.error(f"Error opening image {file}: {e}")
-        
+
         elif path.suffix.lower() in self.image_types:
             try:
                 yield Image.open(path)
@@ -74,8 +74,8 @@ class OCR:
                 texts.append(text)
         except Exception as e:
             self.logger.error(f"Error in run_ocr: {e}")
-        
+
         if not texts:
             self.logger.warning("No pages were processed")
-        
+
         return texts

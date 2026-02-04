@@ -1,11 +1,10 @@
 import os
+import sys
 import faiss
 import numpy as np
 #import chromadb
-import sys
-import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from logs import setup_logging 
+from logs import setup_logging
 
 
 class FaissDB:
@@ -28,7 +27,7 @@ class FaissDB:
             if self.index is None or replace:
                 if replace and self.index is not None:
                     self.logger.info("Replacing existing FAISS index.")
-                
+
                 dim = embeddings.shape[1]
                 self.index = faiss.IndexFlatL2(dim)
                 self.logger.info(f"Created {'new' if self.index is None else 'replacement'} FAISS index with dimension {dim}.")
@@ -55,12 +54,12 @@ class FaissDB:
             self.logger.error(f"Failed to load FAISS index from {self.index_path}: {str(e)}")
             self.index = None
 
-    
+
     def search(self, request_embedding, k):
         """Nearest-neighbor search in FAISS.
 
         Args:
-            request_embedding (np.ndarray): Query embedding vector. 
+            request_embedding (np.ndarray): Query embedding vector.
 
         Returns:
             np.ndarray: array of indices of the k nearest neighbors.
@@ -68,20 +67,20 @@ class FaissDB:
         if self.index is None:
             self.logger.warning("Index is not loaded or created. Returning empty result.")
             return np.array([])
-        
+
         if self.index.ntotal == 0:
             self.logger.warning("Index is empty. Returning empty result.")
             return np.array([])
-        
+
         actual_k = min(k, self.index.ntotal)
-        
+
         d, ids = self.index.search(request_embedding, actual_k)
-        
-        valid_ids = ids[0][ids[0] != -1] 
-        
+
+        valid_ids = ids[0][ids[0] != -1]
+
         self.logger.debug(f"Search returned {len(valid_ids)} valid results out of {actual_k} requested")
         return valid_ids
-    
+
 
     def delete_index(self):
         """Deletes the FAISS index."""
@@ -120,11 +119,11 @@ class ChromaDB:
     #                 metadata={"hnsw:space": "l2"}
     #             )
     #             self.logger.info(f"Created new Chroma collection: {self.collection_name}")
-            
+
     #         # Convert embeddings to list and generate IDs
     #         embedding_list = embeddings.tolist()
     #         ids = [str(i) for i in range(len(embeddings))]
-            
+
     #         self.collection.add(
     #             embeddings=embedding_list,
     #             ids=ids
@@ -166,7 +165,7 @@ class ChromaDB:
     #     """
     #     if self.collection is None:
     #         raise RuntimeError(f"Chroma collection {self.collection_name} is not loaded or created")
-        
+
     #     try:
     #         results = self.collection.query(
     #             query_embeddings=request_embedding.tolist(),

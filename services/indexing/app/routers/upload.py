@@ -73,6 +73,8 @@ async def clear_index(
         dict: Confirmation message.
     """
     from ..main import data_base
+    if data_base is None:
+        raise HTTPException(status_code=503, detail="Database not available")
 
     try:
         # Clear the FAISS index

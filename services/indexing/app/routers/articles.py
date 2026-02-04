@@ -17,7 +17,7 @@ ARTICLES_FILE = os.path.join(
 
 class Article(BaseModel):
     """Article model."""
-    id: int = None
+    id: int | None = None
     title: str
     description: str
     url: str

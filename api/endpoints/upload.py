@@ -23,42 +23,42 @@ def _safe_filename(filename: str) -> str:
 @router.post('/upload-temp')
 async def upload_temp_file(file: UploadFile = File(...)):
     """Upload and temporarily index a file for session use.
-    
+
     Args:
         file (UploadFile): The file to be uploaded and indexed.
-    
+
     Returns:
         dict: Confirmation message with session ID and chunk count."""
     from ..main import indexing_service, data_loader
-    
+
     if indexing_service is None:
         raise HTTPException(
-            status_code=503, 
+            status_code=503,
             detail="Indexing service not available. Please check configuration and try again."
         )
-   
+
     try:
         session_id = temp_index_manager.generate_session_id()
-        
+
         with TemporaryDirectory() as temp_dir:
             safe_name = _safe_filename(file.filename)
             temp_path = os.path.join(temp_dir, safe_name)
             logger.info(f"Temporary file saved: {temp_path}")
-            
+
             with open(temp_path, "wb") as f:
                 shutil.copyfileobj(file.file, f)
- 
+
             temp_data = process_file_temp(temp_path, data_loader, indexing_service)
-            
+
             temp_index_manager.add_temp_index(session_id, temp_data)
-            
+
             logger.info(f"Temporary file indexed successfully. Session ID: {session_id}")
             return {
                 "message": "File processed and temporarily indexed successfully.",
                 "session_id": session_id,
                 "chunks_count": len(temp_data['chunks'])
             }
-            
+
     except Exception as e:
         logger.error(f"Temporary indexing failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -67,21 +67,23 @@ async def upload_temp_file(file: UploadFile = File(...)):
 @router.post('/upload-files')
 async def upload_file(file: UploadFile = File(...)):
     """Upload and index a file.
-    
+
     Args:
         file (UploadFile): The file to be uploaded and indexed.
-        
+
     Returns:
         dict: Confirmation message indicating successful indexing.
     """
     from ..main import indexing_service, query_config, data_base, responder, redis_client
-    
+
     if indexing_service is None:
         raise HTTPException(
-            status_code=503, 
+            status_code=503,
             detail="Indexing service not available. Please check configuration and try again."
         )
-   
+    if data_base is None:
+        raise HTTPException(status_code=503, detail="Database not available.")
+
     with TemporaryDirectory() as temp_dir:
         safe_name = _safe_filename(file.filename)
         temp_path = os.path.join(temp_dir, safe_name)
@@ -97,7 +99,6 @@ async def upload_file(file: UploadFile = File(...)):
             # Check if data file exists before reinitializing
             if os.path.exists(query_config.processed_data_path) and os.path.exists(query_config.index_path):
                 try:
-                    from ..main import query_service as global_query_service, pipeline as global_pipeline
                     import api.main as main_module
 
                     # Reload the database index
@@ -118,7 +119,7 @@ async def upload_file(file: UploadFile = File(...)):
             else:
                 logger.warning('Data files not found after indexing, skipping query service reinitialization.')
                 return {"message": "File processed and indexed successfully.", "query_service_restarted": False}
-           
+
         except Exception as e:
             logger.error(f"Indexing failed: {str(e)}")
             return {"error": str(e)}
@@ -159,6 +160,8 @@ async def clear_permanent_index():
             status_code=503,
             detail="Indexing service not available."
         )
+    if data_base is None:
+        raise HTTPException(status_code=503, detail="Database not available.")
 
     try:
         # Clear the index
@@ -255,4 +258,4 @@ async def delete_temp_file(session_id: str, filename: str):
         raise
     except Exception as e:
         logger.error(f"Failed to delete temp file: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e)) 
+        raise HTTPException(status_code=500, detail=str(e))

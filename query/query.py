@@ -14,7 +14,7 @@ class Query:
     """a class for preprocessing the question and semantic searching"""
     def __init__(self, config, data_base):
         """Initialize the Query service with configuration parameters.
-        
+
         Args:
             config: configuration object with parameters.
             """
@@ -32,28 +32,28 @@ class Query:
         self.load_texts()
         #self.download_emb_model()
         self.embedding_model = self.load_local_embedding_model()
-        
+
     def load_local_embedding_model(self):
         try:
             model_cache_name = self.emb_model_name.replace('/', '--')
             cache_dir = os.path.join(
-                Path.home(), 
-                ".cache", 
-                "huggingface", 
-                "hub", 
+                Path.home(),
+                ".cache",
+                "huggingface",
+                "hub",
                 f"models--{model_cache_name}",
                 "snapshots"
             )
-            
+
             snapshots = [d for d in os.listdir(cache_dir) if os.path.isdir(os.path.join(cache_dir, d))]
             if not snapshots:
                 raise FileNotFoundError(
                     f"Model {self.emb_model_name} not found in local cache {cache_dir}. "
                     )
-            
+
             latest_snapshot = sorted(snapshots)[-1]
             model_path = os.path.join(cache_dir, latest_snapshot)
-            
+
             self.logger.info(f"Load embedding model from local cache: {model_path}")
             return SentenceTransformer(model_path, device='cpu')
         except Exception as e:
@@ -92,18 +92,18 @@ class Query:
 
                 if self.data_base.index is not None and self.data_base.index.ntotal != len(self.texts):
                     self.logger.error(f"The number of texts ({len(self.texts)}) != the number of vectors ({self.data_base.index.ntotal})")
-                    raise ValueError(f"The number of texts must match the number of vectors in the DB.")
+                    raise ValueError("The number of texts must match the number of vectors in the DB.")
         except Exception as e:
             self.logger.error(f"Failed to load data from {self.processed_data_path}: {str(e)}")
             raise
-    
+
 
     def normalize_text(self, text):
         """Normalize and lemmatize input text for search.
-        
+
         Args:
             text (str): input text to normalize.
-            
+
         Returns:
             str: normalized text.
         """
@@ -115,31 +115,33 @@ class Query:
 
     def query(self, request):
         """Semantic search query.
-        
+
         Args:
             request (str): search query string.
-            
+
         Returns:
             list[str]: list of top-k most similar texts from the dataset
         """
         if not isinstance(request, str):
             raise ValueError("Request must be a string.")
-        
+
         try:
             res = []
 
             request = self.normalize_text(request)
             request_embedding = self.embedding_model.encode(
-                [request], 
+                [request],
                 convert_to_numpy=True
                 )
 
             ids = self.data_base.search(request_embedding, self.k)
-           
+            if self.texts is None:
+                raise RuntimeError("Texts are not loaded")
+
             if self.data_base.index is not None and self.data_base.index.ntotal != len(self.texts):
                 self.logger.error(f"The number of texts ({len(self.texts)}) != the number of vectors ({self.data_base.index.ntotal})")
-                raise ValueError(f"The number of texts must match the number of vectors in the DB.")
-           
+                raise ValueError("The number of texts must match the number of vectors in the DB.")
+
             for id in ids:
                 if id < len(self.texts):
                     res.append(self.texts[id])

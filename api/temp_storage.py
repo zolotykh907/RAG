@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Optional
 import uuid
 import logging
 
@@ -25,7 +25,7 @@ class TempIndexManager:
         self.temp_indexes[session_id].append(temp_data)
         logger.info(f"Added temporary index for session {session_id}, total files: {len(self.temp_indexes[session_id])}")
 
-    def get_temp_index(self, session_id: str) -> List[Dict]:
+    def get_temp_index(self, session_id: str) -> Optional[List[Dict]]:
         """Get all temporary index data for a session.
 
         Args:
@@ -34,7 +34,7 @@ class TempIndexManager:
         Returns:
             List[Dict]: List of temporary index data if exists, otherwise None."""
         return self.temp_indexes.get(session_id)
-    
+
     def remove_temp_index(self, session_id: str) -> bool:
         """Remove all temporary index data for a session.
 
@@ -84,7 +84,7 @@ class TempIndexManager:
 
         return removed
 
-    def get_temp_file_content(self, session_id: str, filename: str) -> Dict:
+    def get_temp_file_content(self, session_id: str, filename: str) -> Optional[Dict]:
         """Get content of a specific temporary file.
 
         Args:
@@ -106,35 +106,35 @@ class TempIndexManager:
                 return temp_data
 
         return None
-    
+
     def has_session(self, session_id: str) -> bool:
         """Check if session exists.
-        
+
         Args:
             session_id (str): Unique identifier for the session.
-        
+
         Returns:
             bool: True if session exists, False otherwise."""
         return session_id in self.temp_indexes
-    
+
     def generate_session_id(self) -> str:
         """Generate a new session ID.
-        
+
         Returns:
             str: Unique session ID."""
         return str(uuid.uuid4())
-    
+
     def get_all_sessions(self) -> List[str]:
         """Get all active session IDs.
 
         Returns:
             List[str]: List of all active session IDs."""
         return list(self.temp_indexes.keys())
-    
+
     def clear_all(self) -> None:
         """Clear all temporary indexes."""
         self.temp_indexes.clear()
         logger.info("Cleared all temporary indexes")
 
 
-temp_index_manager = TempIndexManager() 
+temp_index_manager = TempIndexManager()

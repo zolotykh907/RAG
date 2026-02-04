@@ -12,10 +12,7 @@ def test_pipeline():
     assert response.status_code == 200
 
     data = response.json()
-    
+
     assert isinstance(data['answer'], str)
     assert len(data['answer']) > 0
     assert isinstance(data['texts'], list)
-
-
-

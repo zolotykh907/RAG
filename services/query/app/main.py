@@ -21,7 +21,7 @@ sys.path.append(str(project_root / 'query'))
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-import logging
+from typing import Any, Optional
 
 from logs import setup_logging
 from my_config import Config as SharedConfig
@@ -32,15 +32,15 @@ from query.llm import LLMResponder
 from query.redis_client import RedisDB
 
 # Configuration
-query_config = SharedConfig('query/config.yaml')
+query_config: Any = SharedConfig('query/config.yaml')
 logger = setup_logging(query_config.logs_dir, 'QUERY_SERVICE')
 
 # Global services
-data_base: FaissDB = None
-query_service: Query = None
-responder: LLMResponder = None
-pipeline: RAGPipeline = None
-redis_client: RedisDB = None
+data_base: Optional[FaissDB] = None
+query_service: Optional[Query] = None
+responder: Optional[LLMResponder] = None
+pipeline: Optional[RAGPipeline] = None
+redis_client: Optional[RedisDB] = None
 
 
 def initialize_services():

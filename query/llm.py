@@ -1,11 +1,9 @@
 import os
-import logging
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 
 import sys
-import os
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'shared'))
 from logs import setup_logging
 
@@ -43,10 +41,10 @@ class LLMResponder:
         """
         if not isinstance(question, str) or not question.strip():
             raise ValueError("Question must be a non-empty string")
-        
+
         if not texts or not isinstance(texts, list):
             raise ValueError("Texts must be a non-empty list")
-        
+
         try:
             context = '\n'.join(texts)
             response = self.chain.invoke({"question": question, "context": context})

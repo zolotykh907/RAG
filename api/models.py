@@ -11,4 +11,4 @@ class QueryRequest(BaseModel):
 class QueryResponse(BaseModel):
     """Response model for RAG query endpoint."""
     answer: str
-    texts: list 
+    texts: list

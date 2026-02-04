@@ -11,10 +11,10 @@ router = APIRouter()
 @router.get("/config")
 async def get_config(service: str):
     """Get configuration for a specified service.
-    
+
     Args:
         service (str): The name of the service to get configuration for service.
-        
+
     Returns:
         Dict: The configuration data for the specified service."""
     try:
@@ -35,7 +35,7 @@ async def update_config(service: str, new_config: Dict = Body(...)):
     Args:
         service (str): The name of the service to update configuration for.
         new_config (Dict): The new configuration data to save.
-        
+
     Returns:
         Dict: Confirmation message indicating successful update."""
     try:

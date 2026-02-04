@@ -25,4 +25,4 @@ async def root():
 @router.get('/health')
 async def health_check():
     """Health check endpoint."""
-    return {"status": "healthy", "message": "RAG API is running"} 
+    return {"status": "healthy", "message": "RAG API is running"}

@@ -4,9 +4,7 @@ import os
 import json
 import logging
 import requests
-import numpy as np
 from fastapi import APIRouter, HTTPException, Depends
-from typing import List, Dict
 
 from ..main import get_indexing_service, shared_config
 
@@ -120,6 +118,8 @@ async def delete_document(
         dict: Confirmation message.
     """
     from ..main import data_base
+    if data_base is None:
+        raise HTTPException(status_code=503, detail="Database not available")
 
     try:
         processed_data_path = shared_config.processed_data_path

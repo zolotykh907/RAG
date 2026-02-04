@@ -10,7 +10,6 @@ Responsibilities:
 """
 
 import sys
-import os
 from pathlib import Path
 
 # Add project root to path
@@ -19,9 +18,9 @@ sys.path.append(str(project_root))
 sys.path.append(str(project_root / 'shared'))
 sys.path.append(str(project_root / 'indexing'))
 
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-import logging
+from typing import Any, Optional
 
 from logs import setup_logging
 from my_config import Config as SharedConfig
@@ -30,13 +29,13 @@ from shared.data_base import FaissDB
 from indexing import Indexing
 
 # Configuration
-shared_config = SharedConfig('indexing/config.yaml')
+shared_config: Any = SharedConfig('indexing/config.yaml')
 logger = setup_logging(shared_config.logs_dir, 'INDEXING_SERVICE')
 
 # Global services
-data_loader: DataLoader = None
-data_base: FaissDB = None
-indexing_service: Indexing = None
+data_loader: Optional[DataLoader] = None
+data_base: Optional[FaissDB] = None
+indexing_service: Optional[Indexing] = None
 
 
 def initialize_services():

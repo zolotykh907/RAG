@@ -15,7 +15,7 @@ class DummyConfig:
 
 def test_generate_prompt_format_with_mock():
     config = DummyConfig()
-    
+
     responder = LLMResponder(config)
 
     responder.chain = MagicMock()
@@ -27,7 +27,7 @@ def test_generate_prompt_format_with_mock():
     result = responder.generate_answer(question, chunks)
 
     responder.chain.invoke.assert_called_once()
-    
+
     called_args = responder.chain.invoke.call_args[0][0]
     assert called_args["question"] == question
     assert "ЦСКА" in called_args["context"]

@@ -1,8 +1,7 @@
 import os
 import json
-from fastapi import APIRouter, HTTPException
-from typing import List, Dict, Any
 import logging
+from fastapi import APIRouter, HTTPException
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -72,7 +71,7 @@ async def get_documents():
 
 
 @router.get('/documents/{filename}')
-async def get_document_content(filename: str, session_id: str = None):
+async def get_document_content(filename: str, session_id: str | None = None):
     """Get content of a specific document (permanent or temporary).
 
     Args:
@@ -216,6 +215,8 @@ async def delete_document(filename: str):
             status_code=503,
             detail="Indexing service not available."
         )
+    if data_base is None:
+        raise HTTPException(status_code=503, detail="Database not available.")
 
     try:
         processed_data_path = query_config.processed_data_path
@@ -241,9 +242,7 @@ async def delete_document(filename: str):
         # Reindex if there's remaining data
         if filtered_data:
             # Re-create embeddings and index for remaining data
-            from sentence_transformers import SentenceTransformer
             from indexing.data_vectorize import save_embeddings
-            import numpy as np
 
             # Load embedding model
             embedding_model = indexing_service.load_local_embedding_model()

@@ -1,7 +1,5 @@
-import json
 import logging
 from fastapi import APIRouter, HTTPException
-import redis
 
 from ..models import QueryRequest, QueryResponse
 from ..services import create_combined_pipeline
@@ -18,7 +16,7 @@ async def query_rag(request: QueryRequest):
     Returns:
         QueryResponse: The response containing the answer and relevant texts."""
     try:
-        
+
         from ..main import query_service, pipeline, indexing_service, query_config, responder, redis_client
 
         if request.session_id and temp_index_manager.has_session(request.session_id):
@@ -28,9 +26,9 @@ async def query_rag(request: QueryRequest):
             combined_pipeline = create_combined_pipeline(
                 query_service, temp_data, indexing_service, query_config, responder, redis_client
             )
-            
+
             result = combined_pipeline.answer(request.question)
-            
+
             logger.info(f"Combined query processed successfully for session {session_id}")
             return QueryResponse(answer=result['answer'], texts=result['texts'])
         else:
@@ -41,9 +39,9 @@ async def query_rag(request: QueryRequest):
                 )
             else:
                 result = pipeline.answer(request.question)
-                logger.info(f'Successfully processed question')
+                logger.info('Successfully processed question')
                 return result
-         
+
     except Exception as e:
         logger.error(f"Query failed: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e)) 
+        raise HTTPException(status_code=500, detail=str(e))

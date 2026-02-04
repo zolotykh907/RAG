@@ -25,7 +25,7 @@ def test_compute_text_hash_consistency():
     text = "Пример текста"
     hash1 = compute_text_hash(text)
     hash2 = compute_text_hash(" пример ТЕКСТА  ")
-    assert hash1 == hash2 
+    assert hash1 == hash2
 
 
 def test_compute_text_hash_different():
@@ -38,7 +38,7 @@ def test_check_data_quality():
         'text': [
             'Привет мир!',         # len 11
             ' ',                   # empty
-            'Кратко',              # len 6 
+            'Кратко',              # len 6
             'Привет мир!',         # duplicate
             'Что-то интересное'    # len 17
         ]
@@ -48,8 +48,8 @@ def test_check_data_quality():
 
     report, df_clean = check_data_quality(df, logger, min_len=10)
 
-    assert report['empty_docs']['count'] == 1  
-    assert report['short_texts']['count'] == 1 
+    assert report['empty_docs']['count'] == 1
+    assert report['short_texts']['count'] == 1
     assert report['duplicate_texts']['count'] == 1
 
     assert len(df_clean) == 2

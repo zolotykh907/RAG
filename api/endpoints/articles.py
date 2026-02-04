@@ -1,8 +1,8 @@
 import json
 import os
-from typing import List, Dict
+from typing import Dict, List
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel
 
 router = APIRouter()
 
@@ -12,7 +12,7 @@ ARTICLES_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__f
 
 
 class Article(BaseModel):
-    id: int = None
+    id: int | None = None
     title: str
     description: str
     url: str
@@ -31,7 +31,7 @@ def read_articles() -> List[Dict]:
                 print(f"[DEBUG] Loaded {len(articles)} articles")
                 return articles
         else:
-            print(f"[DEBUG] File not found, returning empty list")
+            print("[DEBUG] File not found, returning empty list")
             # Создаем файл с начальными данными, если его нет
             initial_articles = [
                 {

@@ -1,9 +1,5 @@
-import logging
-
-import sys
 import os
 import sys
-import os
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'shared'))
 from logs import setup_logging
 
@@ -27,23 +23,23 @@ class RAGPipeline:
         Args:
             question (str): input question to answer.
 
-        Returns: 
+        Returns:
             Dict[str]: generated answer and list of relevant texts.
         """
         if not isinstance(question, str) or not question.strip():
             raise ValueError("Question must be a non-empty string")
-        
+
         try:
-            self.logger.info(f"Searching for relevant texts for question in Redis cache...")
+            self.logger.info("Searching for relevant texts for question in Redis cache...")
             cached_answer = self.redis_client.get_from_cache(question)
             if cached_answer:
-                self.logger.info(f"Returning cached answer for question.")
+                self.logger.info("Returning cached answer for question.")
                 return {
-                    "answer": cached_answer['answer'], 
+                    "answer": cached_answer['answer'],
                     "texts": cached_answer['texts']
                 }
-            
-            self.logger.info(f"Searching for relevant texts for question")
+
+            self.logger.info("Searching for relevant texts for question")
             results = self.query.query(question)
 
             answer = self.responder.generate_answer(question, results)

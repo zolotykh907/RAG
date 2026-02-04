@@ -41,10 +41,10 @@
 # @app.post(config.endpoint, response_model=QueryResponse)
 # async def query_rag(request: QueryRequest):
 #     """Handle RAG query request.
-    
+
 #     Args:
 #         request: QueryRequest containing the question.
-        
+
 #     Returns:
 #         QueryResponse with answer and relevant texts.
 #     """
@@ -57,7 +57,6 @@
 #         return result
 #     except Exception as e:
 #         raise HTTPException(status_code=500, detail=str(e))
-import logging
 import os
 from pathlib import Path
 
@@ -101,7 +100,7 @@ try:
     query = Query(config, data_base)
     responder = LLMResponder(config)
     pipeline = RAGPipeline(config=config, query=query, responder=responder)
-    logger.info(f'RAG API initialized successfully.')
+    logger.info('RAG API initialized successfully.')
 except Exception as e:
     logger.error(f'Failed to initialize RAG API: {str(e)}')
     raise
@@ -127,10 +126,10 @@ async def root():
 @app.post('/query', response_model=QueryResponse)
 async def query_rag(request: QueryRequest):
     """Handle RAG query request.
-    
+
     Args:
         request: QueryRequest containing the question.
-        
+
     Returns:
         QueryResponse with answer and relevant texts.
     """
@@ -138,7 +137,7 @@ async def query_rag(request: QueryRequest):
         logger.info(f"Processing question: {request.question[:25]}...")
 
         result = pipeline.answer(request.question)
-        logger.info(f'Successfully processed question')
+        logger.info('Successfully processed question')
 
         return result
     except Exception as e:

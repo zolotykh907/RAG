@@ -18,7 +18,7 @@ def load_config(service: str) -> Dict:
     config_path = get_config_path(service)
     if not os.path.exists(config_path):
         raise FileNotFoundError(f"Configuration file for {service} not found")
-    
+
     try:
         with open(config_path, 'r') as f:
             config_data = yaml.safe_load(f)
@@ -32,7 +32,7 @@ def save_config(service: str, config_data: Dict) -> None:
     config_path = get_config_path(service)
     if not os.path.exists(config_path):
         raise FileNotFoundError(f"Configuration file for {service} not found")
-    
+
     try:
         def str_presenter(dumper, data):
             if '\n' in data:
@@ -40,7 +40,7 @@ def save_config(service: str, config_data: Dict) -> None:
             return dumper.represent_scalar('tag:yaml.org,2002:str', data)
 
         yaml.add_representer(str, str_presenter)
-        
+
         with open(config_path, 'w', encoding='utf-8') as f:
             yaml.dump(
                 config_data,
@@ -51,7 +51,7 @@ def save_config(service: str, config_data: Dict) -> None:
                 width=float("inf"),
                 indent=2
             )
-        
+
         logger.info(f"Configuration for {service} saved successfully.")
     except Exception as e:
         logger.error(f"Error saving configuration for {service}: {e}")

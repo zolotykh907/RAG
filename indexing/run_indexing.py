@@ -10,8 +10,8 @@ from data_base import FaissDB
 config = Config()
 data_loader = DataLoader(config)
 DB = FaissDB(config)
-I = Indexing(config, data_loader, DB)
+indexing_service = Indexing(config, data_loader, DB)
 
 
-I.run_indexing()
+indexing_service.run_indexing()
 #I.run_indexing('В 1999 году Золотых Игорь Алексеевич, великий русский поэт, родился.')

@@ -1,11 +1,9 @@
 import json
 import os
-import pandas as pd
-
 import sys
-import os
+import pandas as pd
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from logs import setup_logging 
+from logs import setup_logging
 
 from ocr import OCR
 
@@ -24,7 +22,7 @@ class DataLoader:
             with open(path, 'r') as f:
                 data = json.load(f)
                 self.logger.info(f"Loaded data from {path}.")
-                
+
             df = pd.DataFrame(data)
 
             if column_name not in df.columns:
@@ -45,7 +43,7 @@ class DataLoader:
 
             df = pd.DataFrame({'text': [text]})
             return df
-        except Exception as e:
+        except Exception:
             self.logger.info(f'Error loaded data from {path}')
             raise
 
@@ -65,7 +63,7 @@ class DataLoader:
 
         df = pd.DataFrame({'text': texts})
         return df
-    
+
 
     def from_dir(self, path):
         if not os.path.exists(path):
@@ -89,7 +87,7 @@ class DataLoader:
             return pd.DataFrame({'text': []})
 
         return pd.concat(res_df, ignore_index=True)
-            
+
 
     def load_data(self, data):
         try:

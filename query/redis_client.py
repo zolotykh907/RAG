@@ -15,10 +15,10 @@ class RedisDB:
 
     def make_cache_key(self, query: str) -> str:
         """Generate a cache key based on the query.
-        
+
         Args:
             query (str): The query string.
-            
+
         Returns:
             str: A unique cache key for the query."""
         return f"rag:{hashlib.md5(query.encode()).hexdigest()}"
@@ -26,7 +26,7 @@ class RedisDB:
 
     def get_from_cache(self, query: str):
         """Retrieve the cached answer for a given query.
-        
+
         Args:
             query (str): The query string.
 
@@ -50,6 +50,3 @@ class RedisDB:
         key = self.make_cache_key(query)
         self.redis_client.setex(key, 60 * 60 * 24, json.dumps(answer))  # TTL: 24 часа
         self.logger.info(f"Saved to cache: {query[:25]}...")
-
-
-

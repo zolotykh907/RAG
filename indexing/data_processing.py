@@ -11,7 +11,7 @@ logger = setup_logging('./logs', 'DataProcessing')
 
 def normalize_text(text, morph=None, clear_flag = False):
     """Normalize text.
-    
+
     Args:
         text (str): input text for processing.
         morph (MorphAnalizer): Morphological analyzer.
@@ -21,21 +21,23 @@ def normalize_text(text, morph=None, clear_flag = False):
     """
     if not isinstance(text, str):
         raise ValueError("Input text must be a string")
-    
+
     if clear_flag:
+        if morph is None:
+            raise ValueError("Morphological analyzer is required when clear_flag=True")
         text = text.strip().lower()
         text = re.sub(r'\s+', ' ', text)
         text = re.sub(r'[^\w\s]', ' ', text)
 
         words = text.split()
-        lemmas = [morph.parse(word)[0].normal_form 
-                for word in words 
+        lemmas = [morph.parse(word)[0].normal_form
+                for word in words
                 if word.isalpha()]
-        
+
         res = ' '.join(lemmas)
 
         return res
-    
+
     return text.strip()
 
 def compute_text_hash(text):
@@ -79,19 +81,19 @@ def check_data_quality(df, logger=logger, min_len=10):
 
     # Results
     res = {}
-    res['empty_docs'] = {'count': len(empty_docs), 
+    res['empty_docs'] = {'count': len(empty_docs),
                          'data': empty_docs.to_dict(orient='records')}
-    res['duplicate_texts'] = {'count': len(duplicate_texts), 
+    res['duplicate_texts'] = {'count': len(duplicate_texts),
                               'data': duplicate_texts.to_dict(orient='records')}
-    res['short_texts'] = {'count': len(short_texts), 
+    res['short_texts'] = {'count': len(short_texts),
                           'data': short_texts.to_dict(orient='records')}
 
     # Cleaning df
     df_clean = df[
-        (df['text'] != '') & 
-        (df['text'].str.len() >= min_len)  
+        (df['text'] != '') &
+        (df['text'].str.len() >= min_len)
     ].drop_duplicates(subset=['hash'], keep='first')
-    
+
     res['remaining_docs'] = len(df_clean)
     res['removed_docs'] = len(df) - len(df_clean)
     logger.info(f'Docs after cleaning: {len(df_clean)}')

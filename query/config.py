@@ -16,7 +16,7 @@
 #         self.llm = cfg['models']['llm']
 #         self.prompt_template = cfg['models']['prompt_template']
 
-        
+
 #         self.k = cfg['rag']['k']
 
 #         self.endpoint = cfg['api']['endpoint']
@@ -44,7 +44,7 @@ class Config:
                     items.append((new_key, value))
         return items
 
-    
+
     def set_items(self):
         with open(self.config_file_path, "r", encoding="utf-8") as f:
             cfg = yaml.safe_load(f)
@@ -54,9 +54,9 @@ class Config:
         for key, value in cfg_items:
             setattr(self, key, value)
 
-    
+
     def reload(self):
         for attr in list(self.__dict__.keys()):
             if attr != "config_file_path":
                 delattr(self, attr)
-        self.set_items
+        self.set_items()

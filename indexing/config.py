@@ -1,6 +1,4 @@
 import yaml
-import os
-from pathlib import Path
 
 
 class Config:
@@ -21,6 +19,6 @@ class Config:
         self.image_types = cfg['data']['image_types']
         self.doc_types = cfg['data']['doc_types']
         self.ocr_types = tuple(self.image_types + self.doc_types)
-        
+
         self.emb_model_name = cfg['model']['emb_model_name']
         self.batch_size = cfg['model']['batch_size']

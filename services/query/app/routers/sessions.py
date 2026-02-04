@@ -1,11 +1,10 @@
 """Session management for temporary uploads and queries."""
 
 import logging
-from fastapi import APIRouter, HTTPException, UploadFile, File
-from typing import List
 import os
 import shutil
 from tempfile import TemporaryDirectory
+from fastapi import APIRouter, HTTPException, UploadFile, File
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

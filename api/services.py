@@ -1,8 +1,9 @@
+import logging
+from typing import Any, Dict
+
+import faiss
 import numpy as np
 import pandas as pd
-import faiss
-import logging
-from typing import List
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from query.pipeline import RAGPipeline
@@ -18,7 +19,7 @@ class CombinedQueryService:
         self.temp_chunks = temp_chunks
         self.emb_model = emb_model
         self.k = k
-    
+
     def query(self, question):
         """Search in both permanent and temporary indexes.
 
@@ -37,10 +38,13 @@ class CombinedQueryService:
 
         try:
             query_embedding = self.emb_model.encode([question])
-            D, I = self.temp_index.search(query_embedding.astype('float32'), k=min(self.k, len(self.temp_chunks)))
+            _, indices = self.temp_index.search(
+                query_embedding.astype('float32'),
+                k=min(self.k, len(self.temp_chunks))
+            )
 
             temp_results = []
-            for i in I[0]:
+            for i in indices[0]:
                 if i < len(self.temp_chunks):
                     chunk = self.temp_chunks[i]
                     # Extract text if chunk is a dict, otherwise use as is
@@ -56,10 +60,10 @@ class CombinedQueryService:
             logger.warning(f"Failed to search in temporary index: {e}")
 
         unique_results = list(dict.fromkeys(results))
-        return unique_results[:self.k * 2] 
+        return unique_results[:self.k * 2]
 
 
-def process_file_temp(file_path: str, data_loader, indexing_service) -> List:
+def process_file_temp(file_path: str, data_loader, indexing_service) -> Dict[str, Any]:
     """Process file and create temporary index with embeddings.
 
     Args:
@@ -106,7 +110,14 @@ def process_file_temp(file_path: str, data_loader, indexing_service) -> List:
         raise
 
 
-def create_combined_pipeline(query_service, temp_data_list, indexing_service, query_config, responder, redis_client=None):
+def create_combined_pipeline(
+    query_service,
+    temp_data_list,
+    indexing_service,
+    query_config,
+    responder,
+    redis_client=None,
+):
     """Create a combined pipeline for temporary and permanent data.
 
     Args:
@@ -157,4 +168,4 @@ def create_combined_pipeline(query_service, temp_data_list, indexing_service, qu
     return combined_pipeline
 
 
-from data_processing import normalize_text 
+from data_processing import normalize_text
