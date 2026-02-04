@@ -292,23 +292,25 @@ function ChatInterface({ onSendMessage, sessionId = null, onFileUpload, onMessag
                   </svg>
                 )}
               </div>
-              <div className="message-text">{message.text}</div>
+              <div className="message-body">
+                <div className="message-text">{message.text}</div>
 
-              {message.sources && message.sources.length > 0 && (
-                <div className="message-sources">
-                  <details>
-                    <summary>Источники ({message.sources.length})</summary>
-                    <div className="sources-list">
-                      {message.sources.map((source, idx) => (
-                        <div key={idx} className="source-item">
-                          <div className="source-number">#{idx + 1}</div>
-                          <div className="source-text">{source}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </details>
-                </div>
-              )}
+                {message.sources && message.sources.length > 0 && (
+                  <div className="message-sources">
+                    <details>
+                      <summary>Источники ({message.sources.length})</summary>
+                      <div className="sources-list">
+                        {message.sources.map((source, idx) => (
+                          <div key={idx} className="source-item">
+                            <div className="source-number">#{idx + 1}</div>
+                            <div className="source-text">{source}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  </div>
+                )}
+              </div>
             </div>
           ))
         )}

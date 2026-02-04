@@ -88,8 +88,8 @@ function FileUpload({ onPermanentUpload }) {
           </button>
         </div>
 
-        {error && <div className="message error-message">{error}</div>}
-        {success && <div className="message success-message">{success}</div>}
+        {error && <div className="upload-message error-message">{error}</div>}
+        {success && <div className="upload-message success-message">{success}</div>}
       </div>
     </div>
   );
