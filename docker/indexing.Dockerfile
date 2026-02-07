@@ -7,13 +7,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     poppler-utils \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
+WORKDIR /docker_app
 
-COPY indexing/requirements.txt ./indexing/requirements.txt
+# Copy project config and install dependencies
+COPY pyproject.toml ./pyproject.toml
+RUN pip install --no-cache-dir .
 
-RUN pip install --no-cache-dir -r indexing/requirements.txt
+# Copy application code
+COPY app/ /docker_app/app/
 
-COPY indexing/ /app/indexing/
-COPY shared/ /app/shared/
-
-CMD ["python", "indexing/run_indexing.py"]
+CMD ["python", "-m", "app.indexing.run_indexing"]

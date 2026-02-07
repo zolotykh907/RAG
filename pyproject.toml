@@ -37,7 +37,7 @@ dev = [
 ]
 
 [project.scripts]
-rag-api = "run_api:main"
+rag-api = "app.run_api:main"
 
 [tool.ruff]
 line-length = 120

@@ -1,12 +1,12 @@
 FROM python:3.10-slim
 
-WORKDIR /app
+WORKDIR /docker_app
 
-COPY . .
+COPY pyproject.toml ./pyproject.toml
+RUN pip install --no-cache-dir .
 
-RUN pip install --no-cache-dir -r indexing/requirements.txt
-RUN pip install --no-cache-dir -r query/requirements.txt
+COPY app/ /docker_app/app/
 
 EXPOSE 8000
 
-CMD ["python", "app.py"]
+CMD ["uvicorn", "app.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

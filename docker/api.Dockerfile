@@ -8,25 +8,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     poppler-utils \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
+WORKDIR /docker_app
 
-# Copy requirements
-COPY query/requirements.txt ./query/requirements.txt
-COPY indexing/requirements.txt ./indexing/requirements.txt
-
-# Install dependencies
-RUN pip install --no-cache-dir -r query/requirements.txt
-RUN pip install --no-cache-dir -r indexing/requirements.txt
+# Copy project config and install dependencies
+COPY pyproject.toml ./pyproject.toml
+RUN pip install --no-cache-dir .
 
 # Copy application code
-COPY api/ /app/api/
-COPY query/ /app/query/
-COPY indexing/ /app/indexing/
-COPY shared/ /app/shared/
+COPY app/ /docker_app/app/
 
 # Create data directories
-RUN mkdir -p /app/data /app/logs
+RUN mkdir -p /docker_app/data /docker_app/logs
 
 EXPOSE 8000
 
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

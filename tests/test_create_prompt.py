@@ -1,5 +1,5 @@
 from unittest.mock import MagicMock
-from query.llm import LLMResponder
+from app.query.llm import LLMResponder
 
 class DummyConfig:
     llm = "dummy-model"

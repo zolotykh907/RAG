@@ -3,7 +3,7 @@ import pandas as pd
 from unittest.mock import MagicMock
 import pymorphy2
 
-from indexing.data_processing import normalize_text, compute_text_hash, check_data_quality
+from app.indexing.data_processing import normalize_text, compute_text_hash, check_data_quality
 
 
 morph = pymorphy2.MorphAnalyzer()

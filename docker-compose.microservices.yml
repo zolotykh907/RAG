@@ -28,15 +28,15 @@ services:
   indexing:
     build:
       context: .
-      dockerfile: services/indexing/Dockerfile
+      dockerfile: app/services/indexing/Dockerfile
     container_name: rag_indexing
     restart: unless-stopped
     ports:
       - "8001:8001"
     volumes:
-      - shared_data:/app/data
+      - shared_data:/docker_app/data
       - model_cache:/root/.cache/huggingface/hub
-      - logs:/app/logs
+      - logs:/docker_app/logs
     environment:
       - PYTHONUNBUFFERED=1
       - REDIS_HOST=redis
@@ -67,15 +67,15 @@ services:
   query:
     build:
       context: .
-      dockerfile: services/query/Dockerfile
+      dockerfile: app/services/query/Dockerfile
     container_name: rag_query
     restart: unless-stopped
     ports:
       - "8002:8002"  # Exposed for direct access (optional)
     volumes:
-      - shared_data:/app/data:ro  # Read-only access to indexed data
+      - shared_data:/docker_app/data:ro  # Read-only access to indexed data
       - model_cache:/root/.cache/huggingface/hub:ro
-      - logs:/app/logs
+      - logs:/docker_app/logs
     environment:
       - PYTHONUNBUFFERED=1
       - LM_STUDIO_HOST=http://host.docker.internal:1234/v1
@@ -106,7 +106,7 @@ services:
   gateway:
     build:
       context: .
-      dockerfile: services/gateway/Dockerfile
+      dockerfile: app/services/gateway/Dockerfile
     container_name: rag_gateway
     restart: unless-stopped
     ports:

@@ -35,8 +35,8 @@ repos:
       - id: mypy
         args: ["--config-file=pyproject.toml"]
         types_or: [python]
-        files: ^(api|indexing|query|shared|services|tests|client\.py|run_.*\.py)
-        exclude: ^(api/app_old\.py|query/app\.py)$
+        files: ^(app/|tests/|client\.py|run_frontend\.py)
+        exclude: ^app/api/app_old\.py$
 
   - repo: https://github.com/RobertCraigie/pyright-python
     rev: v1.1.379
