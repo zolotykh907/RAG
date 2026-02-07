@@ -1,6 +1,5 @@
 import json
 import os
-import sys
 from pathlib import Path
 
 import numpy as np
@@ -9,12 +8,10 @@ import requests
 from sentence_transformers import SentenceTransformer
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
+from indexing.data_processing import normalize_text, check_data_quality, compute_text_hash
+from indexing.data_vectorize import load_embeddings, save_embeddings, create_embeddings
+from shared.logs import setup_logging
 
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'shared'))
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from data_processing import normalize_text, check_data_quality, compute_text_hash
-from data_vectorize import load_embeddings,  save_embeddings, create_embeddings
-from logs import setup_logging
 
 class Indexing:
     """Manage text indexing process with embedding creation and FAISS index maintenance."""
@@ -51,12 +48,10 @@ class Indexing:
 
         os.makedirs(self.data_dir, exist_ok=True)
 
-        #self.download_emb_model()
         self.emb_model = self.load_local_embedding_model()
 
         if self.incrementation_flag:
             self.load_existing_hashes()
-
 
     def load_local_embedding_model(self):
         """Load model from local HuggingFace cache."""
@@ -71,7 +66,6 @@ class Indexing:
             )
 
             if not os.path.exists(cache_dir):
-                #raise FileNotFoundError(f"Cache directory not found: {cache_dir}")
                 return self.download_embedding_model()
 
             snapshots = [d for d in os.listdir(cache_dir)
@@ -79,18 +73,17 @@ class Indexing:
 
             if not snapshots:
                 raise FileNotFoundError(
-                    f"Model {self.emb_model_name} not found in local cache {cache_dir}. "
-                    )
+                    f"Model {self.emb_model_name} not found in local cache {cache_dir}."
+                )
 
             latest_snapshot = sorted(snapshots)[-1]
             model_path = os.path.join(cache_dir, latest_snapshot)
 
-            self.logger.info(f"Load embedding model from local cache: {model_path}")
+            self.logger.info(f"Loading embedding model from local cache: {model_path}")
             return SentenceTransformer(model_path, device='cpu')
         except Exception as e:
-            self.logger.error(f'Error load model from cache: {e}')
+            self.logger.error(f'Error loading model from cache: {e}')
             raise
-
 
     def download_embedding_model(self):
         """Download embedding model from Hugging Face."""
@@ -106,20 +99,8 @@ class Indexing:
             self.logger.error(f"Failed to download model {self.emb_model_name}: {e}")
             raise
 
-
-    def load_embedding_model(self):
-        """Load embedding model from local cache or download if needed."""
-        try:
-            emb_model = self.load_local_embedding_model()
-            return emb_model
-        except FileNotFoundError as e:
-            self.logger.warning(f"Failed to load model from cache: {e}")
-            emb_model = self.download_embedding_model()
-            return emb_model
-
-
     def download_data(self):
-        """Download and sace data from URL"""
+        """Download and save data from URL."""
         if not os.path.exists(self.data_path):
             self.logger.info(f'Downloading data from {self.data_url}.')
             try:
@@ -135,7 +116,6 @@ class Indexing:
         else:
             self.logger.info(f'File {self.data_path} exists.')
 
-
     def load_data(self, data_source):
         """Load data from various sources."""
         try:
@@ -145,7 +125,6 @@ class Indexing:
         except Exception as e:
             self.logger.error(f"Failed to load data: {e}")
             raise
-
 
     def load_existing_hashes(self):
         """Load texts hashes from processed data file."""
@@ -162,8 +141,7 @@ class Indexing:
                 self.logger.info("No existing hashes found")
         else:
             self.existing_hashes = []
-            self.logger.info(f"No existing hashes found at {self.processed_data_path}. Creating a new DataFrame.")
-
+            self.logger.info(f"No existing hashes found at {self.processed_data_path}.")
 
     def check_quality(self, df):
         """Data quality check and save results.
@@ -181,7 +159,6 @@ class Indexing:
             json.dump(quality_log, f, ensure_ascii=False)
 
         return df_clean
-
 
     def save_processed_data(self, df):
         """Save processed data, merging with existing if incrementing."""
@@ -210,12 +187,11 @@ class Indexing:
             self.logger.error(f"Failed to save processed data: {e}")
             raise
 
-
     def split_to_chunks(self, df, source_file=None):
         """Split texts into chunks.
 
         Args:
-            df (DataFrame): DataFrame with 'uid' and 'text'.
+            df (DataFrame): DataFrame with 'text' column.
             source_file (str): Optional source filename for tracking
 
         Returns:
@@ -226,7 +202,7 @@ class Indexing:
         res = []
         for _, row in df.iterrows():
             chunks = self.text_splitter.split_text(row['text'])
-            for _i, chunk in enumerate(chunks):
+            for chunk in chunks:
                 res.append({
                     'text': chunk,
                     'source': source_file if source_file else 'unknown',
@@ -236,7 +212,6 @@ class Indexing:
         res_df = pd.DataFrame(res)
         self.logger.info(f"Created {len(res)} chunks from {len(df)} texts")
         return res_df
-
 
     def run_indexing(self, data=None):
         try:
@@ -295,7 +270,7 @@ class Indexing:
             self.logger.info("Normalizing chunk texts...")
             df_chunks_new['text'] = df_chunks_new['text'].apply(
                 lambda x: normalize_text(x)
-                )
+            )
 
             self.save_processed_data(df_chunks_new)
 
@@ -304,10 +279,8 @@ class Indexing:
                                                batch_size=self.batch_size)
 
             if self.incrementation_flag:
-                # Load existing index to append new embeddings
                 self.data_base.load_index()
 
-                # Combine embeddings for saving
                 existing_embeddings = load_embeddings(self.embeddings_path)
                 if existing_embeddings is not None:
                     all_embeddings = np.vstack([existing_embeddings, new_embeddings])
@@ -319,24 +292,20 @@ class Indexing:
                     all_embeddings = new_embeddings
                     self.logger.info("Created new embeddings (no existing found)")
 
-                # Save all embeddings
                 save_embeddings(all_embeddings, self.embeddings_path)
 
-                # Add only new embeddings to index
                 self.data_base.create_index(new_embeddings, replace=False)
             else:
-                # Replace mode: create new index with all embeddings
                 save_embeddings(new_embeddings, self.embeddings_path)
                 self.data_base.create_index(new_embeddings, replace=True)
                 self.logger.info("Created new embeddings")
 
         except Exception as e:
             if self.delete_data_flag:
-                self.logger.error(f"Error {e}")
+                self.logger.error(f"Indexing error: {e}")
                 if os.path.exists(self.processed_data_path):
                     self.clear_existing_data()
                 raise
-
 
     def clear_existing_data(self):
         """Clear existing processed data and embeddings."""

@@ -1,12 +1,11 @@
-import os
-import sys
 from pathlib import Path
+
 import pytesseract
 from PIL import Image
 from pdf2image import convert_from_path
 
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'shared'))
-from logs import setup_logging
+from shared.logs import setup_logging
+
 
 class OCR:
     def __init__(self, config):
@@ -14,7 +13,6 @@ class OCR:
         self.logger = setup_logging(self.logs_dir, 'OCRsystem')
         self.image_types = config.image_types
         self.doc_types = config.doc_types
-
 
     def rotate_image(self, img):
         try:
@@ -25,13 +23,10 @@ class OCR:
             self.logger.info(f"Error determining orientation: {e}")
             return img
 
-
     def get_text_from_image(self, img):
         img = self.rotate_image(img)
         text = pytesseract.image_to_string(image=img, lang='rus+eng')
-
         return text
-
 
     def load_pages(self, path, dpi=150):
         path = Path(path)
@@ -39,10 +34,10 @@ class OCR:
         if path.suffix.lower() == '.pdf':
             try:
                 pages = convert_from_path(path, dpi=dpi)
-                self.logger.info(f"Found {len(pages)} страниц в PDF")
+                self.logger.info(f"Found {len(pages)} pages in PDF")
                 yield from pages
             except Exception as e:
-                self.logger.error(f"Error processing PDF {path} {path}: {e}")
+                self.logger.error(f"Error processing PDF {path}: {e}")
                 return
 
         elif path.is_dir():
@@ -62,8 +57,7 @@ class OCR:
             try:
                 yield Image.open(path)
             except Exception as e:
-                self.logger.error(f"Error opening image {path} {path}: {e}")
-
+                self.logger.error(f"Error opening image {path}: {e}")
 
     def run_ocr(self, path):
         texts = []

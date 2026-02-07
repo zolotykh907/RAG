@@ -1,6 +1,5 @@
 from fastapi import APIRouter, HTTPException
 import logging
-from typing import Any, cast
 
 from query.query import Query
 from query.pipeline import RAGPipeline
@@ -16,6 +15,7 @@ router = APIRouter()
 async def reload_pipeline(service: str):
     """Reload pipeline configuration."""
     try:
+        import api.main as main_module
         from ..main import query_config, shared_config, responder
 
         query_config.reload()
@@ -29,28 +29,26 @@ async def reload_pipeline(service: str):
                 from ..main import redis_client
                 new_pipeline = RAGPipeline(config=query_config, query=new_query_service, responder=responder, redis_client=redis_client)
 
-                import sys
-                main_module = cast(Any, sys.modules['api.main'])
-                main_module.data_base = new_data_base
-                main_module.query_service = new_query_service
-                main_module.pipeline = new_pipeline
+                with main_module.services_lock:
+                    main_module.data_base = new_data_base
+                    main_module.query_service = new_query_service
+                    main_module.pipeline = new_pipeline
 
                 logger.info('Query service and pipeline reinitialized successfully.')
-                return {"message": f"{service} конфигурация перезагружена успешно", "query_service_restarted": True}
+                return {"message": f"{service} configuration reloaded successfully", "query_service_restarted": True}
             except Exception as e:
                 logger.warning(f'Failed to reinitialize Query service: {str(e)}')
-                return {"message": f"{service} конфигурация перезагружена успешно", "query_service_restarted": False}
+                return {"message": f"{service} configuration reloaded successfully", "query_service_restarted": False}
 
         elif service == "indexing":
             new_data_loader = DataLoader(shared_config)
             new_data_base = FaissDB(shared_config)
             new_indexing_service = Indexing(shared_config, new_data_loader, new_data_base)
 
-            import sys
-            main_module = cast(Any, sys.modules['api.main'])
-            main_module.data_loader = new_data_loader
-            main_module.data_base = new_data_base
-            main_module.indexing_service = new_indexing_service
+            with main_module.services_lock:
+                main_module.data_loader = new_data_loader
+                main_module.data_base = new_data_base
+                main_module.indexing_service = new_indexing_service
 
             logger.info(f"{service} service reinitialized successfully.")
             return {"message": f"{service} configuration reloaded successfully"}
@@ -58,5 +56,5 @@ async def reload_pipeline(service: str):
             raise ValueError("Invalid service name. Use 'query' or 'indexing'.")
 
     except Exception as e:
-        logger.error(f"Error reload: {e}")
+        logger.error(f"Error reloading {service}: {e}")
         raise HTTPException(status_code=500, detail=str(e))

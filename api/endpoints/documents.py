@@ -40,7 +40,7 @@ async def get_documents():
             # Handle old data without source field
             source = item.get('source')
             if not source or source == 'unknown':
-                source = 'Без названия (старые данные)'
+                source = 'Untitled (legacy data)'
 
             if source not in documents_map:
                 documents_map[source] = {
@@ -270,13 +270,15 @@ async def delete_document(filename: str):
                 query_service = Query(query_config, data_base)
                 pipeline = RAGPipeline(config=query_config, query=query_service, responder=responder, redis_client=redis_client)
 
-                main_module.query_service = query_service
-                main_module.pipeline = pipeline
+                with main_module.services_lock:
+                    main_module.query_service = query_service
+                    main_module.pipeline = pipeline
                 logger.info("Query service reinitialized after document deletion")
             except Exception as e:
                 logger.error(f"Failed to reinitialize query service: {e}")
-                main_module.query_service = None
-                main_module.pipeline = None
+                with main_module.services_lock:
+                    main_module.query_service = None
+                    main_module.pipeline = None
         else:
             # No data left, clear everything
             data_base.clear_index()
@@ -289,8 +291,9 @@ async def delete_document(filename: str):
             logger.info(f"Deleted last document '{filename}', index cleared")
 
             # Reset query service
-            main_module.query_service = None
-            main_module.pipeline = None
+            with main_module.services_lock:
+                main_module.query_service = None
+                main_module.pipeline = None
 
         return {
             "message": f"Document '{filename}' deleted successfully",

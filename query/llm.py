@@ -3,18 +3,16 @@ import os
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 
-import sys
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'shared'))
-from logs import setup_logging
+from shared.logs import setup_logging
 
 
 class LLMResponder:
-    """Class for generation answer using LLM and context."""
+    """Class for generating answers using LLM and context."""
     def __init__(self, config):
-        """Initialize Indexing with configuration parameters.
+        """Initialize LLMResponder with configuration parameters.
 
         Args:
-            config : configuration object with parameters.
+            config: configuration object with parameters.
         """
         self.model_name = config.llm
         self.lm_studio_host = config.lm_studio_host
@@ -22,12 +20,11 @@ class LLMResponder:
         self.llm = ChatOpenAI(
             model=self.model_name,
             base_url=os.getenv("LM_STUDIO_HOST", self.lm_studio_host),
-            api_key="lm-studio",  # LM Studio doesn't require real API key
+            api_key="lm-studio",
             temperature=0.7
         )
         self.chain = self.prompt_template | self.llm
         self.logger = setup_logging(config.logs_dir, 'RAG_LLM')
-
 
     def generate_answer(self, question, texts):
         """Generate answer using LLM and context.
@@ -57,7 +54,7 @@ class LLMResponder:
 
             if not answer or not answer.strip():
                 self.logger.warning("LLM returned empty response")
-                return "Не удалось сгенерировать ответ."
+                return "Failed to generate answer."
 
             return answer.strip()
         except Exception as e:

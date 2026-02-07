@@ -1,20 +1,18 @@
 import re
 import hashlib
 
-import sys
-import os
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'shared'))
-from logs import setup_logging
-
+from shared.logs import setup_logging
 
 logger = setup_logging('./logs', 'DataProcessing')
 
-def normalize_text(text, morph=None, clear_flag = False):
+
+def normalize_text(text, morph=None, clear_flag=False):
     """Normalize text.
 
     Args:
         text (str): input text for processing.
-        morph (MorphAnalizer): Morphological analyzer.
+        morph: Morphological analyzer (required when clear_flag=True).
+        clear_flag (bool): if True, perform lemmatization.
 
     Returns:
         str: normalized text.
@@ -40,6 +38,7 @@ def normalize_text(text, morph=None, clear_flag = False):
 
     return text.strip()
 
+
 def compute_text_hash(text):
     """Compute sha256 hash for input text.
 
@@ -56,13 +55,13 @@ def check_data_quality(df, logger=logger, min_len=10):
     """Check data quality.
 
     Args:
-        df (DataFrame): input DataFrame with texts and uids.
+        df (DataFrame): input DataFrame with texts.
+        logger: Logger instance.
         min_len (int, optional): Min text length threshold.
 
     Returns:
         tuple: dict with quality check results and clean DataFrame
     """
-
     df = df.copy()
     df['text'] = df['text'].str.strip()
 
@@ -70,14 +69,14 @@ def check_data_quality(df, logger=logger, min_len=10):
     empty_docs = df[(df['text'] == '')]
     logger.info(f'Number of empty docs: {len(empty_docs)}')
 
-    # Duplicates texts
+    # Duplicate texts
     df['hash'] = df['text'].apply(compute_text_hash)
     duplicate_texts = df[df.duplicated(subset=['hash'], keep='first')]
     logger.info(f"Number of duplicates by hashes: {len(duplicate_texts)}")
 
     # Short texts
     short_texts = df[(df['text'].str.len() < min_len) & (df['text'] != '')]
-    logger.info(f'Number of docs shorter {min_len}: {len(short_texts)}')
+    logger.info(f'Number of docs shorter than {min_len}: {len(short_texts)}')
 
     # Results
     res = {}

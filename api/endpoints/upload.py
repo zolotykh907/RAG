@@ -107,9 +107,10 @@ async def upload_file(file: UploadFile = File(...)):
                     query_service = Query(query_config, data_base)
                     pipeline = RAGPipeline(config=query_config, query=query_service, responder=responder, redis_client=redis_client)
 
-                    # Update global variables
-                    main_module.query_service = query_service
-                    main_module.pipeline = pipeline
+                    # Update global variables under lock
+                    with main_module.services_lock:
+                        main_module.query_service = query_service
+                        main_module.pipeline = pipeline
 
                     logger.info('Query service and pipeline reinitialized after indexing.')
                     return {"message": "File processed and indexed successfully.", "query_service_restarted": True}
@@ -122,7 +123,7 @@ async def upload_file(file: UploadFile = File(...)):
 
         except Exception as e:
             logger.error(f"Indexing failed: {str(e)}")
-            return {"error": str(e)}
+            raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.delete('/clear-temp/{session_id}')
@@ -174,8 +175,9 @@ async def clear_permanent_index():
         indexing_service.existing_hashes = []
 
         # Reset query service and pipeline
-        main_module.query_service = None
-        main_module.pipeline = None
+        with main_module.services_lock:
+            main_module.query_service = None
+            main_module.pipeline = None
 
         logger.info("Permanent index cleared successfully")
         return {"message": "All indexed data cleared successfully"}

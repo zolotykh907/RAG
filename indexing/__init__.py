@@ -1,3 +1,3 @@
-from .indexing import Indexing
+from indexing.indexing import Indexing
 
-__all__ = ['Indexing']
+__all__ = ["Indexing"]

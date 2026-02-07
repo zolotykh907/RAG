@@ -1,0 +1,84 @@
+[project]
+name = "rag-system"
+version = "1.0.0"
+description = "RAG System - Retrieval-Augmented Generation"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "pydantic",
+    "langchain",
+    "langchain-community",
+    "langchain-openai",
+    "langchain-text-splitters",
+    "openai",
+    "faiss-cpu",
+    "pandas",
+    "numpy",
+    "sentence-transformers",
+    "redis",
+    "python-multipart",
+    "requests",
+    "tqdm",
+    "pymorphy2",
+    "pdf2image",
+    "pytesseract",
+    "pillow",
+    "PyYAML",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "ruff",
+    "mypy",
+    "pyright",
+    "pre-commit",
+]
+
+[project.scripts]
+rag-api = "run_api:main"
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+exclude = [
+    ".venv",
+    "venv",
+    "env",
+    "data",
+    "logs",
+    "react_frontend/node_modules",
+    "react_frontend/build",
+    "react_frontend/src-tauri/target",
+    "__pycache__",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".git",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "B"]
+ignore = ["E402", "E501", "B008", "B904"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_unused_configs = true
+check_untyped_defs = false
+disallow_untyped_defs = false
+pretty = true
+explicit_package_bases = true
+mypy_path = ["."]
+disable_error_code = ["import-untyped"]
+exclude = "(?x)(\\.venv|venv|env|data|logs|react_frontend|__pycache__|\\.pytest_cache|\\.mypy_cache|\\.ruff_cache)/"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

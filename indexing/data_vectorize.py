@@ -3,7 +3,7 @@ import numpy as np
 
 
 def create_embeddings(texts, model, batch_size=32):
-    """creating embeddings for input texts.
+    """Create embeddings for input texts.
 
     Args:
         texts (list[str]): list of texts.
@@ -24,7 +24,7 @@ def create_embeddings(texts, model, batch_size=32):
 
 
 def check_existing_embeddings(embeddings_path):
-        return os.path.exists(embeddings_path)
+    return os.path.exists(embeddings_path)
 
 
 def load_embeddings(embeddings_path):

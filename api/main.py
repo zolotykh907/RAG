@@ -1,17 +1,12 @@
-import sys
 import os
+import threading
 from typing import Any, Optional
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'shared'))
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'indexing'))
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'query'))
-
-from logs import setup_logging
-from my_config import Config as SharedConfig
-
+from shared.logs import setup_logging
+from shared.my_config import Config as SharedConfig
 from shared.data_loader import DataLoader
 from shared.data_base import FaissDB
 from indexing import Indexing
@@ -20,12 +15,15 @@ from query.pipeline import RAGPipeline
 from query.llm import LLMResponder
 from query.redis_client import RedisDB
 
-from .endpoints import query, upload, config, health, reload, documents, articles
+from api.endpoints import query, upload, config, health, reload, documents, articles
 
 shared_config: Any = SharedConfig('indexing/config.yaml')
 query_config: Any = SharedConfig('query/config.yaml')
 
 logger = setup_logging(shared_config.logs_dir, 'RAG_APP')
+
+# Lock for thread-safe modification of global services
+services_lock = threading.Lock()
 
 data_loader: Optional[DataLoader] = None
 data_base: Optional[FaissDB] = None
@@ -45,7 +43,6 @@ def initialize_services():
         data_base = FaissDB(shared_config)
         indexing_service = Indexing(shared_config, data_loader, data_base)
 
-        # Initialize Redis with environment variables
         redis_host = os.getenv('REDIS_HOST', 'localhost')
         redis_port = int(os.getenv('REDIS_PORT', 6379))
         redis_client = RedisDB(host=redis_host, port=redis_port)
@@ -92,41 +89,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-app.include_router(
-    query.router,
-    tags=["query"]
-)
-
-app.include_router(
-    upload.router,
-    tags=["upload"]
-)
-
-app.include_router(
-    config.router,
-    tags=["config"]
-)
-
-app.include_router(
-    health.router,
-    tags=["health"]
-)
-
-app.include_router(
-    reload.router,
-    tags=["reload"]
-)
-
-app.include_router(
-    documents.router,
-    tags=["documents"]
-)
-
-app.include_router(
-    articles.router,
-    tags=["articles"]
-)
+app.include_router(query.router, tags=["query"])
+app.include_router(upload.router, tags=["upload"])
+app.include_router(config.router, tags=["config"])
+app.include_router(health.router, tags=["health"])
+app.include_router(reload.router, tags=["reload"])
+app.include_router(documents.router, tags=["documents"])
+app.include_router(articles.router, tags=["articles"])
 
 
 if __name__ == "__main__":

@@ -1,11 +1,10 @@
 import json
 import os
-import sys
-import pandas as pd
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from logs import setup_logging
 
-from ocr import OCR
+import pandas as pd
+
+from shared.logs import setup_logging
+from shared.ocr import OCR
 
 
 class DataLoader:
@@ -14,8 +13,6 @@ class DataLoader:
         self.logs_dir = config.logs_dir
         self.logger = setup_logging(self.logs_dir, 'DataLoader')
         self.ocr = OCR(config)
-        pass
-
 
     def from_json(self, path, column_name='text'):
         try:
@@ -26,15 +23,13 @@ class DataLoader:
             df = pd.DataFrame(data)
 
             if column_name not in df.columns:
-                self.logger.info(f'Column "{column_name}" not found in file {path}')
-                raise
+                raise ValueError(f'Column "{column_name}" not found in file {path}')
 
             self.logger.info(f'Data from {path} loaded successfully')
             return df
         except FileNotFoundError:
             self.logger.error(f'File not found: {path}')
             raise
-
 
     def from_text_file(self, path):
         try:
@@ -44,26 +39,22 @@ class DataLoader:
             df = pd.DataFrame({'text': [text]})
             return df
         except Exception:
-            self.logger.info(f'Error loaded data from {path}')
+            self.logger.info(f'Error loading data from {path}')
             raise
-
 
     def from_string(self, string):
         df = pd.DataFrame({'text': [string]})
         return df
 
-
-    def from_list(self, list):
-        df = pd.DataFrame({'text': list})
+    def from_list(self, data_list):
+        df = pd.DataFrame({'text': data_list})
         return df
-
 
     def from_pdf_or_img(self, path):
         texts = self.ocr.run_ocr(path)
 
         df = pd.DataFrame({'text': texts})
         return df
-
 
     def from_dir(self, path):
         if not os.path.exists(path):
@@ -80,14 +71,13 @@ class DataLoader:
                 if df is not None:
                     res_df.append(df)
             except Exception as e:
-                self.logger.warning(f"Error download {file_path}: {e}")
+                self.logger.warning(f"Error loading {file_path}: {e}")
 
         if not res_df:
             self.logger.warning(f"No valid files found in directory: {path}")
             return pd.DataFrame({'text': []})
 
         return pd.concat(res_df, ignore_index=True)
-
 
     def load_data(self, data):
         try:
@@ -105,5 +95,5 @@ class DataLoader:
             elif isinstance(data, list):
                 return self.from_list(data)
         except Exception as e:
-            self.logger.info(f'Error loaded data: {e}')
+            self.logger.error(f'Error loading data: {e}')
             raise

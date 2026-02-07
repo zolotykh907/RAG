@@ -1,6 +1,5 @@
-// Базовый URL для API
-// В микросервисной архитектуре все запросы идут через Gateway
-const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
+// Base URL for API
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 class ApiService {
   constructor() {
@@ -9,7 +8,7 @@ class ApiService {
 
   async sendQuery(question, sessionId = null) {
     try {
-      const response = await fetch(`${this.baseUrl}/query/ask`, {
+      const response = await fetch(`${this.baseUrl}/query`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -37,7 +36,7 @@ class ApiService {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch(`${this.baseUrl}/indexing/upload`, {
+      const response = await fetch(`${this.baseUrl}/upload-files`, {
         method: 'POST',
         body: formData,
       });
@@ -59,7 +58,7 @@ class ApiService {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch(`${this.baseUrl}/query/upload-temp`, {
+      const response = await fetch(`${this.baseUrl}/upload-temp`, {
         method: 'POST',
         body: formData,
       });
@@ -78,7 +77,7 @@ class ApiService {
 
   async clearTempSession(sessionId) {
     try {
-      const response = await fetch(`${this.baseUrl}/query/sessions/${sessionId}`, {
+      const response = await fetch(`${this.baseUrl}/clear-temp/${sessionId}`, {
         method: 'DELETE',
       });
 
@@ -112,7 +111,7 @@ class ApiService {
 
   async getConfig(service) {
     try {
-      const response = await fetch(`${this.baseUrl}/indexing/config?service=${service}`);
+      const response = await fetch(`${this.baseUrl}/config?service=${service}`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -128,7 +127,7 @@ class ApiService {
 
   async updateConfig(service, config) {
     try {
-      const response = await fetch(`${this.baseUrl}/indexing/config?service=${service}`, {
+      const response = await fetch(`${this.baseUrl}/config?service=${service}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -150,7 +149,7 @@ class ApiService {
 
   async reloadService(service) {
     try {
-      const response = await fetch(`${this.baseUrl}/indexing/reload?service=${service}`, {
+      const response = await fetch(`${this.baseUrl}/reload?service=${service}`, {
         method: 'POST',
       });
 
@@ -168,7 +167,7 @@ class ApiService {
 
   async clearIndex() {
     try {
-      const response = await fetch(`${this.baseUrl}/indexing/clear-index`, {
+      const response = await fetch(`${this.baseUrl}/clear-index`, {
         method: 'DELETE',
       });
 
@@ -186,7 +185,7 @@ class ApiService {
 
   async getDocuments() {
     try {
-      const response = await fetch(`${this.baseUrl}/indexing/documents`);
+      const response = await fetch(`${this.baseUrl}/documents`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -203,8 +202,8 @@ class ApiService {
   async getDocumentContent(filename, sessionId = null) {
     try {
       const url = sessionId
-        ? `${this.baseUrl}/indexing/documents/${encodeURIComponent(filename)}?session_id=${sessionId}`
-        : `${this.baseUrl}/indexing/documents/${encodeURIComponent(filename)}`;
+        ? `${this.baseUrl}/documents/${encodeURIComponent(filename)}?session_id=${sessionId}`
+        : `${this.baseUrl}/documents/${encodeURIComponent(filename)}`;
 
       const response = await fetch(url);
 
@@ -222,7 +221,7 @@ class ApiService {
 
   async deleteDocument(filename) {
     try {
-      const response = await fetch(`${this.baseUrl}/indexing/documents/${encodeURIComponent(filename)}`, {
+      const response = await fetch(`${this.baseUrl}/documents/${encodeURIComponent(filename)}`, {
         method: 'DELETE',
       });
 
@@ -240,7 +239,7 @@ class ApiService {
 
   async searchDocuments(query) {
     try {
-      const response = await fetch(`${this.baseUrl}/indexing/search-documents?query=${encodeURIComponent(query)}`);
+      const response = await fetch(`${this.baseUrl}/search-documents?query=${encodeURIComponent(query)}`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -260,7 +259,7 @@ class ApiService {
         return { temp_files: [], total_files: 0 };
       }
 
-      const response = await fetch(`${this.baseUrl}/query/sessions/${sessionId}/files`);
+      const response = await fetch(`${this.baseUrl}/temp-files/${sessionId}`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -276,7 +275,7 @@ class ApiService {
 
   async deleteTempFile(sessionId, filename) {
     try {
-      const response = await fetch(`${this.baseUrl}/query/sessions/${sessionId}/files/${encodeURIComponent(filename)}`, {
+      const response = await fetch(`${this.baseUrl}/temp-files/${sessionId}/${encodeURIComponent(filename)}`, {
         method: 'DELETE',
       });
 
@@ -292,10 +291,10 @@ class ApiService {
     }
   }
 
-  // Статьи
+  // Articles
   async getArticles() {
     try {
-      const response = await fetch(`${this.baseUrl}/indexing/articles`);
+      const response = await fetch(`${this.baseUrl}/articles`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -311,7 +310,7 @@ class ApiService {
 
   async addArticle(article) {
     try {
-      const response = await fetch(`${this.baseUrl}/indexing/articles`, {
+      const response = await fetch(`${this.baseUrl}/articles`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -333,7 +332,7 @@ class ApiService {
 
   async deleteArticle(articleId) {
     try {
-      const response = await fetch(`${this.baseUrl}/indexing/articles/${articleId}`, {
+      const response = await fetch(`${this.baseUrl}/articles/${articleId}`, {
         method: 'DELETE',
       });
 
@@ -351,7 +350,7 @@ class ApiService {
 
   async updateArticle(articleId, article) {
     try {
-      const response = await fetch(`${this.baseUrl}/indexing/articles/${articleId}`, {
+      const response = await fetch(`${this.baseUrl}/articles/${articleId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

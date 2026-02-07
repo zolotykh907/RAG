@@ -40,11 +40,11 @@ async def update_config(service: str, new_config: Dict = Body(...)):
         Dict: Confirmation message indicating successful update."""
     try:
         save_config(service, new_config)
-        return {"message": f"Конфигурация для {service} обновлена успешно"}
+        return {"message": f"Configuration for {service} updated successfully"}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except FileNotFoundError:
-        raise HTTPException(status_code=404, detail=f"Конфигурационный файл для {service} не найден")
+        raise HTTPException(status_code=404, detail=f"Configuration file for {service} not found")
     except Exception as e:
-        logger.error(f"Ошибка при обновлении конфигурации для {service}: {e}")
-        raise HTTPException(status_code=500, detail="Ошибка при обновлении конфигурации")
+        logger.error(f"Error updating configuration for {service}: {e}")
+        raise HTTPException(status_code=500, detail="Error updating configuration")

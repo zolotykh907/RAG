@@ -1,4 +1,7 @@
+import logging
 import yaml
+
+logger = logging.getLogger(__name__)
 
 
 class Config:
@@ -17,16 +20,23 @@ class Config:
                     items.append((new_key, value))
         return items
 
-
     def set_items(self):
         with open(self.config_file_path, "r", encoding="utf-8") as f:
             cfg = yaml.safe_load(f)
 
         cfg_items = self.get_items(cfg)
 
+        seen_keys = {}
         for key, value in cfg_items:
+            if key in seen_keys:
+                logger.warning(
+                    f"Config key collision in {self.config_file_path}: "
+                    f"'{key}' appears multiple times. "
+                    f"Previous value: {seen_keys[key]!r}, new value: {value!r}. "
+                    f"Last value wins."
+                )
+            seen_keys[key] = value
             setattr(self, key, value)
-
 
     def reload(self):
         for attr in list(self.__dict__.keys()):

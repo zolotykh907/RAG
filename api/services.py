@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import Any, Dict
 
 import faiss
@@ -6,6 +7,7 @@ import numpy as np
 import pandas as pd
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
+from indexing.data_processing import normalize_text
 from query.pipeline import RAGPipeline
 
 logger = logging.getLogger(__name__)
@@ -26,7 +28,9 @@ class CombinedQueryService:
         Args:
             question (str): The query question.
 
-        Returns:"""
+        Returns:
+            list: Combined search results from both indexes.
+        """
         results = []
 
         if self.permanent_query is not None:
@@ -47,7 +51,6 @@ class CombinedQueryService:
             for i in indices[0]:
                 if i < len(self.temp_chunks):
                     chunk = self.temp_chunks[i]
-                    # Extract text if chunk is a dict, otherwise use as is
                     if isinstance(chunk, dict):
                         temp_results.append(chunk.get('text', chunk))
                     else:
@@ -72,10 +75,9 @@ def process_file_temp(file_path: str, data_loader, indexing_service) -> Dict[str
         indexing_service: Indexing service instance for embedding.
 
     Returns:
-        List: List of chunks with embeddings."""
+        dict: Dictionary with chunks and embeddings.
+    """
     try:
-        import os
-
         df = data_loader.load_data(file_path)
         filename = os.path.basename(file_path)
 
@@ -86,14 +88,12 @@ def process_file_temp(file_path: str, data_loader, indexing_service) -> Dict[str
         for text in df['text']:
             if text.strip():
                 split_texts = text_splitter.split_text(text)
-                # Create chunks with metadata
                 for chunk_text in split_texts:
                     chunks.append({
                         'text': chunk_text,
                         'source': filename
                     })
 
-        # Extract text for embeddings
         chunk_texts = [chunk['text'] for chunk in chunks]
         embeddings = indexing_service.emb_model.encode(chunk_texts, show_progress_bar=True)
 
@@ -129,13 +129,11 @@ def create_combined_pipeline(
         redis_client: Redis client instance (optional).
 
     Returns:
-        RAGPipeline: Combined RAG pipeline instance."""
-
-    # If temp_data_list is a single dict (backwards compatibility), convert to list
+        RAGPipeline: Combined RAG pipeline instance.
+    """
     if isinstance(temp_data_list, dict):
         temp_data_list = [temp_data_list]
 
-    # Combine all temporary files into one index
     all_chunks = []
     all_embeddings = []
 
@@ -145,14 +143,14 @@ def create_combined_pipeline(
             all_embeddings.extend(temp_data['embeddings'])
 
     if not all_embeddings:
-        # No temporary data, return pipeline with only permanent data
         if query_service:
             return RAGPipeline(config=query_config, query=query_service, responder=responder, redis_client=redis_client)
         else:
             raise ValueError("No temporary or permanent data available")
 
     temp_embeddings = np.array(all_embeddings)
-    temp_index = faiss.IndexFlatIP(temp_embeddings.shape[1])
+    # Use L2 metric to match the permanent index
+    temp_index = faiss.IndexFlatL2(temp_embeddings.shape[1])
     temp_index.add(temp_embeddings.astype('float32'))
 
     combined_query_service = CombinedQueryService(
@@ -166,6 +164,3 @@ def create_combined_pipeline(
     combined_pipeline = RAGPipeline(config=query_config, query=combined_query_service, responder=responder, redis_client=redis_client)
 
     return combined_pipeline
-
-
-from data_processing import normalize_text

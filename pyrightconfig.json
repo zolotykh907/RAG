@@ -1,0 +1,33 @@
+{
+  "typeCheckingMode": "basic",
+  "include": [
+    "api",
+    "indexing",
+    "query",
+    "shared",
+    "tests",
+    "client.py",
+    "run_api.py",
+    "run_frontend.py",
+    "run_redis.py"
+  ],
+  "exclude": [
+    "data",
+    "logs",
+    "react_frontend",
+    "images",
+    ".venv",
+    "__pycache__",
+    "docker",
+    "scripts",
+    "communicate"
+  ],
+  "extraPaths": [
+    "."
+  ],
+  "reportMissingImports": "none",
+  "reportMissingTypeStubs": "none",
+  "reportUnknownMemberType": "none",
+  "reportUnknownParameterType": "none",
+  "reportUnknownVariableType": "none"
+}

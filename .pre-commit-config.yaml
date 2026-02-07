@@ -1,0 +1,52 @@
+exclude: >-
+  (?x)(
+    ^data/|
+    ^logs/|
+    ^react_frontend/node_modules/|
+    ^react_frontend/build/|
+    ^react_frontend/src-tauri/target/|
+    ^images/|
+    ^docker/|
+    ^__pycache__/|
+    ^\.venv/|
+    ^venv/
+  )
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-merge-conflict
+      - id: check-yaml
+      - id: check-json
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        args: ["--config=pyproject.toml"]
+        types_or: [python]
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.11.2
+    hooks:
+      - id: mypy
+        args: ["--config-file=pyproject.toml"]
+        types_or: [python]
+        files: ^(api|indexing|query|shared|services|tests|client\.py|run_.*\.py)
+        exclude: ^(api/app_old\.py|query/app\.py)$
+
+  - repo: https://github.com/RobertCraigie/pyright-python
+    rev: v1.1.379
+    hooks:
+      - id: pyright
+        args: ["--project", "pyrightconfig.json"]
+        types_or: [python]
+
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.3.0
+    hooks:
+      - id: codespell
+        args: ["--ignore-words-list=crate", "--skip=react_frontend/node_modules,react_frontend/build,react_frontend/src-tauri/target,react_frontend/package-lock.json"]

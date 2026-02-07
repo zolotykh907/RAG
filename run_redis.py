@@ -1,9 +1,6 @@
+import os
 import subprocess
 
-
-import sys
-import os
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'shared'))
 from shared.logs import setup_logging
 
 

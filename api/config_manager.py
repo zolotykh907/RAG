@@ -1,11 +1,13 @@
 import os
-import yaml
 import logging
 from typing import Dict
+
+import yaml
 
 logger = logging.getLogger(__name__)
 
 ALLOWED_SERVICES = {"indexing", "query"}
+
 
 def get_config_path(service: str) -> str:
     if service not in ALLOWED_SERVICES:
@@ -34,17 +36,22 @@ def save_config(service: str, config_data: Dict) -> None:
         raise FileNotFoundError(f"Configuration file for {service} not found")
 
     try:
+        # Use a local Dumper to avoid global state mutation
+        class CustomDumper(yaml.Dumper):
+            pass
+
         def str_presenter(dumper, data):
             if '\n' in data:
                 return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
             return dumper.represent_scalar('tag:yaml.org,2002:str', data)
 
-        yaml.add_representer(str, str_presenter)
+        CustomDumper.add_representer(str, str_presenter)
 
         with open(config_path, 'w', encoding='utf-8') as f:
             yaml.dump(
                 config_data,
                 f,
+                Dumper=CustomDumper,
                 allow_unicode=True,
                 sort_keys=False,
                 default_flow_style=False,

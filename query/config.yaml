@@ -19,5 +19,10 @@ models:
   emb_model_name: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
   llm: qwen/qwen3-4b-2507
   prompt_template: "Ты - помощник, который отвечает кратко и точно на основе контекста.\n\nКонтекст:\n{context}\n\nВопрос: {question}\n\nИнструкции:\n- Отвечай КРАТКО, 1-3 предложениями\n- Используй ТОЛЬКО информацию из контекста\n- Не добавляй пояснений, рассуждений или оценок\n- Если в контексте нет информации - напиши: \"Информация не найдена в контексте\"\n- Отвечай строго на русском языке \n\nОтвет:\n"
+  reranker_model_name: cross-encoder/mmarco-mMiniLMv2-L12-H384-v1
 rag:
   k: 2
+  rerank_enabled: true
+  rerank_candidate_k: 20
+  rerank_batch_size: 16
+  rerank_max_chars: 1000
