@@ -95,11 +95,10 @@ def get_data_base() -> FaissDB:
 
 
 # Import routers after app initialization to avoid circular imports
-from app.routers import upload, documents, health, articles, config, reload
+from app.routers import upload, documents, health, config, reload
 
 app.include_router(upload.router, prefix="/api/indexing", tags=["upload"])
 app.include_router(documents.router, prefix="/api/indexing", tags=["documents"])
-app.include_router(articles.router, prefix="/api/indexing", tags=["articles"])
 app.include_router(config.router, prefix="/api/indexing", tags=["config"])
 app.include_router(reload.router, prefix="/api/indexing", tags=["reload"])
 app.include_router(health.router, tags=["health"])

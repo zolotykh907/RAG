@@ -15,7 +15,7 @@ from app.query.pipeline import RAGPipeline
 from app.query.llm import LLMResponder
 from app.query.redis_client import RedisDB
 
-from app.api.endpoints import query, upload, config, health, reload, documents, articles
+from app.api.endpoints import query, upload, config, health, reload, documents
 
 shared_config: Any = SharedConfig('app/indexing/config.yaml')
 query_config: Any = SharedConfig('app/query/config.yaml')
@@ -95,7 +95,6 @@ app.include_router(config.router, tags=["config"])
 app.include_router(health.router, tags=["health"])
 app.include_router(reload.router, tags=["reload"])
 app.include_router(documents.router, tags=["documents"])
-app.include_router(articles.router, tags=["articles"])
 
 
 if __name__ == "__main__":

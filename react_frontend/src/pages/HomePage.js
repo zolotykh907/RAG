@@ -5,7 +5,6 @@ import ChatPage from './ChatPage';
 import DocumentsPage from './DocumentsPage';
 import UploadPage from './UploadPage';
 import SettingsPage from './SettingsPage';
-import ArticlesPage from './ArticlesPage';
 import apiService from '../services/api';
 import './HomePage.css';
 
@@ -21,7 +20,6 @@ function HomePage() {
     if (path === '/' || path === '/chat') return 'chat';
     if (path === '/documents') return 'documents';
     if (path === '/upload') return 'upload';
-    if (path === '/articles') return 'articles';
     if (path === '/settings') return 'settings';
     return 'chat';
   };
@@ -116,17 +114,6 @@ function HomePage() {
           </Link>
 
           <Link
-            to="/articles"
-            className={`nav-item ${activeTab === 'articles' ? 'active' : ''}`}
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-            </svg>
-            <span>Статьи</span>
-          </Link>
-
-          <Link
             to="/settings"
             className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`}
           >
@@ -155,7 +142,6 @@ function HomePage() {
           <Route path="/chat" element={<ChatPage sessionId={sessionId} setSessionId={setSessionId} />} />
           <Route path="/documents" element={<DocumentsPage />} />
           <Route path="/upload" element={<UploadPage />} />
-          <Route path="/articles" element={<ArticlesPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </main>
