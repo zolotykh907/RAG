@@ -1,6 +1,7 @@
 import os
 import threading
-from typing import Any, Optional
+from typing import Any
+from typing import Optional
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,7 +16,12 @@ from rag_system.query.pipeline import RAGPipeline
 from rag_system.query.llm import LLMResponder
 from rag_system.query.redis_client import RedisDB
 
-from rag_system.api.endpoints import query, upload, config, health, reload, documents
+from rag_system.api.endpoints import config
+from rag_system.api.endpoints import documents
+from rag_system.api.endpoints import health
+from rag_system.api.endpoints import query
+from rag_system.api.endpoints import reload
+from rag_system.api.endpoints import upload
 
 shared_config: Any = SharedConfig('rag_system/indexing/config.yaml')
 query_config: Any = SharedConfig('rag_system/query/config.yaml')

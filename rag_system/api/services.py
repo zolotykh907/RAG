@@ -1,6 +1,7 @@
 import logging
 import os
-from typing import Any, Dict
+from typing import Any
+from typing import Dict
 
 import faiss
 import numpy as np

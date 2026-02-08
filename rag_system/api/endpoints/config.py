@@ -1,8 +1,12 @@
-from fastapi import APIRouter, HTTPException, Body
 import logging
 from typing import Dict
 
-from ..config_manager import load_config, save_config
+from fastapi import APIRouter
+from fastapi import HTTPException
+from fastapi import Body
+
+from rag_system.api.config_manager import load_config
+from rag_system.api.config_manager import save_config
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -10,13 +14,7 @@ router = APIRouter()
 
 @router.get("/config")
 async def get_config(service: str):
-    """Get configuration for a specified service.
-
-    Args:
-        service (str): The name of the service to get configuration for service.
-
-    Returns:
-        Dict: The configuration data for the specified service."""
+    """Get configuration for a specified service."""
     try:
         config_data = load_config(service)
         return config_data
@@ -31,13 +29,7 @@ async def get_config(service: str):
 
 @router.post("/config")
 async def update_config(service: str, new_config: Dict = Body(...)):
-    """Update configuration for a specified service.
-    Args:
-        service (str): The name of the service to update configuration for.
-        new_config (Dict): The new configuration data to save.
-
-    Returns:
-        Dict: Confirmation message indicating successful update."""
+    """Update configuration for a specified service."""
     try:
         save_config(service, new_config)
         return {"message": f"Configuration for {service} updated successfully"}

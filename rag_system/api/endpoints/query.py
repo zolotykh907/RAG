@@ -1,9 +1,12 @@
 import logging
-from fastapi import APIRouter, HTTPException
 
-from ..models import QueryRequest, QueryResponse
-from ..services import create_combined_pipeline
-from ..temp_storage import temp_index_manager
+from fastapi import APIRouter
+from fastapi import HTTPException
+
+from rag_system.api.models import QueryRequest
+from rag_system.api.models import QueryResponse
+from rag_system.api.services import create_combined_pipeline
+from rag_system.api.temp_storage import temp_index_manager
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -17,14 +20,15 @@ async def query_rag(request: QueryRequest):
         QueryResponse: The response containing the answer and relevant texts."""
     try:
 
-        from ..main import query_service, pipeline, indexing_service, query_config, responder, redis_client
+        import rag_system.api.main as main_module
 
         if request.session_id and temp_index_manager.has_session(request.session_id):
             session_id = request.session_id
             temp_data = temp_index_manager.get_temp_index(session_id)
 
             combined_pipeline = create_combined_pipeline(
-                query_service, temp_data, indexing_service, query_config, responder, redis_client
+                main_module.query_service, temp_data, main_module.indexing_service,
+                main_module.query_config, main_module.responder, main_module.redis_client
             )
 
             result = combined_pipeline.answer(request.question)
@@ -32,13 +36,13 @@ async def query_rag(request: QueryRequest):
             logger.info(f"Combined query processed successfully for session {session_id}")
             return QueryResponse(answer=result['answer'], texts=result['texts'])
         else:
-            if pipeline is None:
+            if main_module.pipeline is None:
                 return QueryResponse(
                     answer="Index not available. Please upload documents first.",
                     texts=[]
                 )
             else:
-                result = pipeline.answer(request.question)
+                result = main_module.pipeline.answer(request.question)
                 logger.info('Successfully processed question')
                 return result
 

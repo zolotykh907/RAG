@@ -1,9 +1,11 @@
 """Query endpoints for RAG search and question answering."""
 
 import logging
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
+from fastapi import HTTPException
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import List
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -31,7 +33,12 @@ async def query_rag(request: QueryRequest):
     Returns:
         QueryResponse: Answer and relevant text chunks.
     """
-    from ..main import pipeline, query_config, query_service, responder, redis_client
+    import rag_system.services.query.app.main as main_module
+    pipeline = main_module.pipeline
+    query_config = main_module.query_config
+    query_service = main_module.query_service
+    responder = main_module.responder
+    redis_client = main_module.redis_client
     from rag_system.api.temp_storage import temp_index_manager
     from rag_system.api.services import create_combined_pipeline
 

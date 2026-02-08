@@ -8,8 +8,12 @@ import requests
 from sentence_transformers import SentenceTransformer
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from rag_system.indexing.data_processing import normalize_text, check_data_quality, compute_text_hash
-from rag_system.indexing.data_vectorize import load_embeddings, save_embeddings, create_embeddings
+from rag_system.indexing.data_processing import check_data_quality
+from rag_system.indexing.data_processing import compute_text_hash
+from rag_system.indexing.data_processing import normalize_text
+from rag_system.indexing.data_vectorize import create_embeddings
+from rag_system.indexing.data_vectorize import load_embeddings
+from rag_system.indexing.data_vectorize import save_embeddings
 from rag_system.shared.logs import setup_logging
 
 

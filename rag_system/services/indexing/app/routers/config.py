@@ -1,10 +1,13 @@
 """Configuration management endpoints."""
 
 import logging
-from fastapi import APIRouter, HTTPException, Body
+from fastapi import APIRouter
+from fastapi import Body
+from fastapi import HTTPException
 from typing import Dict
 
-from rag_system.api.config_manager import load_config, save_config
+from rag_system.api.config_manager import load_config
+from rag_system.api.config_manager import save_config
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

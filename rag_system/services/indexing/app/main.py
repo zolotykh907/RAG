@@ -9,9 +9,11 @@ Responsibilities:
 - Document management (CRUD)
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
+from fastapi import HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from typing import Any, Optional
+from typing import Any
+from typing import Optional
 
 from rag_system.shared.logs import setup_logging
 from rag_system.shared.my_config import Config as SharedConfig
@@ -95,7 +97,11 @@ def get_data_base() -> FaissDB:
 
 
 # Import routers after app initialization to avoid circular imports
-from .routers import upload, documents, health, config, reload
+from rag_system.services.indexing.app.routers import config
+from rag_system.services.indexing.app.routers import documents
+from rag_system.services.indexing.app.routers import health
+from rag_system.services.indexing.app.routers import reload
+from rag_system.services.indexing.app.routers import upload
 
 app.include_router(upload.router, prefix="/api/indexing", tags=["upload"])
 app.include_router(documents.router, prefix="/api/indexing", tags=["documents"])

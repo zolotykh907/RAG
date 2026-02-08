@@ -4,7 +4,10 @@ import logging
 import os
 import shutil
 from tempfile import TemporaryDirectory
-from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi import APIRouter
+from fastapi import File
+from fastapi import HTTPException
+from fastapi import UploadFile
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

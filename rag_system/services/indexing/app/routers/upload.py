@@ -5,9 +5,14 @@ import shutil
 import logging
 import requests
 from tempfile import TemporaryDirectory
-from fastapi import APIRouter, HTTPException, UploadFile, File, Depends
+from fastapi import APIRouter
+from fastapi import Depends
+from fastapi import File
+from fastapi import HTTPException
+from fastapi import UploadFile
 
-from ..main import get_indexing_service, get_data_loader
+from rag_system.services.indexing.app.main import get_data_loader
+from rag_system.services.indexing.app.main import get_indexing_service
 
 logger = logging.getLogger(__name__)
 router: APIRouter = APIRouter()
@@ -72,7 +77,8 @@ async def clear_index(
     Returns:
         dict: Confirmation message.
     """
-    from ..main import data_base
+    import rag_system.services.indexing.app.main as main_module
+    data_base = main_module.data_base
     if data_base is None:
         raise HTTPException(status_code=503, detail="Database not available")
 

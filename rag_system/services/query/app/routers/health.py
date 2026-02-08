@@ -10,14 +10,14 @@ router = APIRouter()
 @router.get('/health')
 async def health_check():
     """Health check endpoint for monitoring."""
-    from ..main import pipeline, responder, redis_client
+    import rag_system.services.query.app.main as main_module
 
     status = {
         "service": "query",
         "status": "healthy",
-        "pipeline_ready": pipeline is not None,
-        "llm_responder": responder is not None,
-        "redis_connected": redis_client is not None,
+        "pipeline_ready": main_module.pipeline is not None,
+        "llm_responder": main_module.responder is not None,
+        "redis_connected": main_module.redis_client is not None,
     }
 
     logger.debug("Health check performed")
@@ -27,10 +27,10 @@ async def health_check():
 @router.get('/ready')
 async def readiness_check():
     """Readiness check for Kubernetes/orchestration."""
-    from ..main import responder, redis_client
+    import rag_system.services.query.app.main as main_module
 
     # Query service can be ready even without pipeline (it will be initialized after first upload)
-    if responder is None or redis_client is None:
+    if main_module.responder is None or main_module.redis_client is None:
         return {"status": "not_ready"}, 503
 
     return {"status": "ready"}

@@ -11,9 +11,11 @@ Responsibilities:
 
 import os
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
+from fastapi import HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from typing import Any, Optional
+from typing import Any
+from typing import Optional
 
 from rag_system.shared.logs import setup_logging
 from rag_system.shared.my_config import Config as SharedConfig
@@ -118,7 +120,9 @@ def get_redis_client() -> RedisDB:
 
 
 # Import routers
-from .routers import query, sessions, health
+from rag_system.services.query.app.routers import health
+from rag_system.services.query.app.routers import query
+from rag_system.services.query.app.routers import sessions
 
 app.include_router(query.router, prefix="/api/query", tags=["query"])
 app.include_router(sessions.router, prefix="/api/query", tags=["sessions"])

@@ -1,7 +1,9 @@
 import os
 import json
 import logging
-from fastapi import APIRouter, HTTPException
+
+from fastapi import APIRouter
+from fastapi import HTTPException
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -9,21 +11,14 @@ router = APIRouter()
 
 @router.get('/documents')
 async def get_documents():
-    """Get list of all indexed documents with metadata.
+    """Get list of all indexed documents with metadata."""
+    import rag_system.api.main as main_module
 
-    Returns:
-        dict: List of documents with metadata (filename, chunks count, date added, size)
-    """
-    from ..main import indexing_service, query_config
-
-    if indexing_service is None:
-        raise HTTPException(
-            status_code=503,
-            detail="Indexing service not available."
-        )
+    if main_module.indexing_service is None:
+        raise HTTPException(status_code=503, detail="Indexing service not available.")
 
     try:
-        processed_data_path = query_config.processed_data_path
+        processed_data_path = main_module.query_config.processed_data_path
 
         if not os.path.exists(processed_data_path):
             return {"documents": []}
@@ -34,10 +29,8 @@ async def get_documents():
         if not data:
             return {"documents": []}
 
-        # Group chunks by source file
         documents_map = {}
         for item in data:
-            # Handle old data without source field
             source = item.get('source')
             if not source or source == 'unknown':
                 source = 'Untitled (legacy data)'
@@ -59,7 +52,6 @@ async def get_documents():
             documents_map[source]['total_chunks'] += 1
             documents_map[source]['total_chars'] += len(item.get('text', ''))
 
-        # Convert to list
         documents = list(documents_map.values())
 
         logger.info(f"Found {len(documents)} documents with {len(data)} total chunks")
@@ -72,20 +64,11 @@ async def get_documents():
 
 @router.get('/documents/{filename}')
 async def get_document_content(filename: str, session_id: str | None = None):
-    """Get content of a specific document (permanent or temporary).
-
-    Args:
-        filename (str): Name of the document to retrieve
-        session_id (str, optional): Session ID for temporary files
-
-    Returns:
-        dict: Document content with all chunks
-    """
-    from ..main import query_config
-    from ..temp_storage import temp_index_manager
+    """Get content of a specific document (permanent or temporary)."""
+    import rag_system.api.main as main_module
+    from rag_system.api.temp_storage import temp_index_manager
 
     try:
-        # If session_id is provided, try to get temp file first
         if session_id:
             temp_data = temp_index_manager.get_temp_file_content(session_id, filename)
             if temp_data and 'chunks' in temp_data:
@@ -99,8 +82,7 @@ async def get_document_content(filename: str, session_id: str | None = None):
                     "is_temporary": True
                 }
 
-        # Otherwise, get from permanent storage
-        processed_data_path = query_config.processed_data_path
+        processed_data_path = main_module.query_config.processed_data_path
 
         if not os.path.exists(processed_data_path):
             raise HTTPException(status_code=404, detail="No documents found")
@@ -108,7 +90,6 @@ async def get_document_content(filename: str, session_id: str | None = None):
         with open(processed_data_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
 
-        # Filter chunks for this document
         chunks = [item for item in data if item.get('source') == filename]
 
         if not chunks:
@@ -131,21 +112,14 @@ async def get_document_content(filename: str, session_id: str | None = None):
 
 @router.get('/search-documents')
 async def search_documents(query: str = ''):
-    """Search documents by content.
-
-    Args:
-        query (str): Search query to match against document content
-
-    Returns:
-        dict: List of documents with matching content and their relevance
-    """
-    from ..main import query_config
+    """Search documents by content."""
+    import rag_system.api.main as main_module
 
     if not query:
         return {"results": [], "total_results": 0}
 
     try:
-        processed_data_path = query_config.processed_data_path
+        processed_data_path = main_module.query_config.processed_data_path
 
         if not os.path.exists(processed_data_path):
             return {"results": [], "total_results": 0}
@@ -156,7 +130,6 @@ async def search_documents(query: str = ''):
         if not data:
             return {"results": [], "total_results": 0}
 
-        # Search in chunks
         query_lower = query.lower()
         matching_chunks = []
 
@@ -199,27 +172,16 @@ async def search_documents(query: str = ''):
 
 @router.delete('/documents/{filename}')
 async def delete_document(filename: str):
-    """Delete a specific document and reindex.
-
-    Args:
-        filename (str): Name of the document to delete
-
-    Returns:
-        dict: Confirmation message
-    """
-    from ..main import indexing_service, query_config, data_base
+    """Delete a specific document and reindex."""
     import rag_system.api.main as main_module
 
-    if indexing_service is None:
-        raise HTTPException(
-            status_code=503,
-            detail="Indexing service not available."
-        )
-    if data_base is None:
+    if main_module.indexing_service is None:
+        raise HTTPException(status_code=503, detail="Indexing service not available.")
+    if main_module.data_base is None:
         raise HTTPException(status_code=503, detail="Database not available.")
 
     try:
-        processed_data_path = query_config.processed_data_path
+        processed_data_path = main_module.query_config.processed_data_path
 
         if not os.path.exists(processed_data_path):
             raise HTTPException(status_code=404, detail="No documents found")
@@ -227,7 +189,6 @@ async def delete_document(filename: str):
         with open(processed_data_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
 
-        # Filter out chunks from this document
         original_count = len(data)
         filtered_data = [item for item in data if item.get('source') != filename]
         deleted_count = original_count - len(filtered_data)
@@ -235,40 +196,32 @@ async def delete_document(filename: str):
         if deleted_count == 0:
             raise HTTPException(status_code=404, detail=f"Document '{filename}' not found")
 
-        # Save filtered data
         with open(processed_data_path, 'w', encoding='utf-8') as f:
             json.dump(filtered_data, f, ensure_ascii=False, indent=2)
 
-        # Reindex if there's remaining data
         if filtered_data:
-            # Re-create embeddings and index for remaining data
             from rag_system.indexing.data_vectorize import save_embeddings
+            from rag_system.query.query import Query
+            from rag_system.query.pipeline import RAGPipeline
 
-            # Load embedding model
-            embedding_model = indexing_service.load_local_embedding_model()
-
-            # Generate embeddings for remaining texts
+            embedding_model = main_module.indexing_service.load_local_embedding_model()
             texts = [item['text'] for item in filtered_data]
             embeddings = embedding_model.encode(texts, convert_to_numpy=True, show_progress_bar=False)
 
-            # Save embeddings
-            embeddings_path = indexing_service.embeddings_path
-            save_embeddings(embeddings, embeddings_path)
-
-            # Recreate index
-            data_base.create_index(embeddings, replace=True)
+            save_embeddings(embeddings, main_module.indexing_service.embeddings_path)
+            main_module.data_base.create_index(embeddings, replace=True)
 
             logger.info(f"Deleted document '{filename}' ({deleted_count} chunks) and reindexed remaining documents")
 
-            # Reinitialize query service with new data
             try:
-                from rag_system.query.query import Query
-                from rag_system.query.pipeline import RAGPipeline
-                from ..main import redis_client, responder
-
-                data_base.load_index()
-                query_service = Query(query_config, data_base)
-                pipeline = RAGPipeline(config=query_config, query=query_service, responder=responder, redis_client=redis_client)
+                main_module.data_base.load_index()
+                query_service = Query(main_module.query_config, main_module.data_base)
+                pipeline = RAGPipeline(
+                    config=main_module.query_config,
+                    query=query_service,
+                    responder=main_module.responder,
+                    redis_client=main_module.redis_client,
+                )
 
                 with main_module.services_lock:
                     main_module.query_service = query_service
@@ -280,17 +233,14 @@ async def delete_document(filename: str):
                     main_module.query_service = None
                     main_module.pipeline = None
         else:
-            # No data left, clear everything
-            data_base.clear_index()
+            main_module.data_base.clear_index()
 
-            # Remove embeddings file
-            embeddings_path = indexing_service.embeddings_path
+            embeddings_path = main_module.indexing_service.embeddings_path
             if os.path.exists(embeddings_path):
                 os.remove(embeddings_path)
 
             logger.info(f"Deleted last document '{filename}', index cleared")
 
-            # Reset query service
             with main_module.services_lock:
                 main_module.query_service = None
                 main_module.pipeline = None

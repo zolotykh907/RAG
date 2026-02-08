@@ -10,13 +10,13 @@ router = APIRouter()
 @router.get('/health')
 async def health_check():
     """Health check endpoint for monitoring."""
-    from ..main import indexing_service, data_base
+    import rag_system.services.indexing.app.main as main_module
 
     status = {
         "service": "indexing",
         "status": "healthy",
-        "indexing_service": indexing_service is not None,
-        "database": data_base is not None,
+        "indexing_service": main_module.indexing_service is not None,
+        "database": main_module.data_base is not None,
     }
 
     logger.debug("Health check performed")
@@ -26,9 +26,9 @@ async def health_check():
 @router.get('/ready')
 async def readiness_check():
     """Readiness check for Kubernetes/orchestration."""
-    from ..main import indexing_service, data_base
+    import rag_system.services.indexing.app.main as main_module
 
-    if indexing_service is None or data_base is None:
+    if main_module.indexing_service is None or main_module.data_base is None:
         return {"status": "not_ready"}, 503
 
     return {"status": "ready"}

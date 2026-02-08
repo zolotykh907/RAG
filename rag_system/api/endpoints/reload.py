@@ -1,5 +1,7 @@
-from fastapi import APIRouter, HTTPException
 import logging
+
+from fastapi import APIRouter
+from fastapi import HTTPException
 
 from rag_system.query.query import Query
 from rag_system.query.pipeline import RAGPipeline
@@ -16,18 +18,21 @@ async def reload_pipeline(service: str):
     """Reload pipeline configuration."""
     try:
         import rag_system.api.main as main_module
-        from ..main import query_config, shared_config, responder
 
-        query_config.reload()
-        shared_config.reload()
+        main_module.query_config.reload()
+        main_module.shared_config.reload()
 
         if service == "query":
-            new_data_base = FaissDB(shared_config)
+            new_data_base = FaissDB(main_module.shared_config)
 
             try:
-                new_query_service = Query(query_config, new_data_base)
-                from ..main import redis_client
-                new_pipeline = RAGPipeline(config=query_config, query=new_query_service, responder=responder, redis_client=redis_client)
+                new_query_service = Query(main_module.query_config, new_data_base)
+                new_pipeline = RAGPipeline(
+                    config=main_module.query_config,
+                    query=new_query_service,
+                    responder=main_module.responder,
+                    redis_client=main_module.redis_client,
+                )
 
                 with main_module.services_lock:
                     main_module.data_base = new_data_base
@@ -41,9 +46,9 @@ async def reload_pipeline(service: str):
                 return {"message": f"{service} configuration reloaded successfully", "query_service_restarted": False}
 
         elif service == "indexing":
-            new_data_loader = DataLoader(shared_config)
-            new_data_base = FaissDB(shared_config)
-            new_indexing_service = Indexing(shared_config, new_data_loader, new_data_base)
+            new_data_loader = DataLoader(main_module.shared_config)
+            new_data_base = FaissDB(main_module.shared_config)
+            new_indexing_service = Indexing(main_module.shared_config, new_data_loader, new_data_base)
 
             with main_module.services_lock:
                 main_module.data_loader = new_data_loader

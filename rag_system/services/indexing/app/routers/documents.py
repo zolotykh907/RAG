@@ -4,9 +4,12 @@ import os
 import json
 import logging
 import requests
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter
+from fastapi import Depends
+from fastapi import HTTPException
 
-from ..main import get_indexing_service, shared_config
+from rag_system.services.indexing.app.main import get_indexing_service
+from rag_system.services.indexing.app.main import shared_config
 
 logger = logging.getLogger(__name__)
 router: APIRouter = APIRouter()
@@ -117,7 +120,8 @@ async def delete_document(
     Returns:
         dict: Confirmation message.
     """
-    from ..main import data_base
+    import rag_system.services.indexing.app.main as main_module
+    data_base = main_module.data_base
     if data_base is None:
         raise HTTPException(status_code=503, detail="Database not available")
 
