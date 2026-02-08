@@ -15,11 +15,11 @@ COPY pyproject.toml ./pyproject.toml
 RUN pip install --no-cache-dir .
 
 # Copy application code
-COPY app/ /docker_app/app/
+COPY rag_system/ /docker_app/rag_system/
 
 # Create data directories
 RUN mkdir -p /docker_app/data /docker_app/logs
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "rag_system.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

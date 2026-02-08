@@ -19,7 +19,7 @@ docker-compose -f docker-compose.prod.yml stop api
 # Бэкап app_data (статьи, документы, индексы)
 echo "📦 Создание бэкапа app_data..."
 docker run --rm \
-  -v rag_app_data:/data \
+  -v rag_system_data:/data \
   -v $(pwd)/${BACKUP_DIR}:/backup \
   alpine tar czf /backup/${BACKUP_NAME}_app_data.tar.gz /data
 

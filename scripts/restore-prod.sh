@@ -30,17 +30,17 @@ docker-compose -f docker-compose.prod.yml down
 
 # Удаляем старые volumes
 echo "🗑️  Удаление старых volumes..."
-docker volume rm rag_app_data rag_redis_data || true
+docker volume rm rag_system_data rag_redis_data || true
 
 # Создаем новые volumes
 echo "📦 Создание новых volumes..."
-docker volume create rag_app_data
+docker volume create rag_system_data
 docker volume create rag_redis_data
 
 # Восстанавливаем app_data
 echo "📥 Восстановление app_data..."
 docker run --rm \
-  -v rag_app_data:/data \
+  -v rag_system_data:/data \
   -v $(pwd)/${BACKUP_DIR}:/backup \
   alpine sh -c "cd /data && tar xzf /backup/${BACKUP_NAME}_app_data.tar.gz --strip 1"
 

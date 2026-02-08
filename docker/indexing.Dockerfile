@@ -14,6 +14,6 @@ COPY pyproject.toml ./pyproject.toml
 RUN pip install --no-cache-dir .
 
 # Copy application code
-COPY app/ /docker_app/app/
+COPY rag_system/ /docker_app/rag_system/
 
-CMD ["python", "-m", "app.indexing.run_indexing"]
+CMD ["python", "-m", "rag_system.indexing.run_indexing"]

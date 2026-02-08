@@ -28,7 +28,7 @@ services:
   indexing:
     build:
       context: .
-      dockerfile: app/services/indexing/Dockerfile
+      dockerfile: rag_system/services/indexing/Dockerfile
     container_name: rag_indexing
     restart: unless-stopped
     ports:
@@ -67,7 +67,7 @@ services:
   query:
     build:
       context: .
-      dockerfile: app/services/query/Dockerfile
+      dockerfile: rag_system/services/query/Dockerfile
     container_name: rag_query
     restart: unless-stopped
     ports:
@@ -106,7 +106,7 @@ services:
   gateway:
     build:
       context: .
-      dockerfile: app/services/gateway/Dockerfile
+      dockerfile: rag_system/services/gateway/Dockerfile
     container_name: rag_gateway
     restart: unless-stopped
     ports:
