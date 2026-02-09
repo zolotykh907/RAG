@@ -18,7 +18,7 @@ class FaissDB:
         """Create a new FAISS index or updates an existing.
 
         Args:
-            embeddings (np.ndarray): numpy array of embeddings to index
+            embeddings (np.ndarray): L2-normalized numpy array of embeddings to index.
             replace (bool): if True, replace existing index instead of adding to it
         """
         try:
@@ -27,8 +27,8 @@ class FaissDB:
                     self.logger.info("Replacing existing FAISS index.")
 
                 dim = embeddings.shape[1]
-                self.index = faiss.IndexFlatL2(dim)
-                self.logger.info(f"Created new FAISS index with dimension {dim}.")
+                self.index = faiss.IndexFlatIP(dim)
+                self.logger.info(f"Created new FAISS index (inner product) with dimension {dim}.")
 
             self.index.add(np.array(embeddings, dtype=np.float32))
             faiss.write_index(self.index, self.index_path)
@@ -60,28 +60,31 @@ class FaissDB:
         """Nearest-neighbor search in FAISS.
 
         Args:
-            request_embedding (np.ndarray): Query embedding vector.
+            request_embedding (np.ndarray): L2-normalized query embedding vector.
             k (int): Number of nearest neighbors to return.
 
         Returns:
-            np.ndarray: array of indices of the k nearest neighbors.
+            tuple[np.ndarray, np.ndarray]: (indices, scores) of the k nearest neighbors.
+                Scores are cosine similarities (higher = more similar).
         """
         if self.index is None:
             self.logger.warning("Index is not loaded or created. Returning empty result.")
-            return np.array([])
+            return np.array([]), np.array([])
 
         if self.index.ntotal == 0:
             self.logger.warning("Index is empty. Returning empty result.")
-            return np.array([])
+            return np.array([]), np.array([])
 
         actual_k = min(k, self.index.ntotal)
 
-        d, ids = self.index.search(request_embedding, actual_k)
+        scores, ids = self.index.search(request_embedding, actual_k)
 
-        valid_ids = ids[0][ids[0] != -1]
+        valid_mask = ids[0] != -1
+        valid_ids = ids[0][valid_mask]
+        valid_scores = scores[0][valid_mask]
 
         self.logger.debug(f"Search returned {len(valid_ids)} valid results out of {actual_k} requested")
-        return valid_ids
+        return valid_ids, valid_scores
 
     def delete_index(self):
         """Deletes the FAISS index."""

@@ -11,14 +11,19 @@ def create_embeddings(texts, model, batch_size=32):
         batch_size (int, optional): The number of texts to process in one batch.
 
     Returns:
-        numpy.ndarray: array of embeddings.
+        numpy.ndarray: L2-normalized array of embeddings (for cosine similarity via inner product).
     """
+    import faiss
+
     embeddings = model.encode(
         texts,
         batch_size=batch_size,
         show_progress_bar=True,
         convert_to_numpy=True
     )
+
+    embeddings = np.array(embeddings, dtype=np.float32)
+    faiss.normalize_L2(embeddings)
 
     return embeddings
 

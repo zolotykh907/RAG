@@ -2,6 +2,8 @@ import json
 import os
 from pathlib import Path
 
+import faiss
+import numpy as np
 from sentence_transformers import SentenceTransformer
 
 from rag_system.shared.logs import setup_logging
@@ -116,12 +118,14 @@ class Query:
                 [request],
                 convert_to_numpy=True
             )
+            request_embedding = np.array(request_embedding, dtype=np.float32)
+            faiss.normalize_L2(request_embedding)
 
             search_k = self.k
             if self.rerank_enabled and self.rerank_candidate_k > self.k:
                 search_k = self.rerank_candidate_k
 
-            ids = self.data_base.search(request_embedding, search_k)
+            ids, scores = self.data_base.search(request_embedding, search_k)
             if self.texts is None:
                 raise RuntimeError("Texts are not loaded")
 
@@ -129,8 +133,9 @@ class Query:
                 self.logger.error(f"The number of texts ({len(self.texts)}) != the number of vectors ({self.data_base.index.ntotal})")
                 raise ValueError("The number of texts must match the number of vectors in the DB.")
 
-            for idx in ids:
+            for i, idx in enumerate(ids):
                 if idx < len(self.texts):
+                    self.logger.debug(f"Result {i}: score={scores[i]:.4f}, text={self.texts[idx][:80]}...")
                     res.append(self.texts[idx])
                 else:
                     self.logger.warning(f"Index {idx} is out of range for texts array (length: {len(self.texts)})")

@@ -43,8 +43,10 @@ class CombinedQueryService:
 
         try:
             query_embedding = self.emb_model.encode([question])
+            query_embedding = np.array(query_embedding, dtype=np.float32)
+            faiss.normalize_L2(query_embedding)
             _, indices = self.temp_index.search(
-                query_embedding.astype('float32'),
+                query_embedding,
                 k=min(self.k, len(self.temp_chunks))
             )
 
@@ -84,7 +86,7 @@ def process_file_temp(file_path: str, data_loader, indexing_service) -> Dict[str
 
         df['text'] = df['text'].apply(lambda x: normalize_text(x) if pd.notna(x) else '')
 
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
         chunks = []
         for text in df['text']:
             if text.strip():
@@ -97,6 +99,8 @@ def process_file_temp(file_path: str, data_loader, indexing_service) -> Dict[str
 
         chunk_texts = [chunk['text'] for chunk in chunks]
         embeddings = indexing_service.emb_model.encode(chunk_texts, show_progress_bar=True)
+        embeddings = np.array(embeddings, dtype=np.float32)
+        faiss.normalize_L2(embeddings)
 
         temp_data = {
             'chunks': chunks,
@@ -149,10 +153,10 @@ def create_combined_pipeline(
         else:
             raise ValueError("No temporary or permanent data available")
 
-    temp_embeddings = np.array(all_embeddings)
-    # Use L2 metric to match the permanent index
-    temp_index = faiss.IndexFlatL2(temp_embeddings.shape[1])
-    temp_index.add(temp_embeddings.astype('float32'))
+    temp_embeddings = np.array(all_embeddings, dtype=np.float32)
+    faiss.normalize_L2(temp_embeddings)
+    temp_index = faiss.IndexFlatIP(temp_embeddings.shape[1])
+    temp_index.add(temp_embeddings)
 
     combined_query_service = CombinedQueryService(
         query_service,

@@ -200,6 +200,8 @@ async def delete_document(filename: str):
             json.dump(filtered_data, f, ensure_ascii=False, indent=2)
 
         if filtered_data:
+            import faiss
+            import numpy as np
             from rag_system.indexing.data_vectorize import save_embeddings
             from rag_system.query.query import Query
             from rag_system.query.pipeline import RAGPipeline
@@ -207,6 +209,8 @@ async def delete_document(filename: str):
             embedding_model = main_module.indexing_service.load_local_embedding_model()
             texts = [item['text'] for item in filtered_data]
             embeddings = embedding_model.encode(texts, convert_to_numpy=True, show_progress_bar=False)
+            embeddings = np.array(embeddings, dtype=np.float32)
+            faiss.normalize_L2(embeddings)
 
             save_embeddings(embeddings, main_module.indexing_service.embeddings_path)
             main_module.data_base.create_index(embeddings, replace=True)

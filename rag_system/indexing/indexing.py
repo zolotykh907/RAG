@@ -48,7 +48,7 @@ class Indexing:
 
         self.logger = setup_logging(self.logs_dir, 'IndexingService')
         self.text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000,
-                                                            chunk_overlap=0)
+                                                            chunk_overlap=200)
 
         os.makedirs(self.data_dir, exist_ok=True)
 
@@ -263,28 +263,27 @@ class Indexing:
                     self.logger.info("No new unique chunks to index.")
                 return
 
-            new_hashes = df_chunks_new['hash'].tolist()
-            if self.incrementation_flag:
-                self.existing_hashes.extend(new_hashes)
-            else:
-                self.existing_hashes = new_hashes
-
             self.logger.info(f"Found {len(df_chunks_new)} new chunks to index.")
 
             self.logger.info("Normalizing chunk texts...")
+            df_chunks_new = df_chunks_new.copy()
             df_chunks_new['text'] = df_chunks_new['text'].apply(
                 lambda x: normalize_text(x)
             )
 
-            self.save_processed_data(df_chunks_new)
-
+            # Create embeddings in memory first (may fail — no disk writes yet)
             new_embeddings = create_embeddings(df_chunks_new['text'].tolist(),
                                                self.emb_model,
                                                batch_size=self.batch_size)
 
-            if self.incrementation_flag:
-                self.data_base.load_index()
+            # All heavy computation succeeded — now persist to disk atomically:
+            # save processed_data FIRST, then embeddings, then index.
+            # This way texts and vectors stay in sync.
+            new_hashes = df_chunks_new['hash'].tolist()
 
+            self.save_processed_data(df_chunks_new)
+
+            if self.incrementation_flag:
                 existing_embeddings = load_embeddings(self.embeddings_path)
                 if existing_embeddings is not None:
                     all_embeddings = np.vstack([existing_embeddings, new_embeddings])
@@ -297,19 +296,26 @@ class Indexing:
                     self.logger.info("Created new embeddings (no existing found)")
 
                 save_embeddings(all_embeddings, self.embeddings_path)
-
-                self.data_base.create_index(new_embeddings, replace=False)
+                self.data_base.create_index(all_embeddings, replace=True)
+                self.existing_hashes.extend(new_hashes)
             else:
                 save_embeddings(new_embeddings, self.embeddings_path)
                 self.data_base.create_index(new_embeddings, replace=True)
+                self.existing_hashes = new_hashes
                 self.logger.info("Created new embeddings")
 
         except Exception as e:
-            if self.delete_data_flag:
-                self.logger.error(f"Indexing error: {e}")
-                if os.path.exists(self.processed_data_path):
-                    self.clear_existing_data()
-                raise
+            self.logger.error(f"Indexing error: {e}")
+            if self.incrementation_flag:
+                # Restore index from disk to keep data_base in sync with existing data
+                self.logger.info("Restoring index from disk after failed incremental indexing...")
+                try:
+                    self.data_base.load_index()
+                except Exception:
+                    self.logger.warning("Could not restore index from disk")
+            elif self.delete_data_flag:
+                self.clear_existing_data()
+            raise
 
     def clear_existing_data(self):
         """Clear existing processed data and embeddings."""
