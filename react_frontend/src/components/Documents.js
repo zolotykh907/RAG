@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import apiService from '../services/api';
 import './Documents.css';
 
 // Компонент для управления документами
-function Documents({ searchQuery = '', searchMode = 'filename' }) {
+const Documents = forwardRef(function Documents({ searchQuery = '', searchMode = 'filename' }, ref) {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDoc, setSelectedDoc] = useState(null);
@@ -48,6 +48,10 @@ function Documents({ searchQuery = '', searchMode = 'filename' }) {
       setLoading(false);
     }
   };
+
+  useImperativeHandle(ref, () => ({
+    refresh: loadDocuments
+  }));
 
   const handleDocumentClick = async (filename) => {
     setSelectedDoc(filename);
@@ -156,7 +160,7 @@ function Documents({ searchQuery = '', searchMode = 'filename' }) {
             <polyline points="13 2 13 9 20 9"></polyline>
           </svg>
           <h3>Нет индексированных документов</h3>
-          <p>Загрузите документы на вкладке "Загрузка файлов"</p>
+          <p>Нажмите «Загрузить» для добавления документов</p>
         </div>
       ) : filteredDocuments.length === 0 ? (
         <div className="documents-empty">
@@ -274,6 +278,6 @@ function Documents({ searchQuery = '', searchMode = 'filename' }) {
       )}
     </div>
   );
-}
+});
 
 export default Documents;

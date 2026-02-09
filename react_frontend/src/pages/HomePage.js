@@ -3,7 +3,6 @@ import { Routes, Route, Link, useLocation, useNavigate, Navigate } from 'react-r
 import ChatHistory from '../components/ChatHistory';
 import ChatPage from './ChatPage';
 import DocumentsPage from './DocumentsPage';
-import UploadPage from './UploadPage';
 import SettingsPage from './SettingsPage';
 import apiService from '../services/api';
 import './HomePage.css';
@@ -31,7 +30,6 @@ function HomePage() {
     const path = location.pathname;
     if (path === '/' || path === '/chat') return 'chat';
     if (path === '/documents') return 'documents';
-    if (path === '/upload') return 'upload';
     if (path === '/settings') return 'settings';
     return 'chat';
   };
@@ -125,19 +123,6 @@ function HomePage() {
           </Link>
 
           <Link
-            to="/upload"
-            className={`nav-item ${activeTab === 'upload' ? 'active' : ''}`}
-            title="Загрузка файлов"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="17 8 12 3 7 8"></polyline>
-              <line x1="12" y1="3" x2="12" y2="15"></line>
-            </svg>
-            <span className="nav-label">Загрузка файлов</span>
-          </Link>
-
-          <Link
             to="/settings"
             className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`}
             title="Настройки"
@@ -184,7 +169,7 @@ function HomePage() {
           <Route path="/" element={<Navigate to="/chat" replace />} />
           <Route path="/chat" element={<ChatPage sessionId={sessionId} setSessionId={setSessionId} />} />
           <Route path="/documents" element={<DocumentsPage />} />
-          <Route path="/upload" element={<UploadPage />} />
+          <Route path="/upload" element={<Navigate to="/documents" replace />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </main>

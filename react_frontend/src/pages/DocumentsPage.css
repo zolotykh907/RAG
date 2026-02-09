@@ -1,34 +1,80 @@
 .documents-page {
   position: relative;
   height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-.search-toggle-btn {
+/* Список документов — занимает всё оставшееся место */
+.documents-page .documents-container {
+  flex: 1;
+  min-height: 0;
+}
+
+/* ─── FAB-кнопки ─── */
+.fab-group {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
-  width: 56px;
-  height: 56px;
-  background: #cc785c;
-  color: white;
-  border: none;
+  bottom: 32px;
+  right: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 100;
+}
+
+.fab-btn {
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
+  border: none;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(204, 120, 92, 0.3);
   transition: all 0.2s ease;
-  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-.search-toggle-btn:hover {
+.fab-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.fab-upload {
+  background: #cc785c;
+  color: white;
+}
+
+.fab-upload:hover {
   background: #b86a4f;
-  transform: scale(1.05);
-  box-shadow: 0 6px 16px rgba(204, 120, 92, 0.4);
 }
 
-.search-overlay {
+.fab-search {
+  background: white;
+  color: #555;
+  border: 1px solid #e5e5e5;
+}
+
+.fab-search:hover {
+  color: #cc785c;
+  border-color: #cc785c;
+}
+
+.fab-clear {
+  background: white;
+  color: #555;
+  border: 1px solid #e5e5e5;
+}
+
+.fab-clear:hover {
+  color: #e74c3c;
+  border-color: #e74c3c;
+  background: #fff5f5;
+}
+
+/* ─── Общий оверлей для модалок ─── */
+.modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -43,6 +89,77 @@
   animation: fadeIn 0.2s ease;
 }
 
+/* ─── Модалка загрузки ─── */
+.upload-modal {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 520px;
+  animation: slideDown 0.3s ease;
+}
+
+.upload-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.upload-modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #2f2f2f;
+  font-weight: 600;
+}
+
+.upload-modal-body {
+  padding: 24px;
+}
+
+.upload-modal-hint {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  color: #888;
+  line-height: 1.5;
+}
+
+.upload-modal-body .file-upload-container {
+  max-width: 100%;
+}
+
+.upload-modal-body .file-upload-card {
+  padding: 0;
+  border: none;
+  box-shadow: none;
+}
+
+.upload-modal-body .file-input-label {
+  min-height: 140px;
+}
+
+/* ─── Общая кнопка закрытия модалки ─── */
+.modal-close-btn {
+  background: transparent;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  color: #666;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close-btn:hover {
+  background: #f5f5f5;
+  color: #2f2f2f;
+}
+
+/* ─── Модалка поиска ─── */
 .search-popup {
   background: white;
   border-radius: 16px;
@@ -67,31 +184,10 @@
   font-weight: 600;
 }
 
-.search-close-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #999;
-  padding: 4px;
-  border-radius: 4px;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.search-close-btn:hover {
-  background: #f5f5f5;
-  color: #2f2f2f;
-}
-
+/* ─── Анимации ─── */
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes slideDown {
@@ -105,24 +201,34 @@
   }
 }
 
-/* Адаптивность */
+/* ─── Адаптивность ─── */
 @media (max-width: 768px) {
-  .search-toggle-btn {
-    bottom: 16px;
-    right: 16px;
-    width: 48px;
-    height: 48px;
+  .fab-group {
+    bottom: 20px;
+    right: 20px;
+    gap: 10px;
   }
 
-  .search-overlay {
-    padding-top: 60px;
+  .fab-btn {
+    width: 46px;
+    height: 46px;
   }
 
+  .modal-overlay {
+    padding-top: 40px;
+  }
+
+  .upload-modal,
   .search-popup {
     width: 95%;
   }
 
-  .search-popup-header {
+  .upload-modal-body {
+    padding: 20px;
+  }
+
+  .search-popup-header,
+  .upload-modal-header {
     padding: 16px 20px;
   }
 }
