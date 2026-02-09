@@ -181,6 +181,32 @@
   min-width: 0;
 }
 
+/* Кнопка копирования сообщения */
+.copy-msg-btn {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: #ccc;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, color 0.2s ease;
+  align-self: center;
+}
+
+.copy-msg-btn:hover {
+  background: #f0f0f0;
+  color: #666;
+}
+
+.copy-msg-btn.copied {
+  color: #5ebd5e;
+}
+
 .message-sources {
   margin-top: 0;
   font-size: 13px;
