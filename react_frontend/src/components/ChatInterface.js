@@ -2,6 +2,30 @@ import { useState, useRef, useEffect } from 'react';
 import apiService from '../services/api';
 import './ChatInterface.css';
 
+function renderHighlightedText(text, highlights) {
+  if (!highlights || highlights.length === 0) {
+    return text;
+  }
+
+  const sorted = [...highlights].sort((a, b) => a.start - b.start);
+  const parts = [];
+  let lastEnd = 0;
+
+  for (const { start, end } of sorted) {
+    if (start > lastEnd) {
+      parts.push(<span key={`t-${lastEnd}`}>{text.slice(lastEnd, start)}</span>);
+    }
+    parts.push(<mark key={`h-${start}`}>{text.slice(start, end)}</mark>);
+    lastEnd = Math.max(lastEnd, end);
+  }
+
+  if (lastEnd < text.length) {
+    parts.push(<span key={`t-${lastEnd}`}>{text.slice(lastEnd)}</span>);
+  }
+
+  return parts;
+}
+
 // Компонент чата для общения с RAG системой
 function ChatInterface({ onSendMessage, sessionId = null, onFileUpload, onMessagesUpdate }) {
   const [messages, setMessages] = useState([]);
@@ -124,6 +148,7 @@ function ChatInterface({ onSendMessage, sessionId = null, onFileUpload, onMessag
         type: 'bot',
         text: response.answer,
         sources: response.texts,
+        highlights: response.highlights || [],
         timestamp: new Date().toLocaleTimeString()
       };
 
@@ -303,7 +328,9 @@ function ChatInterface({ onSendMessage, sessionId = null, onFileUpload, onMessag
                         {message.sources.map((source, idx) => (
                           <div key={idx} className="source-item">
                             <div className="source-number">#{idx + 1}</div>
-                            <div className="source-text">{source}</div>
+                            <div className="source-text">
+                              {renderHighlightedText(source, message.highlights?.[idx])}
+                            </div>
                           </div>
                         ))}
                       </div>

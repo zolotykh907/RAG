@@ -12,3 +12,4 @@ class QueryResponse(BaseModel):
     """Response model for RAG query endpoint."""
     answer: str
     texts: list
+    highlights: list = []

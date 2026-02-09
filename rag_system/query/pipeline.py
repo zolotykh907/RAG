@@ -1,4 +1,5 @@
 from rag_system.shared.logs import setup_logging
+from rag_system.query.highlight import find_highlights
 
 
 class RAGPipeline:
@@ -42,7 +43,8 @@ class RAGPipeline:
                 self.logger.info("Returning cached answer.")
                 return {
                     "answer": cached_answer['answer'],
-                    "texts": cached_answer['texts']
+                    "texts": cached_answer['texts'],
+                    "highlights": cached_answer.get('highlights', [])
                 }
 
             self.logger.info("Searching for relevant texts for question")
@@ -50,15 +52,18 @@ class RAGPipeline:
 
             answer = self.responder.generate_answer(question, results)
 
+            highlights = find_highlights(answer, results)
+
             # Try to save to cache, but don't fail if Redis is down
             try:
-                self.redis_client.save_to_cache(question, {"answer": answer, "texts": results})
+                self.redis_client.save_to_cache(question, {"answer": answer, "texts": results, "highlights": highlights})
             except Exception as e:
                 self.logger.warning(f"Failed to save to Redis cache: {e}")
 
             return {
                 "answer": answer,
-                "texts": results
+                "texts": results,
+                "highlights": highlights
             }
         except Exception as e:
             self.logger.error(f'Failed to generate answer: {str(e)}')

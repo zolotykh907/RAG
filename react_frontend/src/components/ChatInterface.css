@@ -247,6 +247,13 @@
   line-height: 1.5;
 }
 
+.source-text mark {
+  background-color: #fef3cd;
+  color: #555;
+  border-radius: 2px;
+  padding: 1px 2px;
+}
+
 .loading {
   display: flex;
   align-items: center;

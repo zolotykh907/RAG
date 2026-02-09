@@ -34,7 +34,7 @@ async def query_rag(request: QueryRequest):
             result = combined_pipeline.answer(request.question)
 
             logger.info(f"Combined query processed successfully for session {session_id}")
-            return QueryResponse(answer=result['answer'], texts=result['texts'])
+            return QueryResponse(answer=result['answer'], texts=result['texts'], highlights=result.get('highlights', []))
         else:
             if main_module.pipeline is None:
                 return QueryResponse(

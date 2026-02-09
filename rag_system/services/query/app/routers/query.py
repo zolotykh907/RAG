@@ -21,6 +21,7 @@ class QueryResponse(BaseModel):
     """Response model for RAG query."""
     answer: str
     texts: List[str]
+    highlights: list = []
 
 
 @router.post('/ask', response_model=QueryResponse)
@@ -75,7 +76,7 @@ async def query_rag(request: QueryRequest):
             result = combined_pipeline.answer(request.question)
 
             logger.info(f"Combined query processed for session {session_id}")
-            return QueryResponse(answer=result['answer'], texts=result['texts'])
+            return QueryResponse(answer=result['answer'], texts=result['texts'], highlights=result.get('highlights', []))
 
         else:
             # Use standard pipeline
@@ -87,7 +88,7 @@ async def query_rag(request: QueryRequest):
 
             result = pipeline.answer(request.question)
             logger.info("Query processed successfully")
-            return QueryResponse(answer=result['answer'], texts=result['texts'])
+            return QueryResponse(answer=result['answer'], texts=result['texts'], highlights=result.get('highlights', []))
 
     except Exception as e:
         logger.error(f"Query failed: {str(e)}")
