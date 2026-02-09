@@ -193,12 +193,19 @@
   transition: opacity 0.15s ease, width 0.2s ease 0.05s;
 }
 
-/* Обёртка истории чатов — плавно скрывается при collapsed */
+/* Обёртка истории чатов — плавно скрывается при collapsed или неактивной вкладке */
 .chat-history-wrapper {
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.chat-history-wrapper.visible {
   opacity: 1;
+  pointer-events: auto;
   transition: opacity 0.2s ease 0.1s;
 }
 

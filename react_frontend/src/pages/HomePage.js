@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
+import { Routes, Route, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import ChatHistory from '../components/ChatHistory';
 import ChatPage from './ChatPage';
 import DocumentsPage from './DocumentsPage';
@@ -10,6 +10,7 @@ import './HomePage.css';
 
 function HomePage() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [sessionId, setSessionId] = useState(() => {
     return localStorage.getItem('currentSessionId') || null;
   });
@@ -60,11 +61,17 @@ function HomePage() {
 
   const handleSelectChat = useCallback((chatId) => {
     setSessionId(chatId);
-  }, []);
+    if (location.pathname !== '/chat') {
+      navigate('/chat');
+    }
+  }, [location.pathname, navigate]);
 
   const handleNewChat = useCallback(() => {
     setSessionId(null);
-  }, []);
+    if (location.pathname !== '/chat') {
+      navigate('/chat');
+    }
+  }, [location.pathname, navigate]);
 
   const handleClearSession = () => {
     if (sessionId) {
@@ -145,14 +152,12 @@ function HomePage() {
         </nav>
 
         <div className={`chat-history-wrapper ${activeTab === 'chat' ? 'visible' : ''}`}>
-          {activeTab === 'chat' && (
-            <ChatHistory
-              onSelectChat={handleSelectChat}
-              currentSessionId={sessionId}
-              onNewChat={handleNewChat}
-              onClearSession={handleClearSession}
-            />
-          )}
+          <ChatHistory
+            onSelectChat={handleSelectChat}
+            currentSessionId={sessionId}
+            onNewChat={handleNewChat}
+            onClearSession={handleClearSession}
+          />
         </div>
 
         <button

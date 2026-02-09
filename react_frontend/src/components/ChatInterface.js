@@ -111,7 +111,10 @@ function ChatInterface({ onSendMessage, sessionId = null, onFileUpload, onMessag
     try {
       const stored = localStorage.getItem(`chat_${sid}`);
       if (stored) {
-        setMessages(JSON.parse(stored));
+        const parsed = JSON.parse(stored);
+        if (parsed.length > 0) {
+          setMessages(parsed);
+        }
       }
     } catch (error) {
       console.error('Error loading messages:', error);

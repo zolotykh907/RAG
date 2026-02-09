@@ -81,7 +81,7 @@ function ChatHistory({ onSelectChat, currentSessionId, onNewChat, onClearSession
   // Экспорт функций для использования из родительского компонента
   useEffect(() => {
     window.chatHistory = { saveChat, updateChatMessage };
-  }, []);
+  });
 
   // Слушаем событие очистки чата для обновления превью
   useEffect(() => {

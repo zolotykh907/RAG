@@ -2,8 +2,21 @@ import ChatInterface from '../components/ChatInterface';
 import apiService from '../services/api';
 
 function ChatPage({ sessionId, setSessionId }) {
+  const ensureSession = () => {
+    if (!sessionId) {
+      const newId = crypto.randomUUID();
+      setSessionId(newId);
+      if (window.chatHistory) {
+        window.chatHistory.saveChat(newId, 'Новый чат');
+      }
+      return newId;
+    }
+    return sessionId;
+  };
+
   const handleSendMessage = async (question) => {
-    return await apiService.sendQuery(question, sessionId);
+    const sid = ensureSession();
+    return await apiService.sendQuery(question, sid);
   };
 
   const handleTempUpload = async (file) => {
