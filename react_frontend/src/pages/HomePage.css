@@ -13,35 +13,99 @@
   color: #e8e8e8;
   display: flex;
   flex-direction: column;
-  padding: 24px;
+  padding: 24px 16px;
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
   overflow-y: auto;
+  overflow-x: hidden;
   flex-shrink: 0;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.sidebar.collapsed {
+  width: 72px;
+  padding: 24px 12px;
+}
+
+/* Заголовок */
 .sidebar-header {
-  margin-bottom: 32px;
+  margin-bottom: 28px;
+  padding: 0 8px;
+  min-height: 52px;
 }
 
 .logo {
   font-size: 24px;
   font-weight: 600;
   color: #cc785c;
-  margin: 0 0 16px 0;
+  margin: 0 0 12px 0;
+  white-space: nowrap;
+  position: relative;
+  height: 29px;
 }
 
+.logo-full,
+.logo-short {
+  transition: opacity 0.25s ease;
+}
+
+.logo-full {
+  opacity: 1;
+}
+
+.logo-short {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+  opacity: 0;
+}
+
+.sidebar.collapsed .logo-full {
+  opacity: 0;
+}
+
+.sidebar.collapsed .logo-short {
+  opacity: 1;
+}
+
+.sidebar.collapsed .sidebar-header {
+  padding: 0 4px;
+  text-align: center;
+}
+
+/* Статус */
 .status-indicator {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 13px;
   color: #a8a8a8;
+  white-space: nowrap;
+  transition: gap 0.3s ease;
+}
+
+.sidebar.collapsed .status-indicator {
+  justify-content: center;
+  gap: 0;
+}
+
+.status-text {
+  opacity: 1;
+  transition: opacity 0.2s ease 0.1s;
+  overflow: hidden;
+}
+
+.sidebar.collapsed .status-text {
+  opacity: 0;
+  width: 0;
+  transition: opacity 0.15s ease, width 0s linear 0.15s;
 }
 
 .status-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
+  flex-shrink: 0;
   animation: pulse 2s infinite;
 }
 
@@ -71,15 +135,16 @@
 .sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: auto;
+  gap: 4px;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
+  padding: 10px 12px;
+  height: 44px;
+  box-sizing: border-box;
   background: transparent;
   color: #a8a8a8;
   border: none;
@@ -87,9 +152,11 @@
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, color 0.2s ease, gap 0.3s ease, padding 0.3s ease;
   text-align: left;
   text-decoration: none;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .nav-item:hover {
@@ -104,6 +171,72 @@
 
 .nav-item svg {
   flex-shrink: 0;
+}
+
+.sidebar.collapsed .nav-item {
+  justify-content: center;
+  padding: 10px 0;
+  gap: 0;
+}
+
+.nav-label {
+  opacity: 1;
+  transition: opacity 0.2s ease 0.1s, width 0.3s ease, margin 0.3s ease;
+  overflow: hidden;
+  display: inline-block;
+}
+
+.sidebar.collapsed .nav-label {
+  opacity: 0;
+  width: 0;
+  margin: 0;
+  transition: opacity 0.15s ease, width 0.2s ease 0.05s;
+}
+
+/* Обёртка истории чатов — плавно скрывается при collapsed */
+.chat-history-wrapper {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  opacity: 1;
+  transition: opacity 0.2s ease 0.1s;
+}
+
+.sidebar.collapsed .chat-history-wrapper {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+/* Кнопка сворачивания сайдбара */
+.sidebar-toggle-btn {
+  margin-top: 16px;
+  padding: 10px;
+  height: 40px;
+  box-sizing: border-box;
+  background: transparent;
+  color: #a8a8a8;
+  border: 1px solid #4a4a4a;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sidebar-toggle-btn:hover {
+  background: #3a3a3a;
+  color: #e8e8e8;
+}
+
+.sidebar-toggle-icon {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar.collapsed .sidebar-toggle-icon {
+  transform: rotate(180deg);
 }
 
 /* Основной контент */
@@ -206,8 +339,10 @@
     flex-direction: column;
   }
 
-  .sidebar {
+  .sidebar,
+  .sidebar.collapsed {
     width: 100%;
+    height: auto;
     padding: 16px;
   }
 
@@ -218,6 +353,7 @@
 
   .nav-item {
     flex-direction: column;
+    height: auto;
     gap: 4px;
     min-width: 80px;
     text-align: center;
@@ -225,5 +361,31 @@
 
   .nav-item span {
     font-size: 12px;
+  }
+
+  .sidebar-toggle-btn {
+    display: none;
+  }
+
+  .sidebar.collapsed .nav-label {
+    width: auto;
+    opacity: 1;
+  }
+
+  .sidebar.collapsed .chat-history-wrapper {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .logo-short {
+    display: none;
+  }
+
+  .sidebar.collapsed .logo-full {
+    opacity: 1;
+  }
+
+  .sidebar.collapsed .status-text {
+    opacity: 1;
   }
 }
