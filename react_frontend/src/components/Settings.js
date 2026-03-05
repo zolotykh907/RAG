@@ -25,7 +25,15 @@ const CONFIG_DESCRIPTIONS = {
     'qdrant.collection_name': 'Имя коллекции для хранения векторов документов',
     'prompts.system_prompt': 'Системная инструкция для модели, определяющая её роль и поведение',
     'prompts.context_template': 'Шаблон для форматирования контекста из найденных фрагментов',
-    'prompts.query_template': 'Шаблон для форматирования финального запроса к модели'
+    'prompts.query_template': 'Шаблон для форматирования финального запроса к модели',
+    'models.reranker_model_name': 'Название модели cross-encoder для переранжирования результатов поиска',
+    'models.reranker_device': 'Устройство для cross-encoder: cpu, cuda (GPU) или mps (Apple Silicon)',
+    'rag.k': 'Количество финальных результатов, возвращаемых после поиска и переранжирования',
+    'rag.rerank_enabled': 'Включить/выключить переранжирование результатов с помощью cross-encoder',
+    'rag.rerank_candidate_k': 'Количество начальных кандидатов из FAISS для переранжирования (должно быть >= k)',
+    'rag.rerank_batch_size': 'Размер батча для cross-encoder при переранжировании',
+    'rag.rerank_max_chars': 'Максимальная длина текста (символов), передаваемого в cross-encoder',
+    'rag.rerank_score_threshold': 'Минимальный скор релевантности — результаты ниже порога отсекаются (-1000000000 = без отсечения)'
   },
   indexing: {
     'chunk_size': 'Размер фрагмента текста в символах при индексации документа',
@@ -66,6 +74,25 @@ const SECTION_ICONS = {
       <polyline points="14 2 14 8 20 8"></polyline>
       <line x1="16" y1="13" x2="8" y2="13"></line>
       <line x1="16" y1="17" x2="8" y2="17"></line>
+    </svg>
+  ),
+  models: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+      <rect x="9" y="9" width="6" height="6"></rect>
+      <line x1="9" y1="1" x2="9" y2="4"></line>
+      <line x1="15" y1="1" x2="15" y2="4"></line>
+      <line x1="9" y1="20" x2="9" y2="23"></line>
+      <line x1="15" y1="20" x2="15" y2="23"></line>
+      <line x1="20" y1="9" x2="23" y2="9"></line>
+      <line x1="20" y1="14" x2="23" y2="14"></line>
+      <line x1="1" y1="9" x2="4" y2="9"></line>
+      <line x1="1" y1="14" x2="4" y2="14"></line>
+    </svg>
+  ),
+  rag: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
     </svg>
   )
 };
