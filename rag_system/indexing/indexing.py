@@ -1,6 +1,5 @@
 import json
 import os
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -15,6 +14,7 @@ from rag_system.indexing.data_vectorize import create_embeddings
 from rag_system.indexing.data_vectorize import load_embeddings
 from rag_system.indexing.data_vectorize import save_embeddings
 from rag_system.shared.logs import setup_logging
+from rag_system.shared.model_loader import get_hf_cache_model_path
 
 
 class Indexing:
@@ -60,31 +60,11 @@ class Indexing:
     def load_local_embedding_model(self):
         """Load model from local HuggingFace cache."""
         try:
-            cache_dir = os.path.join(
-                Path.home(),
-                ".cache",
-                "huggingface",
-                "hub",
-                f"models--{self.emb_model_name.replace('/', '--')}",
-                "snapshots"
-            )
-
-            if not os.path.exists(cache_dir):
-                return self.download_embedding_model()
-
-            snapshots = [d for d in os.listdir(cache_dir)
-                        if os.path.isdir(os.path.join(cache_dir, d))]
-
-            if not snapshots:
-                raise FileNotFoundError(
-                    f"Model {self.emb_model_name} not found in local cache {cache_dir}."
-                )
-
-            latest_snapshot = sorted(snapshots)[-1]
-            model_path = os.path.join(cache_dir, latest_snapshot)
-
+            model_path = get_hf_cache_model_path(self.emb_model_name)
             self.logger.info(f"Loading embedding model from local cache: {model_path}")
             return SentenceTransformer(model_path, device='cpu')
+        except FileNotFoundError:
+            return self.download_embedding_model()
         except Exception as e:
             self.logger.error(f'Error loading model from cache: {e}')
             raise

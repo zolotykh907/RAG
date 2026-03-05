@@ -16,12 +16,16 @@ logger = logging.getLogger(__name__)
 
 class CombinedQueryService:
     """Combined query service that searches both permanent and temporary indexes."""
-    def __init__(self, permanent_query, temp_index, temp_chunks, emb_model, k=5):
+    def __init__(self, permanent_query, temp_index, temp_chunks, emb_model, k=5,
+                 reranker=None, rerank_enabled=False, rerank_candidate_k=20):
         self.permanent_query = permanent_query
         self.temp_index = temp_index
         self.temp_chunks = temp_chunks
         self.emb_model = emb_model
         self.k = k
+        self.reranker = reranker
+        self.rerank_enabled = rerank_enabled and reranker is not None
+        self.rerank_candidate_k = rerank_candidate_k
 
     def query(self, question):
         """Search in both permanent and temporary indexes.
@@ -33,21 +37,23 @@ class CombinedQueryService:
             list: Combined search results from both indexes.
         """
         results = []
+        skip_rerank = self.rerank_enabled
 
         if self.permanent_query is not None:
             try:
-                permanent_results = self.permanent_query.query(question)
+                permanent_results = self.permanent_query.query(question, skip_rerank=skip_rerank)
                 results.extend(permanent_results)
             except Exception as e:
                 logger.warning(f"Failed to search in permanent index: {e}")
 
+        temp_search_k = self.rerank_candidate_k if self.rerank_enabled else self.k
         try:
             query_embedding = self.emb_model.encode([question])
             query_embedding = np.array(query_embedding, dtype=np.float32)
             faiss.normalize_L2(query_embedding)
             _, indices = self.temp_index.search(
                 query_embedding,
-                k=min(self.k, len(self.temp_chunks))
+                k=min(temp_search_k, len(self.temp_chunks))
             )
 
             temp_results = []
@@ -66,6 +72,10 @@ class CombinedQueryService:
             logger.warning(f"Failed to search in temporary index: {e}")
 
         unique_results = list(dict.fromkeys(results))
+
+        if self.rerank_enabled and self.reranker is not None:
+            return self.reranker.rerank(question, unique_results, self.k)
+
         return unique_results[:self.k * 2]
 
 
@@ -158,12 +168,20 @@ def create_combined_pipeline(
     temp_index = faiss.IndexFlatIP(temp_embeddings.shape[1])
     temp_index.add(temp_embeddings)
 
+    reranker = getattr(query_service, 'reranker', None) if query_service else None
+    rerank_enabled = bool(getattr(query_config, 'rerank_enabled', False))
+    rerank_candidate_k = int(getattr(query_config, 'rerank_candidate_k', 20))
+    k = int(getattr(query_config, 'k', 5))
+
     combined_query_service = CombinedQueryService(
         query_service,
         temp_index,
         all_chunks,
         indexing_service.emb_model,
-        k=5
+        k=k,
+        reranker=reranker,
+        rerank_enabled=rerank_enabled,
+        rerank_candidate_k=rerank_candidate_k,
     )
 
     combined_pipeline = RAGPipeline(config=query_config, query=combined_query_service, responder=responder, redis_client=redis_client)
