@@ -12,6 +12,9 @@ class FaissDB:
         self.logs_dir = config.logs_dir
         self.index = None
         self.k = k
+        self.hnsw_m = int(getattr(config, 'hnsw_m', 32))
+        self.hnsw_ef_construction = int(getattr(config, 'hnsw_ef_construction', 200))
+        self.hnsw_ef_search = int(getattr(config, 'hnsw_ef_search', 64))
         self.logger = setup_logging(self.logs_dir, 'FaissDB')
 
     def create_index(self, embeddings, replace=False):
@@ -27,8 +30,12 @@ class FaissDB:
                     self.logger.info("Replacing existing FAISS index.")
 
                 dim = embeddings.shape[1]
-                self.index = faiss.IndexFlatIP(dim)
-                self.logger.info(f"Created new FAISS index (inner product) with dimension {dim}.")
+                self.index = faiss.IndexHNSWFlat(dim, self.hnsw_m, faiss.METRIC_INNER_PRODUCT)
+                self.index.hnsw.efConstruction = self.hnsw_ef_construction
+                self.logger.info(
+                    f"Created FAISS HNSW index: dim={dim}, M={self.hnsw_m}, "
+                    f"efConstruction={self.hnsw_ef_construction}."
+                )
 
             self.index.add(np.array(embeddings, dtype=np.float32))
             faiss.write_index(self.index, self.index_path)
@@ -76,6 +83,9 @@ class FaissDB:
             return np.array([]), np.array([])
 
         actual_k = min(k, self.index.ntotal)
+
+        if hasattr(self.index, 'hnsw'):
+            self.index.hnsw.efSearch = self.hnsw_ef_search
 
         scores, ids = self.index.search(request_embedding, actual_k)
 

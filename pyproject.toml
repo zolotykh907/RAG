@@ -25,6 +25,8 @@ dependencies = [
     "pytesseract",
     "pillow",
     "PyYAML",
+    "datasets>=4.7.0",
+    "pyarrow>=23.0.1",
 ]
 
 [dependency-groups]

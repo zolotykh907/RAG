@@ -9,6 +9,7 @@ data:
   processed_data_path: ./data/processed_data.json
   incrementation_flag: true
   delete_data_flag: true
+  max_texts: 50
   image_types:
   - .jpg
   - .jpeg
@@ -23,5 +24,8 @@ data:
   - .pdf
   - .doc
 model:
-  emb_model_name: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
-  batch_size: 32
+  emb_model_name: BAAI/bge-m3
+  emb_device: mps
+  batch_size: 64
+  hnsw_m: 32
+  hnsw_ef_construction: 200

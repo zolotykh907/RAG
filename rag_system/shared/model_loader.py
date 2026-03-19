@@ -31,5 +31,11 @@ def get_hf_cache_model_path(model_name):
     if not snapshots:
         raise FileNotFoundError(f"Model {model_name} not found in local cache {cache_dir}.")
 
-    latest_snapshot = sorted(snapshots)[-1]
+    # Pick the snapshot with the most files — alphabetical sort is unreliable when
+    # multiple snapshots exist (e.g. one partial and one full download).
+    def _snapshot_file_count(name: str) -> int:
+        path = os.path.join(cache_dir, name)
+        return sum(1 for _ in os.walk(path))
+
+    latest_snapshot = max(snapshots, key=_snapshot_file_count)
     return os.path.join(cache_dir, latest_snapshot)

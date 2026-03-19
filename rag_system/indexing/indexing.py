@@ -37,8 +37,11 @@ class Indexing:
         self.batch_size = config.batch_size
         self.quality_log_path = config.quality_log_path
         self.emb_model_name = config.emb_model_name
+        self.emb_trust_remote_code = bool(getattr(config, 'emb_trust_remote_code', False))
+        self.emb_device = str(getattr(config, 'emb_device', 'cpu'))
         self.incrementation_flag = config.incrementation_flag
         self.delete_data_flag = config.delete_data_flag
+        self.max_texts = int(getattr(config, 'max_texts', 0)) or None
 
         self.data_base = data_base
         self.data_loader = data_loader
@@ -62,7 +65,11 @@ class Indexing:
         try:
             model_path = get_hf_cache_model_path(self.emb_model_name)
             self.logger.info(f"Loading embedding model from local cache: {model_path}")
-            return SentenceTransformer(model_path, device='cpu')
+            return SentenceTransformer(
+                model_path,
+                device=self.emb_device,
+                trust_remote_code=self.emb_trust_remote_code,
+            )
         except FileNotFoundError:
             return self.download_embedding_model()
         except Exception as e:
@@ -75,7 +82,8 @@ class Indexing:
         try:
             emb_model = SentenceTransformer(
                 self.emb_model_name,
-                device='cpu'
+                device=self.emb_device,
+                trust_remote_code=self.emb_trust_remote_code,
             )
             self.logger.info(f"Model {self.emb_model_name} loaded successfully")
             return emb_model
@@ -214,6 +222,9 @@ class Indexing:
                 self.load_existing_hashes()
 
             df = self.load_data(data_source=data)
+            if self.max_texts is not None:
+                df = df.head(self.max_texts)
+                self.logger.info(f"max_texts={self.max_texts}: using first {len(df)} records")
             df_clean = self.check_quality(df)
 
             if not self.incrementation_flag:
