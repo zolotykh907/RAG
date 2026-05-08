@@ -8,11 +8,13 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter
 from fastapi import HTTPException
 
+from rag_system.shared.index_snapshot import IndexSnapshotStore
+
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-# Simple mtime-based cache so processed_data.json is not read on every request
-_data_cache: Dict[str, Any] = {"mtime": None, "data": None}
+# Simple path+mtime cache so processed_data.json is not read on every request
+_data_cache: Dict[str, Any] = {"path": None, "mtime": None, "data": None}
 
 
 def _load_processed_data(path: str) -> List[Dict[str, Any]]:
@@ -21,16 +23,18 @@ def _load_processed_data(path: str) -> List[Dict[str, Any]]:
         mtime = os.path.getmtime(path)
     except OSError:
         return []
-    if _data_cache["mtime"] == mtime:
+    if _data_cache["path"] == path and _data_cache["mtime"] == mtime:
         return _data_cache["data"]
     with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
+    _data_cache["path"] = path
     _data_cache["mtime"] = mtime
     _data_cache["data"] = data
     return data
 
 
 def _invalidate_cache() -> None:
+    _data_cache["path"] = None
     _data_cache["mtime"] = None
     _data_cache["data"] = None
 
@@ -59,7 +63,7 @@ async def get_documents(limit: int = 100, offset: int = 0) -> Dict[str, Any]:
         raise HTTPException(status_code=503, detail="Indexing service not available.")
 
     try:
-        processed_data_path = main_module.query_config.processed_data_path
+        processed_data_path = IndexSnapshotStore.from_config(main_module.query_config).current_artifacts().processed_data_path
 
         if not os.path.exists(processed_data_path):
             return {"documents": [], "total_chunks": 0}
@@ -128,7 +132,7 @@ async def get_document_content(filename: str, session_id: Optional[str] = None) 
                     "is_temporary": True
                 }
 
-        processed_data_path = main_module.query_config.processed_data_path
+        processed_data_path = IndexSnapshotStore.from_config(main_module.query_config).current_artifacts().processed_data_path
         if not os.path.exists(processed_data_path):
             raise HTTPException(status_code=404, detail="No documents found")
 
@@ -162,7 +166,7 @@ async def search_documents(query: str = '') -> Dict[str, Any]:
         return {"results": [], "total_results": 0}
 
     try:
-        processed_data_path = main_module.query_config.processed_data_path
+        processed_data_path = IndexSnapshotStore.from_config(main_module.query_config).current_artifacts().processed_data_path
         if not os.path.exists(processed_data_path):
             return {"results": [], "total_results": 0}
 
@@ -211,7 +215,8 @@ async def delete_document(filename: str) -> Dict[str, Any]:
         raise HTTPException(status_code=503, detail="Database not available.")
 
     try:
-        processed_data_path = main_module.query_config.processed_data_path
+        snapshot_store = IndexSnapshotStore.from_config(main_module.query_config)
+        processed_data_path = snapshot_store.current_artifacts().processed_data_path
         if not os.path.exists(processed_data_path):
             raise HTTPException(status_code=404, detail="No documents found")
 
@@ -225,7 +230,6 @@ async def delete_document(filename: str) -> Dict[str, Any]:
         if filtered_data:
             import faiss
             import numpy as np
-            from rag_system.indexing.data_vectorize import save_embeddings
             from rag_system.query.query import Query
             from rag_system.query.pipeline import RAGPipeline
 
@@ -240,15 +244,13 @@ async def delete_document(filename: str) -> Dict[str, Any]:
             embeddings = np.array(embeddings, dtype=np.float32)
             faiss.normalize_L2(embeddings)
 
-            # All computation succeeded — now write to disk atomically
-            _write_json_atomic(processed_data_path, filtered_data)
-            save_embeddings(embeddings, indexing_svc.embeddings_path)
-            data_base.create_index(embeddings, replace=True)
+            new_index = data_base.build_index(embeddings)
+            snapshot_store.publish(filtered_data, embeddings, new_index)
+            data_base.index = new_index
 
             logger.info(f"Deleted '{filename}' ({deleted_count} chunks), reindexed remaining")
 
             try:
-                data_base.load_index()
                 query_service = Query(main_module.query_config, data_base)
                 pipeline = RAGPipeline(
                     config=main_module.query_config,
@@ -271,11 +273,8 @@ async def delete_document(filename: str) -> Dict[str, Any]:
                 main_module.redis_client.flush_cache()
 
         else:
-            data_base.clear_index()
-            embeddings_path = indexing_svc.embeddings_path
-            if os.path.exists(embeddings_path):
-                os.remove(embeddings_path)
-            _write_json_atomic(processed_data_path, [])
+            snapshot_store.clear()
+            data_base.index = None
             logger.info(f"Deleted last document '{filename}', index cleared")
 
             with main_module.services_lock:

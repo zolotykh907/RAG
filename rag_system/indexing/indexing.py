@@ -12,10 +12,9 @@ from rag_system.indexing.data_processing import check_data_quality
 from rag_system.indexing.data_processing import compute_text_hash
 from rag_system.indexing.data_processing import normalize_text
 from rag_system.indexing.data_vectorize import create_embeddings
-from rag_system.indexing.data_vectorize import load_embeddings
-from rag_system.indexing.data_vectorize import save_embeddings
 from rag_system.shared.data_base import FaissDB
 from rag_system.shared.data_loader import DataLoader
+from rag_system.shared.index_snapshot import IndexSnapshotStore
 from rag_system.shared.logs import setup_logging
 from rag_system.shared.model_loader import get_hf_cache_model_path
 
@@ -49,6 +48,7 @@ class Indexing:
 
         self.data_base = data_base
         self.data_loader = data_loader
+        self.snapshot_store = IndexSnapshotStore.from_config(config)
 
         self.existing_hashes: List[str] = []
         self.embeddings_path: str = os.path.join(config.data_dir, "embeddings.npy")
@@ -123,20 +123,14 @@ class Indexing:
 
     def load_existing_hashes(self) -> None:
         """Load texts hashes from processed data file."""
-        if os.path.exists(self.processed_data_path):
-            with open(self.processed_data_path, 'r') as f:
-                processed_data = json.load(f)
-
-            if processed_data:
-                df = pd.DataFrame(processed_data)
-                self.existing_hashes = df['hash'].tolist()
-                self.logger.info(f"Loaded {len(self.existing_hashes)} existing hashes")
-            else:
-                self.existing_hashes = []
-                self.logger.info("No existing hashes found")
+        processed_data = self.snapshot_store.load_processed_data()
+        if processed_data:
+            df = pd.DataFrame(processed_data)
+            self.existing_hashes = df['hash'].tolist()
+            self.logger.info(f"Loaded {len(self.existing_hashes)} existing hashes")
         else:
             self.existing_hashes = []
-            self.logger.info(f"No existing hashes found at {self.processed_data_path}.")
+            self.logger.info("No existing hashes found.")
 
     def check_quality(self, df: pd.DataFrame) -> pd.DataFrame:
         """Data quality check and save results.
@@ -158,17 +152,7 @@ class Indexing:
     def save_processed_data(self, df: pd.DataFrame) -> None:
         """Save processed data, merging with existing if incrementing."""
         try:
-            if self.incrementation_flag and os.path.exists(self.processed_data_path):
-                with open(self.processed_data_path, 'r', encoding='utf-8') as f:
-                    existing_data = json.load(f)
-
-                existing_df = pd.DataFrame(existing_data)
-                combined_df = pd.concat([existing_df, df], ignore_index=True)
-
-                combined_df = combined_df.drop_duplicates(subset=['hash'], keep='first')
-            else:
-                combined_df = df
-
+            combined_df = self.build_processed_data(df)
             combined_df.to_json(
                 self.processed_data_path,
                 orient='records',
@@ -181,6 +165,16 @@ class Indexing:
         except Exception as e:
             self.logger.error(f"Failed to save processed data: {e}")
             raise
+
+    def build_processed_data(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Merge new processed chunks with the current snapshot without writing to disk."""
+        if self.incrementation_flag:
+            existing_data = self.snapshot_store.load_processed_data()
+            if existing_data:
+                existing_df = pd.DataFrame(existing_data)
+                combined_df = pd.concat([existing_df, df], ignore_index=True)
+                return combined_df.drop_duplicates(subset=['hash'], keep='first')
+        return df
 
     def split_to_chunks(self, df: pd.DataFrame, source_file: Optional[str] = None) -> pd.DataFrame:
         """Split texts into chunks.
@@ -218,11 +212,10 @@ class Indexing:
             # Extract source filename
             source_file = os.path.basename(data) if data else 'unknown'
 
-            if not self.incrementation_flag:
-                self.clear_existing_data()
-                self.existing_hashes = []
-            else:
+            if self.incrementation_flag:
                 self.load_existing_hashes()
+            else:
+                self.existing_hashes = []
 
             df = self.load_data(data_source=data)
             if self.max_texts is not None:
@@ -272,33 +265,52 @@ class Indexing:
                 batch_size=self.batch_size,
             )
 
-            # All heavy computation succeeded — now persist to disk atomically:
-            # save processed_data FIRST, then embeddings, then index.
-            # This way texts and vectors stay in sync.
-            new_hashes: List[str] = df_chunks_new['hash'].tolist()
-
-            self.save_processed_data(df_chunks_new)
+            combined_df = self.build_processed_data(df_chunks_new)
 
             if self.incrementation_flag:
-                existing_embeddings = load_embeddings(self.embeddings_path)
-                if existing_embeddings is not None:
+                existing_embeddings = self.snapshot_store.load_embeddings()
+                existing_count = len(combined_df) - len(df_chunks_new)
+                if existing_embeddings is not None and existing_embeddings.shape[0] == existing_count:
                     all_embeddings = np.vstack([existing_embeddings, new_embeddings])
                     self.logger.info(
                         f"Combined embeddings: existing {existing_embeddings.shape[0]} + "
                         f"new {new_embeddings.shape[0]} = {all_embeddings.shape[0]}"
                     )
+                elif existing_count:
+                    self.logger.warning(
+                        "Existing embeddings are missing or inconsistent; rebuilding embeddings for the full snapshot."
+                    )
+                    all_embeddings = create_embeddings(
+                        combined_df['text'].tolist(),
+                        self.emb_model,
+                        batch_size=self.batch_size,
+                    )
                 else:
                     all_embeddings = new_embeddings
                     self.logger.info("Created new embeddings (no existing found)")
-
-                save_embeddings(all_embeddings, self.embeddings_path)
-                self.data_base.create_index(all_embeddings, replace=True)
-                self.existing_hashes.extend(new_hashes)
             else:
-                save_embeddings(new_embeddings, self.embeddings_path)
-                self.data_base.create_index(new_embeddings, replace=True)
+                all_embeddings = new_embeddings
+
+            if len(combined_df) != all_embeddings.shape[0]:
+                raise ValueError(
+                    f"Processed data count ({len(combined_df)}) does not match embeddings count ({all_embeddings.shape[0]})"
+                )
+
+            new_index = self.data_base.build_index(all_embeddings)
+            artifacts = self.snapshot_store.publish(
+                combined_df.to_dict(orient='records'),
+                all_embeddings,
+                new_index,
+            )
+            self.data_base.index = new_index
+
+            if self.incrementation_flag:
+                self.existing_hashes = combined_df['hash'].tolist()
+            else:
+                new_hashes: List[str] = df_chunks_new['hash'].tolist()
                 self.existing_hashes = new_hashes
                 self.logger.info("Created new embeddings")
+            self.logger.info(f"Published index snapshot {artifacts.snapshot_id}")
 
         except Exception as e:
             self.logger.error(f"Indexing error: {e}")
@@ -306,29 +318,18 @@ class Indexing:
                 # Restore index from disk to keep data_base in sync with existing data
                 self.logger.info("Restoring index from disk after failed incremental indexing...")
                 try:
-                    self.data_base.load_index()
+                    artifacts = self.snapshot_store.current_artifacts()
+                    self.data_base.load_index(artifacts.index_path)
                 except Exception:
                     self.logger.warning("Could not restore index from disk")
-            elif self.delete_data_flag:
-                self.clear_existing_data()
             raise
 
     def clear_existing_data(self) -> None:
         """Clear existing processed data and embeddings."""
-        files_to_remove = [
-            self.processed_data_path,
-            self.embeddings_path,
-            self.index_path
-        ]
-
-        for file_path in files_to_remove:
-            if os.path.exists(file_path):
-                os.remove(file_path)
-                self.logger.info(f"Removed existing file: {file_path}")
-
-        if not self.incrementation_flag:
-            self.existing_hashes = []
-            self.logger.info("Cleared existing hashes (incrementation disabled)")
+        self.snapshot_store.clear()
+        self.data_base.index = None
+        self.existing_hashes = []
+        self.logger.info("Cleared existing hashes")
 
     def clear_data(self) -> None:
         """Clear all indexed data (alias for clear_existing_data)."""

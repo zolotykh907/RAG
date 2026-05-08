@@ -15,6 +15,7 @@ from rag_system.api.services import process_file_temp
 from rag_system.api.temp_storage import temp_index_manager
 from rag_system.query.query import Query
 from rag_system.query.pipeline import RAGPipeline
+from rag_system.shared.index_snapshot import IndexSnapshotStore
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -117,9 +118,10 @@ async def upload_file(file: UploadFile = File(...)) -> Dict[str, Any]:
             )
             logger.info("End indexing!")
 
-            if os.path.exists(main_module.query_config.processed_data_path) and os.path.exists(main_module.query_config.index_path):
+            artifacts = IndexSnapshotStore.from_config(main_module.query_config).current_artifacts()
+            if os.path.exists(artifacts.processed_data_path) and os.path.exists(artifacts.index_path):
                 try:
-                    data_base.load_index(main_module.query_config.index_path)
+                    data_base.load_index(artifacts.index_path)
 
                     query_service = Query(main_module.query_config, data_base)
                     pipeline = RAGPipeline(

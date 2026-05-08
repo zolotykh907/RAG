@@ -2,6 +2,7 @@ import hashlib
 import os
 from typing import Any, Dict, List, Optional
 
+from rag_system.shared.index_snapshot import IndexSnapshotStore
 from rag_system.shared.logs import setup_logging
 from rag_system.query.highlight import find_highlights
 
@@ -26,11 +27,24 @@ def build_cache_namespace(
     """Build a cache namespace from the corpus and generation settings."""
     prompt_template = str(getattr(config, "prompt_template", ""))
     prompt_hash = hashlib.sha256(prompt_template.encode("utf-8")).hexdigest()
+    index_path: Any
+    processed_data_path: Any
+    snapshot_id: str
+    try:
+        artifacts = IndexSnapshotStore.from_config(config).current_artifacts()
+        index_path = artifacts.index_path
+        processed_data_path = artifacts.processed_data_path
+        snapshot_id = artifacts.snapshot_id or "legacy"
+    except Exception:
+        index_path = getattr(config, 'index_path', None)
+        processed_data_path = getattr(config, 'processed_data_path', None)
+        snapshot_id = "unknown"
 
     parts = [
         prefix,
-        f"index={_path_signature(getattr(config, 'index_path', None))}",
-        f"data={_path_signature(getattr(config, 'processed_data_path', None))}",
+        f"snapshot={snapshot_id}",
+        f"index={_path_signature(index_path)}",
+        f"data={_path_signature(processed_data_path)}",
         f"llm={getattr(config, 'llm', '')}",
         f"emb={getattr(config, 'emb_model_name', '')}",
         f"prompt={prompt_hash}",

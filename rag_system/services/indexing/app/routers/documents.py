@@ -10,6 +10,7 @@ from fastapi import HTTPException
 
 from rag_system.services.indexing.app.main import get_indexing_service
 from rag_system.services.indexing.app.main import shared_config
+from rag_system.shared.index_snapshot import IndexSnapshotStore
 
 logger = logging.getLogger(__name__)
 router: APIRouter = APIRouter()
@@ -23,7 +24,7 @@ async def get_documents():
         dict: List of documents with metadata.
     """
     try:
-        processed_data_path = shared_config.processed_data_path
+        processed_data_path = IndexSnapshotStore.from_config(shared_config).current_artifacts().processed_data_path
 
         if not os.path.exists(processed_data_path):
             return {"documents": [], "total_chunks": 0}
@@ -79,7 +80,7 @@ async def get_document_content(filename: str):
         dict: Document content with all chunks.
     """
     try:
-        processed_data_path = shared_config.processed_data_path
+        processed_data_path = IndexSnapshotStore.from_config(shared_config).current_artifacts().processed_data_path
 
         if not os.path.exists(processed_data_path):
             raise HTTPException(status_code=404, detail="No documents found")
@@ -126,7 +127,8 @@ async def delete_document(
         raise HTTPException(status_code=503, detail="Database not available")
 
     try:
-        processed_data_path = shared_config.processed_data_path
+        snapshot_store = IndexSnapshotStore.from_config(shared_config)
+        processed_data_path = snapshot_store.current_artifacts().processed_data_path
 
         if not os.path.exists(processed_data_path):
             raise HTTPException(status_code=404, detail="No documents found")
@@ -142,16 +144,11 @@ async def delete_document(
         if deleted_count == 0:
             raise HTTPException(status_code=404, detail=f"Document '{filename}' not found")
 
-        # Save filtered data
-        with open(processed_data_path, 'w', encoding='utf-8') as f:
-            json.dump(filtered_data, f, ensure_ascii=False, indent=2)
-
         # Reindex if there's remaining data
         if filtered_data:
             # Re-create embeddings and index
             import faiss
             import numpy as np
-            from rag_system.indexing.data_vectorize import save_embeddings
 
             embedding_model = indexing_service.load_local_embedding_model()
             texts = [item['text'] for item in filtered_data]
@@ -159,11 +156,9 @@ async def delete_document(
             embeddings = np.array(embeddings, dtype=np.float32)
             faiss.normalize_L2(embeddings)
 
-            # Save embeddings
-            save_embeddings(embeddings, indexing_service.embeddings_path)
-
-            # Recreate index
-            data_base.create_index(embeddings, replace=True)
+            new_index = data_base.build_index(embeddings)
+            snapshot_store.publish(filtered_data, embeddings, new_index)
+            data_base.index = new_index
 
             logger.info(f"Deleted '{filename}' ({deleted_count} chunks), reindexed remaining")
 
@@ -175,10 +170,8 @@ async def delete_document(
                 logger.warning(f"Failed to notify query service: {str(e)}")
         else:
             # No data left, clear everything
-            data_base.clear_index()
-
-            if os.path.exists(indexing_service.embeddings_path):
-                os.remove(indexing_service.embeddings_path)
+            snapshot_store.clear()
+            data_base.index = None
 
             logger.info(f"Deleted last document '{filename}', index cleared")
 
@@ -216,7 +209,7 @@ async def search_documents(query: str = ''):
         return {"results": [], "total_results": 0}
 
     try:
-        processed_data_path = shared_config.processed_data_path
+        processed_data_path = IndexSnapshotStore.from_config(shared_config).current_artifacts().processed_data_path
 
         if not os.path.exists(processed_data_path):
             return {"results": [], "total_results": 0}

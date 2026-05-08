@@ -30,12 +30,9 @@ class FaissDB:
                 if replace and self.index is not None:
                     self.logger.info("Replacing existing FAISS index.")
 
-                dim = embeddings.shape[1]
-                index = faiss.IndexHNSWFlat(dim, self.hnsw_m, faiss.METRIC_INNER_PRODUCT)
-                index.hnsw.efConstruction = self.hnsw_ef_construction
-                self.index = index
+                self.index = self.build_index(embeddings, add_embeddings=False)
                 self.logger.info(
-                    f"Created FAISS HNSW index: dim={dim}, M={self.hnsw_m}, "
+                    f"Created FAISS HNSW index: dim={embeddings.shape[1]}, M={self.hnsw_m}, "
                     f"efConstruction={self.hnsw_ef_construction}."
                 )
 
@@ -46,6 +43,15 @@ class FaissDB:
         except Exception as e:
             self.logger.error(f'Error adding embeddings or creating index: {e}')
             raise
+
+    def build_index(self, embeddings: np.ndarray, add_embeddings: bool = True) -> faiss.Index:
+        """Build a FAISS HNSW index in memory without writing it to disk."""
+        dim = embeddings.shape[1]
+        index = faiss.IndexHNSWFlat(dim, self.hnsw_m, faiss.METRIC_INNER_PRODUCT)
+        index.hnsw.efConstruction = self.hnsw_ef_construction
+        if add_embeddings:
+            index.add(np.array(embeddings, dtype=np.float32))
+        return index
 
     def load_index(self, index_path: Optional[str] = None) -> None:
         """Load the FAISS index from file.
@@ -103,8 +109,8 @@ class FaissDB:
         """Deletes the FAISS index."""
         if os.path.exists(self.index_path):
             os.remove(self.index_path)
-            self.index = None
             self.logger.info(f'Deleted index at {self.index_path}')
+        self.index = None
 
     def clear_index(self) -> None:
         """Clears the FAISS index (alias for delete_index)."""

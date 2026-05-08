@@ -21,6 +21,7 @@ from rag_system.shared.logs import setup_logging
 from rag_system.shared.my_config import Config as SharedConfig
 from rag_system.shared.data_base import FaissDB
 from rag_system.shared.data_loader import DataLoader
+from rag_system.shared.index_snapshot import IndexSnapshotStore
 from rag_system.query.query import Query
 from rag_system.query.pipeline import RAGPipeline
 from rag_system.query.llm import LLMResponder
@@ -63,7 +64,8 @@ def initialize_services():
             shared_config = SharedConfig(_os.path.join(_RAG_DIR, 'indexing', 'config.yaml'))
             data_base = FaissDB(shared_config)
 
-            if os.path.exists(query_config.index_path):
+            artifacts = IndexSnapshotStore.from_config(query_config).current_artifacts()
+            if os.path.exists(artifacts.index_path):
                 query_service = Query(query_config, data_base)
                 pipeline = RAGPipeline(
                     config=query_config,
@@ -168,7 +170,8 @@ async def reload_index():
     global query_service, pipeline, data_base
 
     try:
-        if not os.path.exists(query_config.index_path):
+        artifacts = IndexSnapshotStore.from_config(query_config).current_artifacts()
+        if not os.path.exists(artifacts.index_path):
             logger.warning("Index file not found for reload")
             return {"status": "no_index", "message": "No index file found"}
 
@@ -177,7 +180,7 @@ async def reload_index():
             _indexing_cfg = SharedConfig(_os.path.join(_RAG_DIR, 'indexing', 'config.yaml'))
             data_base = FaissDB(_indexing_cfg)
 
-        data_base.load_index(query_config.index_path)
+        data_base.load_index(artifacts.index_path)
 
         # Reinitialize query service and pipeline
         query_service = Query(query_config, data_base)

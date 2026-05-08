@@ -7,6 +7,8 @@ import numpy as np
 from sentence_transformers import SentenceTransformer
 
 from rag_system.shared.data_base import FaissDB
+from rag_system.shared.index_snapshot import IndexArtifacts
+from rag_system.shared.index_snapshot import IndexSnapshotStore
 from rag_system.shared.logs import setup_logging
 from rag_system.shared.model_loader import get_hf_cache_model_path
 from rag_system.query.reranker import CrossEncoderReranker
@@ -23,9 +25,11 @@ class Query:
             data_base: FaissDB instance for vector search.
         """
         self.data_base = data_base
-        self.index_path: str = config.index_path
+        self.snapshot_store = IndexSnapshotStore.from_config(config)
+        self.artifacts: IndexArtifacts = self.snapshot_store.current_artifacts()
+        self.index_path: str = self.artifacts.index_path
         self.logs_dir: str = config.logs_dir
-        self.processed_data_path: str = config.processed_data_path
+        self.processed_data_path: str = self.artifacts.processed_data_path
         self.emb_model_name: str = config.emb_model_name
         self.emb_trust_remote_code: bool = bool(getattr(config, 'emb_trust_remote_code', False))
         self.emb_device: str = str(getattr(config, 'emb_device', 'cpu'))
@@ -38,6 +42,8 @@ class Query:
 
         self.logger = setup_logging(self.logs_dir, 'QueryService')
         self.data_base.load_index(self.index_path)
+        if self.data_base.index is None:
+            raise FileNotFoundError(f"Index file not found or failed to load at {self.index_path}")
         self.load_texts()
         self.embedding_model: SentenceTransformer = self.load_local_embedding_model()
         self.reranker = CrossEncoderReranker(config)
