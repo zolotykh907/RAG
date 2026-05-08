@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any, Generator, List, Union
 
 import pytesseract
 from PIL import Image
@@ -8,13 +9,13 @@ from rag_system.shared.logs import setup_logging
 
 
 class OCR:
-    def __init__(self, config):
-        self.logs_dir = config.logs_dir
+    def __init__(self, config: Any) -> None:
+        self.logs_dir: str = config.logs_dir
         self.logger = setup_logging(self.logs_dir, 'OCRsystem')
-        self.image_types = config.image_types
-        self.doc_types = config.doc_types
+        self.image_types: tuple = config.image_types
+        self.doc_types: tuple = config.doc_types
 
-    def rotate_image(self, img):
+    def rotate_image(self, img: Image.Image) -> Image.Image:
         try:
             osd = pytesseract.image_to_osd(img, output_type='dict')
             angle = osd['orientation']
@@ -23,12 +24,12 @@ class OCR:
             self.logger.info(f"Error determining orientation: {e}")
             return img
 
-    def get_text_from_image(self, img):
+    def get_text_from_image(self, img: Image.Image) -> str:
         img = self.rotate_image(img)
-        text = pytesseract.image_to_string(image=img, lang='rus+eng')
+        text: str = pytesseract.image_to_string(image=img, lang='rus+eng')
         return text
 
-    def load_pages(self, path, dpi=150):
+    def load_pages(self, path: Union[str, Path], dpi: int = 150) -> Generator[Image.Image, None, None]:
         path = Path(path)
 
         if path.suffix.lower() == '.pdf':
@@ -59,8 +60,8 @@ class OCR:
             except Exception as e:
                 self.logger.error(f"Error opening image {path}: {e}")
 
-    def run_ocr(self, path):
-        texts = []
+    def run_ocr(self, path: Union[str, Path]) -> List[str]:
+        texts: List[str] = []
         try:
             for i, page in enumerate(self.load_pages(path), 1):
                 self.logger.info(f"Processing page {i}")

@@ -2,6 +2,7 @@
 
 import logging
 from fastapi import APIRouter
+from fastapi.responses import JSONResponse
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -31,6 +32,6 @@ async def readiness_check():
 
     # Query service can be ready even without pipeline (it will be initialized after first upload)
     if main_module.responder is None or main_module.redis_client is None:
-        return {"status": "not_ready"}, 503
+        return JSONResponse(content={"status": "not_ready"}, status_code=503)
 
     return {"status": "ready"}

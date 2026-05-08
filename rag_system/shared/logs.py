@@ -3,16 +3,16 @@ import logging
 from logging.handlers import RotatingFileHandler
 
 
-def setup_logging(logs_dir, logger_name, level='INFO'):
+def setup_logging(logs_dir: str, logger_name: str, level: str = 'INFO') -> logging.Logger:
     """Configure logging to write to console and file.
 
     Args:
-        logs_dir (str): Directory for log files
-        logger_name (str): Name of the logger
-        level (str): Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+        logs_dir: Directory for log files.
+        logger_name: Name of the logger.
+        level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL).
 
     Returns:
-        logging.Logger: Configured logger instance
+        logging.Logger: Configured logger instance.
     """
     os.makedirs(logs_dir, exist_ok=True)
 
@@ -36,7 +36,7 @@ def setup_logging(logs_dir, logger_name, level='INFO'):
     file_handler = RotatingFileHandler(
         log_file,
         maxBytes=1024*1024*5,  # 5MB
-        backupCount=1,
+        backupCount=5,
         encoding='utf-8'
     )
     file_handler.setFormatter(formatter)

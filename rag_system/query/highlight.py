@@ -1,27 +1,32 @@
 import re
 from difflib import SequenceMatcher
+from typing import Dict, List, Optional, Tuple
 
 
-def _split_sentences(text):
+def _split_sentences(text: str) -> List[str]:
     """Split text into sentences."""
     sentences = re.split(r'(?<=[.!?])\s+', text.strip())
     return [s.strip() for s in sentences if s.strip()]
 
 
-def _extract_ngrams(sentence, min_n=3, max_n=6):
+def _extract_ngrams(sentence: str, min_n: int = 3, max_n: int = 6) -> List[str]:
     """Extract word n-grams from a sentence."""
     words = sentence.split()
     if len(words) < min_n:
         return [sentence] if len(words) >= 2 else []
 
-    ngrams = []
+    ngrams: List[str] = []
     for n in range(max_n, min_n - 1, -1):
         for i in range(len(words) - n + 1):
             ngrams.append(' '.join(words[i:i + n]))
     return ngrams
 
 
-def _find_fuzzy_match(ngram, source_text, threshold=0.7):
+def _find_fuzzy_match(
+    ngram: str,
+    source_text: str,
+    threshold: float = 0.7,
+) -> Optional[Tuple[int, int]]:
     """Find the best fuzzy match for an n-gram in source text.
 
     Returns (start, end) character offsets or None if no match above threshold.
@@ -36,7 +41,7 @@ def _find_fuzzy_match(ngram, source_text, threshold=0.7):
         return pos, pos + ngram_len
 
     # Sliding window fuzzy match
-    best_ratio = 0
+    best_ratio = 0.0
     best_start = -1
     best_end = -1
 
@@ -59,13 +64,13 @@ def _find_fuzzy_match(ngram, source_text, threshold=0.7):
     return None
 
 
-def _merge_ranges(ranges):
+def _merge_ranges(ranges: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
     """Merge overlapping or adjacent ranges."""
     if not ranges:
         return []
 
     sorted_ranges = sorted(ranges, key=lambda x: x[0])
-    merged = [sorted_ranges[0]]
+    merged: List[Tuple[int, int]] = [sorted_ranges[0]]
 
     for start, end in sorted_ranges[1:]:
         prev_start, prev_end = merged[-1]
@@ -77,7 +82,10 @@ def _merge_ranges(ranges):
     return merged
 
 
-def find_highlights(answer, source_texts):
+def find_highlights(
+    answer: str,
+    source_texts: List[str],
+) -> List[List[Dict[str, int]]]:
     """Find fragments in source texts that were used to generate the answer.
 
     Args:
@@ -93,14 +101,14 @@ def find_highlights(answer, source_texts):
 
     sentences = _split_sentences(answer)
 
-    all_highlights = []
+    all_highlights: List[List[Dict[str, int]]] = []
 
     for source in source_texts:
         if not source:
             all_highlights.append([])
             continue
 
-        ranges = []
+        ranges: List[Tuple[int, int]] = []
 
         for sentence in sentences:
             ngrams = _extract_ngrams(sentence)

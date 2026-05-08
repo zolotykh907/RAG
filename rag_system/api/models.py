@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import List, Optional
 
 
 class QueryRequest(BaseModel):
@@ -11,5 +11,5 @@ class QueryRequest(BaseModel):
 class QueryResponse(BaseModel):
     """Response model for RAG query endpoint."""
     answer: str
-    texts: list
-    highlights: list = []
+    texts: List[str]
+    highlights: List[str] = []

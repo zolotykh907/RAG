@@ -1,8 +1,10 @@
+import asyncio
 import os
 import shutil
 import uuid
 import logging
 from tempfile import TemporaryDirectory
+from typing import Any, Dict
 
 from fastapi import APIRouter
 from fastapi import HTTPException
@@ -17,6 +19,7 @@ from rag_system.query.pipeline import RAGPipeline
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+
 def _safe_filename(filename: str) -> str:
     base = os.path.basename(filename or "").strip().replace("\x00", "")
     if base in ("", ".", ".."):
@@ -25,34 +28,42 @@ def _safe_filename(filename: str) -> str:
 
 
 @router.post('/upload-temp')
-async def upload_temp_file(file: UploadFile = File(...)):
+async def upload_temp_file(file: UploadFile = File(...)) -> Dict[str, Any]:
     """Upload and temporarily index a file for session use.
 
     Args:
-        file (UploadFile): The file to be uploaded and indexed.
+        file: The file to be uploaded and indexed.
 
     Returns:
-        dict: Confirmation message with session ID and chunk count."""
+        dict: Confirmation message with session ID and chunk count.
+    """
     import rag_system.api.main as main_module
 
-    if main_module.indexing_service is None:
+    indexing_svc = main_module.indexing_service
+    data_loader = main_module.data_loader
+    if indexing_svc is None:
         raise HTTPException(
             status_code=503,
             detail="Indexing service not available. Please check configuration and try again."
         )
+    if data_loader is None:
+        raise HTTPException(status_code=503, detail="Data loader not available.")
 
     try:
         session_id = temp_index_manager.generate_session_id()
 
         with TemporaryDirectory() as temp_dir:
-            safe_name = _safe_filename(file.filename)
+            safe_name = _safe_filename(file.filename or "upload")
             temp_path = os.path.join(temp_dir, safe_name)
             logger.info(f"Temporary file saved: {temp_path}")
 
+            loop = asyncio.get_running_loop()
             with open(temp_path, "wb") as f:
-                shutil.copyfileobj(file.file, f)
+                await loop.run_in_executor(None, lambda: shutil.copyfileobj(file.file, f))
 
-            temp_data = process_file_temp(temp_path, main_module.data_loader, main_module.indexing_service)
+            temp_data = await loop.run_in_executor(
+                None, process_file_temp, temp_path, data_loader, indexing_svc
+            )
 
             temp_index_manager.add_temp_index(session_id, temp_data)
 
@@ -69,27 +80,30 @@ async def upload_temp_file(file: UploadFile = File(...)):
 
 
 @router.post('/upload-files')
-async def upload_file(file: UploadFile = File(...)):
+async def upload_file(file: UploadFile = File(...)) -> Dict[str, Any]:
     """Upload and index a file.
 
     Args:
-        file (UploadFile): The file to be uploaded and indexed.
+        file: The file to be uploaded and indexed.
 
     Returns:
         dict: Confirmation message indicating successful indexing.
     """
     import rag_system.api.main as main_module
 
-    if main_module.indexing_service is None:
+    indexing_svc = main_module.indexing_service
+    data_base = main_module.data_base
+
+    if indexing_svc is None:
         raise HTTPException(
             status_code=503,
             detail="Indexing service not available. Please check configuration and try again."
         )
-    if main_module.data_base is None:
+    if data_base is None:
         raise HTTPException(status_code=503, detail="Database not available.")
 
     with TemporaryDirectory() as temp_dir:
-        safe_name = _safe_filename(file.filename)
+        safe_name = _safe_filename(file.filename or "upload")
         temp_path = os.path.join(temp_dir, safe_name)
         logger.info(f"File saved to temp directory: {temp_path}")
         with open(temp_path, "wb") as f:
@@ -97,14 +111,17 @@ async def upload_file(file: UploadFile = File(...)):
 
         try:
             logger.info("Start indexing...")
-            main_module.indexing_service.run_indexing(data=temp_path)
+            loop = asyncio.get_running_loop()
+            await loop.run_in_executor(
+                None, lambda: indexing_svc.run_indexing(data=temp_path)
+            )
             logger.info("End indexing!")
 
             if os.path.exists(main_module.query_config.processed_data_path) and os.path.exists(main_module.query_config.index_path):
                 try:
-                    main_module.data_base.load_index(main_module.query_config.index_path)
+                    data_base.load_index(main_module.query_config.index_path)
 
-                    query_service = Query(main_module.query_config, main_module.data_base)
+                    query_service = Query(main_module.query_config, data_base)
                     pipeline = RAGPipeline(
                         config=main_module.query_config,
                         query=query_service,
@@ -117,6 +134,8 @@ async def upload_file(file: UploadFile = File(...)):
                         main_module.pipeline = pipeline
 
                     logger.info('Query service and pipeline reinitialized after indexing.')
+                    if main_module.redis_client is not None:
+                        main_module.redis_client.flush_cache()
                     return {"message": "File processed and indexed successfully.", "query_service_restarted": True}
                 except Exception as e:
                     logger.warning(f'Failed to reinitialize query service after indexing: {str(e)}')
@@ -131,32 +150,37 @@ async def upload_file(file: UploadFile = File(...)):
 
 
 @router.delete('/clear-temp/{session_id}')
-async def clear_temp_session(session_id: str):
+async def clear_temp_session(session_id: str) -> Dict[str, Any]:
     """Clear temporary session data."""
     try:
         if temp_index_manager.remove_temp_index(session_id):
             return {"message": "Session cleared successfully"}
         else:
             raise HTTPException(status_code=404, detail="Session not found")
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to clear session {session_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.delete('/clear-index')
-async def clear_permanent_index():
+async def clear_permanent_index() -> Dict[str, Any]:
     """Clear all permanently indexed data."""
     import rag_system.api.main as main_module
 
-    if main_module.indexing_service is None:
+    indexing_svc = main_module.indexing_service
+    data_base = main_module.data_base
+
+    if indexing_svc is None:
         raise HTTPException(status_code=503, detail="Indexing service not available.")
-    if main_module.data_base is None:
+    if data_base is None:
         raise HTTPException(status_code=503, detail="Database not available.")
 
     try:
-        main_module.data_base.clear_index()
-        main_module.indexing_service.clear_data()
-        main_module.indexing_service.existing_hashes = []
+        data_base.clear_index()
+        indexing_svc.clear_data()
+        indexing_svc.existing_hashes = []
 
         with main_module.services_lock:
             main_module.query_service = None
@@ -170,7 +194,7 @@ async def clear_permanent_index():
 
 
 @router.get('/temp-files/{session_id}')
-async def get_temp_files_info(session_id: str):
+async def get_temp_files_info(session_id: str) -> Dict[str, Any]:
     """Get information about all temporary files for a specific session."""
     try:
         temp_data_list = temp_index_manager.get_temp_index(session_id)
@@ -209,7 +233,7 @@ async def get_temp_files_info(session_id: str):
 
 
 @router.delete('/temp-files/{session_id}/{filename}')
-async def delete_temp_file(session_id: str, filename: str):
+async def delete_temp_file(session_id: str, filename: str) -> Dict[str, Any]:
     """Delete a specific temporary file from a session."""
     try:
         removed = temp_index_manager.remove_temp_file(session_id, filename)

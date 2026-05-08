@@ -1,10 +1,12 @@
 import json
 import os
+from typing import Any, List, Optional
 
 import faiss
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
+from rag_system.shared.data_base import FaissDB
 from rag_system.shared.logs import setup_logging
 from rag_system.shared.model_loader import get_hf_cache_model_path
 from rag_system.query.reranker import CrossEncoderReranker
@@ -12,34 +14,36 @@ from rag_system.query.reranker import CrossEncoderReranker
 
 class Query:
     """A class for preprocessing the question and semantic searching."""
-    def __init__(self, config, data_base):
+
+    def __init__(self, config: Any, data_base: FaissDB) -> None:
         """Initialize the Query service with configuration parameters.
 
         Args:
             config: configuration object with parameters.
+            data_base: FaissDB instance for vector search.
         """
         self.data_base = data_base
-        self.index_path = config.index_path
-        self.logs_dir = config.logs_dir
-        self.processed_data_path = config.processed_data_path
-        self.emb_model_name = config.emb_model_name
-        self.emb_trust_remote_code = bool(getattr(config, 'emb_trust_remote_code', False))
-        self.emb_device = str(getattr(config, 'emb_device', 'cpu'))
-        self.data = None
-        self.texts = None
-        self.k = config.k
-        self.rerank_enabled = bool(getattr(config, 'rerank_enabled', False))
-        self.rerank_candidate_k = int(getattr(config, 'rerank_candidate_k', self.k))
-        self.vector_candidate_k = int(getattr(config, 'vector_candidate_k', max(self.rerank_candidate_k, self.k * 8)))
+        self.index_path: str = config.index_path
+        self.logs_dir: str = config.logs_dir
+        self.processed_data_path: str = config.processed_data_path
+        self.emb_model_name: str = config.emb_model_name
+        self.emb_trust_remote_code: bool = bool(getattr(config, 'emb_trust_remote_code', False))
+        self.emb_device: str = str(getattr(config, 'emb_device', 'cpu'))
+        self.data: Optional[List[Any]] = None
+        self.texts: Optional[List[str]] = None
+        self.k: int = config.k
+        self.rerank_enabled: bool = bool(getattr(config, 'rerank_enabled', False))
+        self.rerank_candidate_k: int = int(getattr(config, 'rerank_candidate_k', self.k))
+        self.vector_candidate_k: int = int(getattr(config, 'vector_candidate_k', max(self.rerank_candidate_k, self.k * 8)))
 
         self.logger = setup_logging(self.logs_dir, 'QueryService')
         self.data_base.load_index(self.index_path)
         self.load_texts()
-        self.embedding_model = self.load_local_embedding_model()
+        self.embedding_model: SentenceTransformer = self.load_local_embedding_model()
         self.reranker = CrossEncoderReranker(config)
         self.rerank_enabled = self.rerank_enabled and self.reranker.enabled
 
-    def load_local_embedding_model(self):
+    def load_local_embedding_model(self) -> SentenceTransformer:
         try:
             model_path = get_hf_cache_model_path(self.emb_model_name)
             self.logger.info(f"Loading embedding model from local cache: {model_path}")
@@ -55,7 +59,7 @@ class Query:
             self.logger.error(f'Error loading model from cache: {e}')
             raise
 
-    def download_embedding_model(self):
+    def download_embedding_model(self) -> SentenceTransformer:
         try:
             return SentenceTransformer(
                 self.emb_model_name,
@@ -66,7 +70,7 @@ class Query:
             self.logger.error(f'Error downloading embedding model {self.emb_model_name}: {e}')
             raise
 
-    def load_texts(self):
+    def load_texts(self) -> None:
         """Load the processed text from file."""
         if not os.path.exists(self.processed_data_path):
             raise FileNotFoundError(f"Data file not found at {self.processed_data_path}")
@@ -87,11 +91,11 @@ class Query:
             self.logger.error(f"Failed to load data from {self.processed_data_path}: {str(e)}")
             raise
 
-    def normalize_text(self, text):
+    def normalize_text(self, text: str) -> str:
         """Normalize input text for search.
 
         Args:
-            text (str): input text to normalize.
+            text: input text to normalize.
 
         Returns:
             str: normalized text.
@@ -101,21 +105,21 @@ class Query:
 
         return text.strip()
 
-    def query(self, request, skip_rerank=False):
+    def query(self, request: str, skip_rerank: bool = False) -> List[str]:
         """Semantic search query.
 
         Args:
-            request (str): search query string.
-            skip_rerank (bool): if True, return full candidate set without reranking or truncation.
+            request: search query string.
+            skip_rerank: if True, return full candidate set without reranking or truncation.
 
         Returns:
-            list[str]: list of top-k most similar texts from the dataset
+            list[str]: list of top-k most similar texts from the dataset.
         """
         if not isinstance(request, str):
             raise ValueError("Request must be a string.")
 
         try:
-            res = []
+            res: List[str] = []
 
             request = self.normalize_text(request)
             try:

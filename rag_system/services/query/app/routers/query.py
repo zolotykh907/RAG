@@ -40,28 +40,25 @@ async def query_rag(request: QueryRequest):
     query_service = main_module.query_service
     responder = main_module.responder
     redis_client = main_module.redis_client
-    from rag_system.api.temp_storage import temp_index_manager
-    from rag_system.api.services import create_combined_pipeline
+    from rag_system.shared.temp_storage import temp_index_manager
+    from rag_system.query.combined import create_combined_pipeline
 
     try:
         # Check if session has temporary data
         if request.session_id and temp_index_manager.has_session(request.session_id):
             session_id = request.session_id
             temp_data = temp_index_manager.get_temp_index(session_id)
+            if temp_data is None:
+                raise HTTPException(status_code=404, detail="Temporary session not found")
 
-            # Get indexing service embedding model (via shared import)
-            from rag_system.indexing import Indexing
-            from rag_system.shared.my_config import Config as SharedConfig
-            shared_config = SharedConfig('rag_system/indexing/config.yaml')
-
-            # Create minimal indexing service just for embedding model
-            from rag_system.shared.data_loader import DataLoader
-            from rag_system.shared.data_base import FaissDB
-            temp_indexing = Indexing(
-                shared_config,
-                DataLoader(shared_config),
-                FaissDB(shared_config)
-            )
+            temp_indexing = main_module.temp_indexing_service
+            if temp_indexing is None:
+                raise HTTPException(
+                    status_code=503,
+                    detail="Indexing service not available for session queries"
+                )
+            if responder is None:
+                raise HTTPException(status_code=503, detail="LLM responder not available")
 
             # Create combined pipeline
             combined_pipeline = create_combined_pipeline(

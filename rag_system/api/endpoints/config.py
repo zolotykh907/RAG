@@ -1,5 +1,5 @@
 import logging
-from typing import Dict
+from typing import Any, Dict
 
 from fastapi import APIRouter
 from fastapi import HTTPException
@@ -13,7 +13,7 @@ router = APIRouter()
 
 
 @router.get("/config")
-async def get_config(service: str):
+async def get_config(service: str) -> Dict[str, Any]:
     """Get configuration for a specified service."""
     try:
         config_data = load_config(service)
@@ -28,7 +28,7 @@ async def get_config(service: str):
 
 
 @router.post("/config")
-async def update_config(service: str, new_config: Dict = Body(...)):
+async def update_config(service: str, new_config: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
     """Update configuration for a specified service."""
     try:
         save_config(service, new_config)

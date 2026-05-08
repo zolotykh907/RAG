@@ -20,9 +20,12 @@ from rag_system.shared.my_config import Config as SharedConfig
 from rag_system.shared.data_loader import DataLoader
 from rag_system.shared.data_base import FaissDB
 from rag_system.indexing import Indexing
+import os as _os
 
-# Configuration
-shared_config: Any = SharedConfig('rag_system/indexing/config.yaml')
+# Configuration — resolve relative to this file so CWD doesn't matter
+_APP_DIR = _os.path.dirname(_os.path.abspath(__file__))
+_RAG_DIR = _os.path.dirname(_os.path.dirname(_os.path.dirname(_APP_DIR)))  # .../rag_system/
+shared_config: Any = SharedConfig(_os.path.join(_RAG_DIR, 'indexing', 'config.yaml'))
 logger = setup_logging(shared_config.logs_dir, 'INDEXING_SERVICE')
 
 # Global services

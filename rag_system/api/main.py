@@ -23,8 +23,11 @@ from rag_system.api.endpoints import query
 from rag_system.api.endpoints import reload
 from rag_system.api.endpoints import upload
 
-shared_config: Any = SharedConfig('rag_system/indexing/config.yaml')
-query_config: Any = SharedConfig('rag_system/query/config.yaml')
+_API_DIR = os.path.dirname(os.path.abspath(__file__))
+_RAG_DIR = os.path.dirname(_API_DIR)  # rag_system/
+
+shared_config: Any = SharedConfig(os.path.join(_RAG_DIR, 'indexing', 'config.yaml'))
+query_config: Any = SharedConfig(os.path.join(_RAG_DIR, 'query', 'config.yaml'))
 
 logger = setup_logging(shared_config.logs_dir, 'rag_system')
 

@@ -1,16 +1,18 @@
 import logging
+from typing import Any, List, Tuple
+
 import yaml
 
 logger = logging.getLogger(__name__)
 
 
 class Config:
-    def __init__(self, config_file_path='indexing/config.yaml'):
+    def __init__(self, config_file_path: str = 'indexing/config.yaml') -> None:
         self.config_file_path = config_file_path
         self.set_items()
 
-    def get_items(self, elem):
-        items = []
+    def get_items(self, elem: Any) -> List[Tuple[str, Any]]:
+        items: List[Tuple[str, Any]] = []
         if isinstance(elem, dict):
             for key, value in elem.items():
                 new_key = str(key)
@@ -20,13 +22,13 @@ class Config:
                     items.append((new_key, value))
         return items
 
-    def set_items(self):
+    def set_items(self) -> None:
         with open(self.config_file_path, "r", encoding="utf-8") as f:
             cfg = yaml.safe_load(f)
 
         cfg_items = self.get_items(cfg)
 
-        seen_keys = {}
+        seen_keys: dict[str, Any] = {}
         for key, value in cfg_items:
             if key in seen_keys:
                 logger.warning(
@@ -38,7 +40,7 @@ class Config:
             seen_keys[key] = value
             setattr(self, key, value)
 
-    def reload(self):
+    def reload(self) -> None:
         for attr in list(self.__dict__.keys()):
             if attr != "config_file_path":
                 delattr(self, attr)

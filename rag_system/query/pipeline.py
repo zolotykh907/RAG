@@ -1,10 +1,19 @@
+from typing import Any, Dict, List, Optional
+
 from rag_system.shared.logs import setup_logging
 from rag_system.query.highlight import find_highlights
 
 
 class RAGPipeline:
     """Class of pipeline for RAG."""
-    def __init__(self, config, query, responder, redis_client):
+
+    def __init__(
+        self,
+        config: Any,
+        query: Any,
+        responder: Any,
+        redis_client: Any,
+    ) -> None:
         """Initialize RAG pipeline.
 
         Args:
@@ -18,21 +27,21 @@ class RAGPipeline:
         self.logger = setup_logging(config.logs_dir, 'RAGPipeline')
         self.redis_client = redis_client
 
-    def answer(self, question):
+    def answer(self, question: str) -> Dict[str, Any]:
         """Generate answer using RAG.
 
         Args:
-            question (str): input question to answer.
+            question: input question to answer.
 
         Returns:
-            dict: generated answer and list of relevant texts.
+            dict: generated answer, list of relevant texts, and highlight offsets.
         """
         if not isinstance(question, str) or not question.strip():
             raise ValueError("Question must be a non-empty string")
 
         try:
             # Try cache first, but don't fail if Redis is down
-            cached_answer = None
+            cached_answer: Optional[Dict[str, Any]] = None
             try:
                 self.logger.info("Checking Redis cache...")
                 cached_answer = self.redis_client.get_from_cache(question)
@@ -48,9 +57,9 @@ class RAGPipeline:
                 }
 
             self.logger.info("Searching for relevant texts for question")
-            results = self.query.query(question)
+            results: List[str] = self.query.query(question)
 
-            answer = self.responder.generate_answer(question, results)
+            answer: str = self.responder.generate_answer(question, results)
 
             highlights = find_highlights(answer, results)
 

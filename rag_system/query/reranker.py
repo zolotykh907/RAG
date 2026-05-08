@@ -1,3 +1,5 @@
+from typing import Any, List, Optional, Tuple
+
 from sentence_transformers import CrossEncoder
 
 from rag_system.shared.logs import setup_logging
@@ -7,15 +9,15 @@ from rag_system.shared.model_loader import get_hf_cache_model_path
 class CrossEncoderReranker:
     """Cross-encoder reranker for query/document pairs."""
 
-    def __init__(self, config):
+    def __init__(self, config: Any) -> None:
         self.logger = setup_logging(config.logs_dir, 'CrossEncoderReranker')
-        self.model_name = getattr(config, 'reranker_model_name', None)
-        self.enabled = bool(getattr(config, 'rerank_enabled', False))
-        self.batch_size = int(getattr(config, 'rerank_batch_size', 16))
-        self.max_chars = int(getattr(config, 'rerank_max_chars', 1000))
-        self.score_threshold = float(getattr(config, 'rerank_score_threshold', -1e9))
-        self.device = getattr(config, 'reranker_device', 'cpu')
-        self.model = None
+        self.model_name: Optional[str] = getattr(config, 'reranker_model_name', None)
+        self.enabled: bool = bool(getattr(config, 'rerank_enabled', False))
+        self.batch_size: int = int(getattr(config, 'rerank_batch_size', 16))
+        self.max_chars: int = int(getattr(config, 'rerank_max_chars', 1000))
+        self.score_threshold: float = float(getattr(config, 'rerank_score_threshold', -1e9))
+        self.device: str = getattr(config, 'reranker_device', 'cpu')
+        self.model: Optional[CrossEncoder] = None
 
         if not self.enabled:
             return
@@ -43,20 +45,20 @@ class CrossEncoderReranker:
             self.enabled = False
             self.model = None
 
-    def _truncate(self, text):
+    def _truncate(self, text: Any) -> str:
         if not isinstance(text, str):
             return ""
         if self.max_chars <= 0:
             return text
         return text[: self.max_chars]
 
-    def rerank(self, query, texts, top_k):
+    def rerank(self, query: str, texts: List[str], top_k: Optional[int]) -> List[str]:
         """Rerank texts by relevance to query using cross-encoder.
 
         Args:
-            query (str): The search query.
-            texts (list[str]): Candidate texts to rerank.
-            top_k (int | None): Maximum number of results to return.
+            query: The search query.
+            texts: Candidate texts to rerank.
+            top_k: Maximum number of results to return.
 
         Returns:
             list[str]: Reranked texts (filtered by score threshold, limited by top_k).
@@ -70,10 +72,12 @@ class CrossEncoderReranker:
         if not isinstance(query, str) or not query.strip():
             return texts
 
-        pairs = [(query, self._truncate(t)) for t in texts]
+        pairs: List[Tuple[str, str]] = [(query, self._truncate(t)) for t in texts]
         scores = self.model.predict(pairs, batch_size=self.batch_size, show_progress_bar=False)
 
-        ranked = sorted(zip(texts, scores, strict=False), key=lambda x: x[1], reverse=True)
+        ranked: List[Tuple[str, float]] = sorted(
+            zip(texts, scores, strict=False), key=lambda x: x[1], reverse=True
+        )
 
         for text, score in ranked[:5]:
             self.logger.debug(f"Rerank score={score:.4f}, text={text[:80]}...")

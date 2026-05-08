@@ -2,11 +2,11 @@ import os
 from pathlib import Path
 
 
-def get_hf_cache_model_path(model_name):
+def get_hf_cache_model_path(model_name: str) -> str:
     """Find model path in local HuggingFace cache.
 
     Args:
-        model_name (str): HuggingFace model name (e.g. 'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2').
+        model_name: HuggingFace model name (e.g. 'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2').
 
     Returns:
         str: Path to the latest snapshot directory.

@@ -149,11 +149,15 @@ async def delete_document(
         # Reindex if there's remaining data
         if filtered_data:
             # Re-create embeddings and index
+            import faiss
+            import numpy as np
             from rag_system.indexing.data_vectorize import save_embeddings
 
             embedding_model = indexing_service.load_local_embedding_model()
             texts = [item['text'] for item in filtered_data]
             embeddings = embedding_model.encode(texts, convert_to_numpy=True, show_progress_bar=False)
+            embeddings = np.array(embeddings, dtype=np.float32)
+            faiss.normalize_L2(embeddings)
 
             # Save embeddings
             save_embeddings(embeddings, indexing_service.embeddings_path)

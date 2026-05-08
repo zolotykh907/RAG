@@ -57,14 +57,6 @@ services:
       timeout: 10s
       retries: 3
 
-  backend:
-    build:
-      context: .
-      dockerfile: ./docker/backend.Dockerfile
-    container_name: backend
-    volumes:
-      - shared_data:/docker_app/data
-
 volumes:
   shared_data:
     driver: local

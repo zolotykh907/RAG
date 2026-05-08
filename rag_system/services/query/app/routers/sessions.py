@@ -1,9 +1,13 @@
 """Session management for temporary uploads and queries."""
 
+import asyncio
 import logging
 import os
 import shutil
+import uuid
 from tempfile import TemporaryDirectory
+from typing import Any, Dict
+
 from fastapi import APIRouter
 from fastapi import File
 from fastapi import HTTPException
@@ -13,8 +17,15 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+def _safe_filename(filename: str) -> str:
+    base = os.path.basename(filename or "").strip().replace("\x00", "")
+    if base in ("", ".", ".."):
+        base = f"upload-{uuid.uuid4().hex}"
+    return base
+
+
 @router.post('/upload-temp')
-async def upload_temp_file(file: UploadFile = File(...)):
+async def upload_temp_file(file: UploadFile = File(...)) -> Dict[str, Any]:
     """Upload and temporarily index a file for session use.
 
     Args:
@@ -23,30 +34,30 @@ async def upload_temp_file(file: UploadFile = File(...)):
     Returns:
         dict: Session ID and chunk count.
     """
-    from rag_system.api.temp_storage import temp_index_manager
-    from rag_system.api.services import process_file_temp
-    from rag_system.shared.data_loader import DataLoader
-    from rag_system.shared.data_base import FaissDB
-    from rag_system.indexing import Indexing
-    from rag_system.shared.my_config import Config as SharedConfig
+    import rag_system.services.query.app.main as main_module
+    from rag_system.shared.temp_storage import temp_index_manager
+    from rag_system.query.combined import process_file_temp
+
+    indexing_service = main_module.temp_indexing_service
+    if indexing_service is None:
+        raise HTTPException(status_code=503, detail="Indexing service not available")
+    data_loader = indexing_service.data_loader
 
     try:
-        # Initialize minimal indexing service for temp processing
-        shared_config = SharedConfig('rag_system/indexing/config.yaml')
-        data_loader = DataLoader(shared_config)
-        data_base = FaissDB(shared_config)
-        indexing_service = Indexing(shared_config, data_loader, data_base)
-
         session_id = temp_index_manager.generate_session_id()
 
         with TemporaryDirectory() as temp_dir:
-            temp_path = os.path.join(temp_dir, file.filename)
+            safe_name = _safe_filename(file.filename or "upload")
+            temp_path = os.path.join(temp_dir, safe_name)
             logger.info(f"Processing temporary file: {file.filename}")
 
+            loop = asyncio.get_running_loop()
             with open(temp_path, "wb") as f:
-                shutil.copyfileobj(file.file, f)
+                await loop.run_in_executor(None, lambda: shutil.copyfileobj(file.file, f))
 
-            temp_data = process_file_temp(temp_path, data_loader, indexing_service)
+            temp_data = await loop.run_in_executor(
+                None, process_file_temp, temp_path, data_loader, indexing_service
+            )
             temp_index_manager.add_temp_index(session_id, temp_data)
 
             logger.info(f"Temporary file indexed. Session ID: {session_id}")
@@ -62,7 +73,7 @@ async def upload_temp_file(file: UploadFile = File(...)):
 
 
 @router.delete('/sessions/{session_id}')
-async def clear_session(session_id: str):
+async def clear_session(session_id: str) -> Dict[str, Any]:
     """Clear temporary session data.
 
     Args:
@@ -71,7 +82,7 @@ async def clear_session(session_id: str):
     Returns:
         dict: Confirmation message.
     """
-    from rag_system.api.temp_storage import temp_index_manager
+    from rag_system.shared.temp_storage import temp_index_manager
 
     try:
         if temp_index_manager.remove_temp_index(session_id):
@@ -88,7 +99,7 @@ async def clear_session(session_id: str):
 
 
 @router.get('/sessions/{session_id}/files')
-async def get_temp_files(session_id: str):
+async def get_temp_files(session_id: str) -> Dict[str, Any]:
     """Get information about temporary files in a session.
 
     Args:
@@ -97,7 +108,7 @@ async def get_temp_files(session_id: str):
     Returns:
         dict: List of temporary files.
     """
-    from rag_system.api.temp_storage import temp_index_manager
+    from rag_system.shared.temp_storage import temp_index_manager
 
     try:
         temp_data_list = temp_index_manager.get_temp_index(session_id)
@@ -140,7 +151,7 @@ async def get_temp_files(session_id: str):
 
 
 @router.delete('/sessions/{session_id}/files/{filename}')
-async def delete_temp_file(session_id: str, filename: str):
+async def delete_temp_file(session_id: str, filename: str) -> Dict[str, Any]:
     """Delete a specific temporary file from a session.
 
     Args:
@@ -150,7 +161,7 @@ async def delete_temp_file(session_id: str, filename: str):
     Returns:
         dict: Confirmation message.
     """
-    from rag_system.api.temp_storage import temp_index_manager
+    from rag_system.shared.temp_storage import temp_index_manager
 
     try:
         removed = temp_index_manager.remove_temp_file(session_id, filename)

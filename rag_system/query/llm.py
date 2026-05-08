@@ -1,4 +1,5 @@
 import os
+from typing import Any, List
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
@@ -8,33 +9,34 @@ from rag_system.shared.logs import setup_logging
 
 class LLMResponder:
     """Class for generating answers using LLM and context."""
-    def __init__(self, config):
+
+    def __init__(self, config: Any) -> None:
         """Initialize LLMResponder with configuration parameters.
 
         Args:
             config: configuration object with parameters.
         """
-        self.model_name = config.llm
-        self.lm_studio_host = config.lm_studio_host
+        self.model_name: str = config.llm
+        self.lm_studio_host: str = config.lm_studio_host
         self.prompt_template = ChatPromptTemplate.from_template(config.prompt_template)
         self.llm = ChatOpenAI(
             model=self.model_name,
             base_url=os.getenv("LM_STUDIO_HOST", self.lm_studio_host),
-            api_key="lm-studio",
+            api_key=os.getenv("LM_STUDIO_API_KEY", "lm-studio"),
             temperature=0.7
         )
         self.chain = self.prompt_template | self.llm
         self.logger = setup_logging(config.logs_dir, 'RAG_LLM')
 
-    def generate_answer(self, question, texts):
+    def generate_answer(self, question: str, texts: List[str]) -> str:
         """Generate answer using LLM and context.
 
         Args:
-            question (str): question to answer.
-            texts (list[str]): list of texts for context.
+            question: question to answer.
+            texts: list of texts for context.
 
         Returns:
-            str: generated answer
+            str: generated answer.
         """
         if not isinstance(question, str) or not question.strip():
             raise ValueError("Question must be a non-empty string")

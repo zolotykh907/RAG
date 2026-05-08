@@ -12,10 +12,18 @@ from rag_system.shared.data_loader import DataLoader
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+_VALID_SERVICES = {"query", "indexing"}
+
 
 @router.post("/reload")
 async def reload_pipeline(service: str):
     """Reload pipeline configuration."""
+    if service not in _VALID_SERVICES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid service '{service}'. Use 'query' or 'indexing'."
+        )
+
     try:
         import rag_system.api.main as main_module
 
@@ -40,12 +48,12 @@ async def reload_pipeline(service: str):
                     main_module.pipeline = new_pipeline
 
                 logger.info('Query service and pipeline reinitialized successfully.')
-                return {"message": f"{service} configuration reloaded successfully", "query_service_restarted": True}
+                return {"message": "query configuration reloaded successfully", "query_service_restarted": True}
             except Exception as e:
                 logger.warning(f'Failed to reinitialize Query service: {str(e)}')
-                return {"message": f"{service} configuration reloaded successfully", "query_service_restarted": False}
+                return {"message": "query configuration reloaded successfully", "query_service_restarted": False}
 
-        elif service == "indexing":
+        else:  # service == "indexing"
             new_data_loader = DataLoader(main_module.shared_config)
             new_data_base = FaissDB(main_module.shared_config)
             new_indexing_service = Indexing(main_module.shared_config, new_data_loader, new_data_base)
@@ -55,11 +63,11 @@ async def reload_pipeline(service: str):
                 main_module.data_base = new_data_base
                 main_module.indexing_service = new_indexing_service
 
-            logger.info(f"{service} service reinitialized successfully.")
-            return {"message": f"{service} configuration reloaded successfully"}
-        else:
-            raise ValueError("Invalid service name. Use 'query' or 'indexing'.")
+            logger.info("Indexing service reinitialized successfully.")
+            return {"message": "indexing configuration reloaded successfully"}
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error reloading {service}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Reload failed")

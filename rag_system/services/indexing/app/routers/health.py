@@ -2,6 +2,7 @@
 
 import logging
 from fastapi import APIRouter
+from fastapi.responses import JSONResponse
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -29,6 +30,6 @@ async def readiness_check():
     import rag_system.services.indexing.app.main as main_module
 
     if main_module.indexing_service is None or main_module.data_base is None:
-        return {"status": "not_ready"}, 503
+        return JSONResponse(content={"status": "not_ready"}, status_code=503)
 
     return {"status": "ready"}

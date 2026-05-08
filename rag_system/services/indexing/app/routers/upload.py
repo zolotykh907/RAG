@@ -1,16 +1,22 @@
 """Upload endpoints for document processing and indexing."""
 
+import asyncio
 import os
 import shutil
+import uuid
 import logging
 import requests
 from tempfile import TemporaryDirectory
+from typing import Any, Dict
+
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import File
 from fastapi import HTTPException
 from fastapi import UploadFile
 
+from rag_system.indexing.indexing import Indexing
+from rag_system.shared.data_loader import DataLoader
 from rag_system.services.indexing.app.main import get_data_loader
 from rag_system.services.indexing.app.main import get_indexing_service
 
@@ -18,33 +24,47 @@ logger = logging.getLogger(__name__)
 router: APIRouter = APIRouter()
 
 
+def _safe_filename(filename: str) -> str:
+    base = os.path.basename(filename or "").strip().replace("\x00", "")
+    if base in ("", ".", ".."):
+        base = f"upload-{uuid.uuid4().hex}"
+    return base
+
+
 @router.post('/upload')
 async def upload_file(
     file: UploadFile = File(...),
-    indexing_service=Depends(get_indexing_service),
-    data_loader=Depends(get_data_loader)
-):
+    indexing_service: Indexing = Depends(get_indexing_service),
+    data_loader: DataLoader = Depends(get_data_loader),
+) -> Dict[str, Any]:
     """Upload and index a file permanently.
 
     Args:
         file: The file to be uploaded and indexed.
+        indexing_service: Injected indexing service.
+        data_loader: Injected data loader.
 
     Returns:
         dict: Confirmation message and indexing stats.
     """
     with TemporaryDirectory() as temp_dir:
-        temp_path = os.path.join(temp_dir, file.filename)
+        safe_name = _safe_filename(file.filename or "upload")
+        temp_path = os.path.join(temp_dir, safe_name)
         logger.info(f"Processing file: {file.filename}")
 
+        loop = asyncio.get_running_loop()
         with open(temp_path, "wb") as f:
-            shutil.copyfileobj(file.file, f)
+            await loop.run_in_executor(None, lambda: shutil.copyfileobj(file.file, f))
 
         try:
             logger.info("Starting indexing process...")
-            indexing_service.run_indexing(data=temp_path)
+            await loop.run_in_executor(
+                None, lambda: indexing_service.run_indexing(data=temp_path)
+            )
             logger.info("Indexing completed successfully!")
 
             # Notify query service to reload index via internal HTTP call
+            query_reloaded = False
             try:
                 query_service_url = os.getenv('QUERY_SERVICE_URL', 'http://query:8002')
                 response = requests.post(
@@ -55,7 +75,6 @@ async def upload_file(
                 logger.info(f"Query service reload: {query_reloaded}")
             except Exception as e:
                 logger.warning(f"Failed to notify query service: {str(e)}")
-                query_reloaded = False
 
             return {
                 "message": "File indexed successfully",
@@ -70,9 +89,12 @@ async def upload_file(
 
 @router.delete('/clear-index')
 async def clear_index(
-    indexing_service=Depends(get_indexing_service),
-):
+    indexing_service: Indexing = Depends(get_indexing_service),
+) -> Dict[str, Any]:
     """Clear all indexed data.
+
+    Args:
+        indexing_service: Injected indexing service.
 
     Returns:
         dict: Confirmation message.
@@ -83,13 +105,8 @@ async def clear_index(
         raise HTTPException(status_code=503, detail="Database not available")
 
     try:
-        # Clear the FAISS index
         data_base.clear_index()
-
-        # Clear processed data
         indexing_service.clear_data()
-
-        # Clear existing hashes
         indexing_service.existing_hashes = []
 
         # Notify query service

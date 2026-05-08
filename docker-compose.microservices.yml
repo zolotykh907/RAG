@@ -4,8 +4,6 @@ services:
     image: redis:7-alpine
     container_name: rag_redis
     restart: unless-stopped
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
@@ -31,8 +29,6 @@ services:
       dockerfile: rag_system/services/indexing/Dockerfile
     container_name: rag_indexing
     restart: unless-stopped
-    ports:
-      - "8001:8001"
     volumes:
       - shared_data:/docker_app/data
       - model_cache:/root/.cache/huggingface/hub
@@ -70,8 +66,6 @@ services:
       dockerfile: rag_system/services/query/Dockerfile
     container_name: rag_query
     restart: unless-stopped
-    ports:
-      - "8002:8002"  # Exposed for direct access (optional)
     volumes:
       - shared_data:/docker_app/data:ro  # Read-only access to indexed data
       - model_cache:/root/.cache/huggingface/hub:ro

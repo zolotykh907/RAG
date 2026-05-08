@@ -1,4 +1,5 @@
 import os
+from typing import Any, Optional, Tuple
 
 import faiss
 import numpy as np
@@ -7,22 +8,22 @@ from rag_system.shared.logs import setup_logging
 
 
 class FaissDB:
-    def __init__(self, config, k=5):
-        self.index_path = config.index_path
-        self.logs_dir = config.logs_dir
-        self.index = None
-        self.k = k
-        self.hnsw_m = int(getattr(config, 'hnsw_m', 32))
-        self.hnsw_ef_construction = int(getattr(config, 'hnsw_ef_construction', 200))
-        self.hnsw_ef_search = int(getattr(config, 'hnsw_ef_search', 64))
+    def __init__(self, config: Any, k: int = 5) -> None:
+        self.index_path: str = config.index_path
+        self.logs_dir: str = config.logs_dir
+        self.index: Optional[faiss.Index] = None
+        self.k: int = k
+        self.hnsw_m: int = int(getattr(config, 'hnsw_m', 32))
+        self.hnsw_ef_construction: int = int(getattr(config, 'hnsw_ef_construction', 200))
+        self.hnsw_ef_search: int = int(getattr(config, 'hnsw_ef_search', 64))
         self.logger = setup_logging(self.logs_dir, 'FaissDB')
 
-    def create_index(self, embeddings, replace=False):
+    def create_index(self, embeddings: np.ndarray, replace: bool = False) -> None:
         """Create a new FAISS index or updates an existing.
 
         Args:
-            embeddings (np.ndarray): L2-normalized numpy array of embeddings to index.
-            replace (bool): if True, replace existing index instead of adding to it
+            embeddings: L2-normalized numpy array of embeddings to index.
+            replace: if True, replace existing index instead of adding to it.
         """
         try:
             if self.index is None or replace:
@@ -30,13 +31,15 @@ class FaissDB:
                     self.logger.info("Replacing existing FAISS index.")
 
                 dim = embeddings.shape[1]
-                self.index = faiss.IndexHNSWFlat(dim, self.hnsw_m, faiss.METRIC_INNER_PRODUCT)
-                self.index.hnsw.efConstruction = self.hnsw_ef_construction
+                index = faiss.IndexHNSWFlat(dim, self.hnsw_m, faiss.METRIC_INNER_PRODUCT)
+                index.hnsw.efConstruction = self.hnsw_ef_construction
+                self.index = index
                 self.logger.info(
                     f"Created FAISS HNSW index: dim={dim}, M={self.hnsw_m}, "
                     f"efConstruction={self.hnsw_ef_construction}."
                 )
 
+            assert self.index is not None
             self.index.add(np.array(embeddings, dtype=np.float32))
             faiss.write_index(self.index, self.index_path)
             self.logger.info(f"FAISS index saved to {self.index_path}.")
@@ -44,11 +47,11 @@ class FaissDB:
             self.logger.error(f'Error adding embeddings or creating index: {e}')
             raise
 
-    def load_index(self, index_path=None):
+    def load_index(self, index_path: Optional[str] = None) -> None:
         """Load the FAISS index from file.
 
         Args:
-            index_path (str, optional): Path to the index file. Defaults to self.index_path.
+            index_path: Path to the index file. Defaults to self.index_path.
         """
         if index_path is None:
             index_path = self.index_path
@@ -63,16 +66,16 @@ class FaissDB:
             self.logger.error(f"Failed to load FAISS index from {index_path}: {str(e)}")
             self.index = None
 
-    def search(self, request_embedding, k):
+    def search(self, request_embedding: np.ndarray, k: int) -> Tuple[np.ndarray, np.ndarray]:
         """Nearest-neighbor search in FAISS.
 
         Args:
-            request_embedding (np.ndarray): L2-normalized query embedding vector.
-            k (int): Number of nearest neighbors to return.
+            request_embedding: L2-normalized query embedding vector.
+            k: Number of nearest neighbors to return.
 
         Returns:
-            tuple[np.ndarray, np.ndarray]: (indices, scores) of the k nearest neighbors.
-                Scores are cosine similarities (higher = more similar).
+            Tuple of (indices, scores) arrays for the k nearest neighbors.
+            Scores are cosine similarities (higher = more similar).
         """
         if self.index is None:
             self.logger.warning("Index is not loaded or created. Returning empty result.")
@@ -96,13 +99,13 @@ class FaissDB:
         self.logger.debug(f"Search returned {len(valid_ids)} valid results out of {actual_k} requested")
         return valid_ids, valid_scores
 
-    def delete_index(self):
+    def delete_index(self) -> None:
         """Deletes the FAISS index."""
         if os.path.exists(self.index_path):
             os.remove(self.index_path)
             self.index = None
             self.logger.info(f'Deleted index at {self.index_path}')
 
-    def clear_index(self):
+    def clear_index(self) -> None:
         """Clears the FAISS index (alias for delete_index)."""
         self.delete_index()

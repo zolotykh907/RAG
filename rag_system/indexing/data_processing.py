@@ -1,18 +1,20 @@
 import re
 import hashlib
+import logging
+from typing import Any, Dict, Optional, Tuple
 
-from rag_system.shared.logs import setup_logging
+import pandas as pd
 
-logger = setup_logging('./logs', 'DataProcessing')
+logger = logging.getLogger(__name__)
 
 
-def normalize_text(text, morph=None, clear_flag=False):
+def normalize_text(text: str, morph: Optional[Any] = None, clear_flag: bool = False) -> str:
     """Normalize text.
 
     Args:
-        text (str): input text for processing.
+        text: input text for processing.
         morph: Morphological analyzer (required when clear_flag=True).
-        clear_flag (bool): if True, perform lemmatization.
+        clear_flag: if True, perform lemmatization.
 
     Returns:
         str: normalized text.
@@ -39,28 +41,32 @@ def normalize_text(text, morph=None, clear_flag=False):
     return text.strip()
 
 
-def compute_text_hash(text):
+def compute_text_hash(text: str) -> str:
     """Compute sha256 hash for input text.
 
     Args:
-        text (str): input text for hashing.
+        text: input text for hashing.
 
     Returns:
-        str: sha256 hash for input text
+        str: sha256 hash for input text.
     """
     return hashlib.sha256(text.strip().lower().encode('utf-8')).hexdigest()
 
 
-def check_data_quality(df, logger=logger, min_len=10):
+def check_data_quality(
+    df: pd.DataFrame,
+    logger: logging.Logger = logger,
+    min_len: int = 10,
+) -> Tuple[Dict[str, Any], pd.DataFrame]:
     """Check data quality.
 
     Args:
-        df (DataFrame): input DataFrame with texts.
+        df: input DataFrame with texts.
         logger: Logger instance.
-        min_len (int, optional): Min text length threshold.
+        min_len: Min text length threshold.
 
     Returns:
-        tuple: dict with quality check results and clean DataFrame
+        tuple: dict with quality check results and clean DataFrame.
     """
     df = df.copy()
     df['text'] = df['text'].str.strip()
@@ -79,7 +85,7 @@ def check_data_quality(df, logger=logger, min_len=10):
     logger.info(f'Number of docs shorter than {min_len}: {len(short_texts)}')
 
     # Results
-    res = {}
+    res: Dict[str, Any] = {}
     res['empty_docs'] = {'count': len(empty_docs),
                          'data': empty_docs.to_dict(orient='records')}
     res['duplicate_texts'] = {'count': len(duplicate_texts),

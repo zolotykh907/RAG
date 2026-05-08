@@ -1,12 +1,33 @@
 import os
 import logging
-from typing import Dict
+from typing import Any, Dict, Set, Tuple
 
 import yaml
 
 logger = logging.getLogger(__name__)
 
-ALLOWED_SERVICES = {"indexing", "query"}
+ALLOWED_SERVICES: Set[str] = {"indexing", "query"}
+
+# Keys that must not be changed via the API: filesystem paths and external URLs.
+# Changing these could allow SSRF (data_url), path traversal, or data redirection.
+_BLOCKED_KEY_PATHS: Dict[str, Set[Tuple[str, str]]] = {
+    "indexing": {
+        ("data", "data_url"),
+        ("data", "data_dir"),
+        ("data", "data_path"),
+        ("data", "index_path"),
+        ("data", "hashes_path"),
+        ("data", "processed_data_path"),
+        ("data", "quality_log_path"),
+        ("data", "logs_dir"),
+    },
+    "query": {
+        ("data", "index_path"),
+        ("data", "processed_data_path"),
+        ("data", "logs_dir"),
+        ("api", "lm_studio_host"),
+    },
+}
 
 
 def get_config_path(service: str) -> str:
@@ -16,31 +37,48 @@ def get_config_path(service: str) -> str:
     return os.path.join(base_dir, service, 'config.yaml')
 
 
-def load_config(service: str) -> Dict:
+def load_config(service: str) -> Dict[str, Any]:
     config_path = get_config_path(service)
     if not os.path.exists(config_path):
         raise FileNotFoundError(f"Configuration file for {service} not found")
 
     try:
         with open(config_path, 'r') as f:
-            config_data = yaml.safe_load(f)
+            config_data: Dict[str, Any] = yaml.safe_load(f)
         return config_data
     except Exception as e:
         logger.error(f"Failed to read configuration for {service}: {e}")
         raise
 
 
-def save_config(service: str, config_data: Dict) -> None:
+def _validate_config(service: str, new_config: Dict[str, Any], current_config: Dict[str, Any]) -> None:
+    """Raise ValueError if the incoming config changes any blocked keys."""
+    blocked = _BLOCKED_KEY_PATHS.get(service, set())
+    for section, key in blocked:
+        new_val = (new_config.get(section) or {}).get(key)
+        cur_val = (current_config.get(section) or {}).get(key)
+        if new_val is not None and new_val != cur_val:
+            raise ValueError(
+                f"Changing '{section}.{key}' via the API is not allowed "
+                f"(filesystem paths and external URLs are read-only)."
+            )
+
+
+def save_config(service: str, config_data: Dict[str, Any]) -> None:
     config_path = get_config_path(service)
     if not os.path.exists(config_path):
         raise FileNotFoundError(f"Configuration file for {service} not found")
 
+    # Load current config and validate the diff
+    with open(config_path, 'r') as f:
+        current: Dict[str, Any] = yaml.safe_load(f) or {}
+    _validate_config(service, config_data, current)
+
     try:
-        # Use a local Dumper to avoid global state mutation
         class CustomDumper(yaml.Dumper):
             pass
 
-        def str_presenter(dumper, data):
+        def str_presenter(dumper: yaml.Dumper, data: str) -> yaml.ScalarNode:
             if '\n' in data:
                 return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
             return dumper.represent_scalar('tag:yaml.org,2002:str', data)

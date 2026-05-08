@@ -1,7 +1,6 @@
 import logging
 import os
-from typing import Any
-from typing import Dict
+from typing import Any, Dict, List, Optional, Union
 
 import faiss
 import numpy as np
@@ -9,15 +8,30 @@ import pandas as pd
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from rag_system.indexing.data_processing import normalize_text
+from rag_system.indexing.indexing import Indexing
+from rag_system.query.llm import LLMResponder
 from rag_system.query.pipeline import RAGPipeline
+from rag_system.query.query import Query
+from rag_system.query.redis_client import RedisDB
+from rag_system.shared.data_loader import DataLoader
 
 logger = logging.getLogger(__name__)
 
 
 class CombinedQueryService:
     """Combined query service that searches both permanent and temporary indexes."""
-    def __init__(self, permanent_query, temp_index, temp_chunks, emb_model, k=5,
-                 reranker=None, rerank_enabled=False, rerank_candidate_k=20):
+
+    def __init__(
+        self,
+        permanent_query: Optional[Query],
+        temp_index: Any,
+        temp_chunks: List[Any],
+        emb_model: Any,
+        k: int = 5,
+        reranker: Optional[Any] = None,
+        rerank_enabled: bool = False,
+        rerank_candidate_k: int = 20,
+    ) -> None:
         self.permanent_query = permanent_query
         self.temp_index = temp_index
         self.temp_chunks = temp_chunks
@@ -27,16 +41,16 @@ class CombinedQueryService:
         self.rerank_enabled = rerank_enabled and reranker is not None
         self.rerank_candidate_k = rerank_candidate_k
 
-    def query(self, question):
+    def query(self, question: str) -> List[str]:
         """Search in both permanent and temporary indexes.
 
         Args:
-            question (str): The query question.
+            question: The query question.
 
         Returns:
             list: Combined search results from both indexes.
         """
-        results = []
+        results: List[str] = []
         skip_rerank = self.rerank_enabled
 
         if self.permanent_query is not None:
@@ -56,7 +70,7 @@ class CombinedQueryService:
                 k=min(temp_search_k, len(self.temp_chunks))
             )
 
-            temp_results = []
+            temp_results: List[str] = []
             for i in indices[0]:
                 if i < len(self.temp_chunks):
                     chunk = self.temp_chunks[i]
@@ -71,7 +85,7 @@ class CombinedQueryService:
         except Exception as e:
             logger.warning(f"Failed to search in temporary index: {e}")
 
-        unique_results = list(dict.fromkeys(results))
+        unique_results: List[str] = list(dict.fromkeys(results))
 
         if self.rerank_enabled and self.reranker is not None:
             return self.reranker.rerank(question, unique_results, self.k)
@@ -79,11 +93,15 @@ class CombinedQueryService:
         return unique_results[:self.k * 2]
 
 
-def process_file_temp(file_path: str, data_loader, indexing_service) -> Dict[str, Any]:
+def process_file_temp(
+    file_path: str,
+    data_loader: DataLoader,
+    indexing_service: Indexing,
+) -> Dict[str, Any]:
     """Process file and create temporary index with embeddings.
 
     Args:
-        file_path (str): Path to the file to process.
+        file_path: Path to the file to process.
         data_loader: DataLoader instance for loading data.
         indexing_service: Indexing service instance for embedding.
 
@@ -97,7 +115,7 @@ def process_file_temp(file_path: str, data_loader, indexing_service) -> Dict[str
         df['text'] = df['text'].apply(lambda x: normalize_text(x) if pd.notna(x) else '')
 
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-        chunks = []
+        chunks: List[Dict[str, str]] = []
         for text in df['text']:
             if text.strip():
                 split_texts = text_splitter.split_text(text)
@@ -112,7 +130,7 @@ def process_file_temp(file_path: str, data_loader, indexing_service) -> Dict[str
         embeddings = np.array(embeddings, dtype=np.float32)
         faiss.normalize_L2(embeddings)
 
-        temp_data = {
+        temp_data: Dict[str, Any] = {
             'chunks': chunks,
             'embeddings': embeddings.tolist()
         }
@@ -126,13 +144,13 @@ def process_file_temp(file_path: str, data_loader, indexing_service) -> Dict[str
 
 
 def create_combined_pipeline(
-    query_service,
-    temp_data_list,
-    indexing_service,
-    query_config,
-    responder,
-    redis_client=None,
-):
+    query_service: Optional[Query],
+    temp_data_list: Union[List[Dict[str, Any]], Dict[str, Any]],
+    indexing_service: Indexing,
+    query_config: Any,
+    responder: LLMResponder,
+    redis_client: Optional[RedisDB] = None,
+) -> RAGPipeline:
     """Create a combined pipeline for temporary and permanent data.
 
     Args:
@@ -149,8 +167,8 @@ def create_combined_pipeline(
     if isinstance(temp_data_list, dict):
         temp_data_list = [temp_data_list]
 
-    all_chunks = []
-    all_embeddings = []
+    all_chunks: List[Any] = []
+    all_embeddings: List[Any] = []
 
     for temp_data in temp_data_list:
         if 'chunks' in temp_data and 'embeddings' in temp_data:
@@ -184,6 +202,11 @@ def create_combined_pipeline(
         rerank_candidate_k=rerank_candidate_k,
     )
 
-    combined_pipeline = RAGPipeline(config=query_config, query=combined_query_service, responder=responder, redis_client=redis_client)
+    combined_pipeline = RAGPipeline(
+        config=query_config,
+        query=combined_query_service,
+        responder=responder,
+        redis_client=redis_client,
+    )
 
     return combined_pipeline

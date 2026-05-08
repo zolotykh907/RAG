@@ -1,5 +1,6 @@
 import json
 import os
+from typing import Any, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -13,54 +14,56 @@ from rag_system.indexing.data_processing import normalize_text
 from rag_system.indexing.data_vectorize import create_embeddings
 from rag_system.indexing.data_vectorize import load_embeddings
 from rag_system.indexing.data_vectorize import save_embeddings
+from rag_system.shared.data_base import FaissDB
+from rag_system.shared.data_loader import DataLoader
 from rag_system.shared.logs import setup_logging
 from rag_system.shared.model_loader import get_hf_cache_model_path
 
 
 class Indexing:
     """Manage text indexing process with embedding creation and FAISS index maintenance."""
-    def __init__(self, config, data_loader, data_base):
+
+    def __init__(self, config: Any, data_loader: DataLoader, data_base: FaissDB) -> None:
         """Initialize Indexing with configuration parameters.
 
         Args:
-            config: Configuration object with all necessary parameters
-            data_loader: DataLoader instance for loading various data formats
-            data_base: FaissDB instance for index management
+            config: Configuration object with all necessary parameters.
+            data_loader: DataLoader instance for loading various data formats.
+            data_base: FaissDB instance for index management.
         """
-        self.data_dir = config.data_dir
-        self.logs_dir = config.logs_dir
-        self.data_url = config.data_url
-        self.data_path = config.data_path
-        self.index_path = config.index_path
-        self.hashes_path = config.hashes_path
-        self.processed_data_path = config.processed_data_path
-        self.batch_size = config.batch_size
-        self.quality_log_path = config.quality_log_path
-        self.emb_model_name = config.emb_model_name
-        self.emb_trust_remote_code = bool(getattr(config, 'emb_trust_remote_code', False))
-        self.emb_device = str(getattr(config, 'emb_device', 'cpu'))
-        self.incrementation_flag = config.incrementation_flag
-        self.delete_data_flag = config.delete_data_flag
-        self.max_texts = int(getattr(config, 'max_texts', 0)) or None
+        self.data_dir: str = config.data_dir
+        self.logs_dir: str = config.logs_dir
+        self.data_url: str = config.data_url
+        self.data_path: str = config.data_path
+        self.index_path: str = config.index_path
+        self.hashes_path: str = config.hashes_path
+        self.processed_data_path: str = config.processed_data_path
+        self.batch_size: int = config.batch_size
+        self.quality_log_path: str = config.quality_log_path
+        self.emb_model_name: str = config.emb_model_name
+        self.emb_trust_remote_code: bool = bool(getattr(config, 'emb_trust_remote_code', False))
+        self.emb_device: str = str(getattr(config, 'emb_device', 'cpu'))
+        self.incrementation_flag: bool = config.incrementation_flag
+        self.delete_data_flag: bool = config.delete_data_flag
+        self.max_texts: Optional[int] = int(getattr(config, 'max_texts', 0)) or None
 
         self.data_base = data_base
         self.data_loader = data_loader
 
-        self.existing_hashes = []
-        self.embeddings_path = os.path.join(config.data_dir, "embeddings.npy")
+        self.existing_hashes: List[str] = []
+        self.embeddings_path: str = os.path.join(config.data_dir, "embeddings.npy")
 
         self.logger = setup_logging(self.logs_dir, 'IndexingService')
-        self.text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000,
-                                                            chunk_overlap=200)
+        self.text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
 
         os.makedirs(self.data_dir, exist_ok=True)
 
-        self.emb_model = self.load_local_embedding_model()
+        self.emb_model: SentenceTransformer = self.load_local_embedding_model()
 
         if self.incrementation_flag:
             self.load_existing_hashes()
 
-    def load_local_embedding_model(self):
+    def load_local_embedding_model(self) -> SentenceTransformer:
         """Load model from local HuggingFace cache."""
         try:
             model_path = get_hf_cache_model_path(self.emb_model_name)
@@ -76,7 +79,7 @@ class Indexing:
             self.logger.error(f'Error loading model from cache: {e}')
             raise
 
-    def download_embedding_model(self):
+    def download_embedding_model(self) -> SentenceTransformer:
         """Download embedding model from Hugging Face."""
         self.logger.info(f"Downloading model {self.emb_model_name}...")
         try:
@@ -91,7 +94,7 @@ class Indexing:
             self.logger.error(f"Failed to download model {self.emb_model_name}: {e}")
             raise
 
-    def download_data(self):
+    def download_data(self) -> None:
         """Download and save data from URL."""
         if not os.path.exists(self.data_path):
             self.logger.info(f'Downloading data from {self.data_url}.')
@@ -108,7 +111,7 @@ class Indexing:
         else:
             self.logger.info(f'File {self.data_path} exists.')
 
-    def load_data(self, data_source):
+    def load_data(self, data_source: Any) -> pd.DataFrame:
         """Load data from various sources."""
         try:
             df = self.data_loader.load_data(data_source)
@@ -118,7 +121,7 @@ class Indexing:
             self.logger.error(f"Failed to load data: {e}")
             raise
 
-    def load_existing_hashes(self):
+    def load_existing_hashes(self) -> None:
         """Load texts hashes from processed data file."""
         if os.path.exists(self.processed_data_path):
             with open(self.processed_data_path, 'r') as f:
@@ -135,11 +138,11 @@ class Indexing:
             self.existing_hashes = []
             self.logger.info(f"No existing hashes found at {self.processed_data_path}.")
 
-    def check_quality(self, df):
+    def check_quality(self, df: pd.DataFrame) -> pd.DataFrame:
         """Data quality check and save results.
 
         Args:
-            df (DataFrame): DataFrame with texts.
+            df: DataFrame with texts.
 
         Returns:
             DataFrame: clean DataFrame after quality check.
@@ -152,7 +155,7 @@ class Indexing:
 
         return df_clean
 
-    def save_processed_data(self, df):
+    def save_processed_data(self, df: pd.DataFrame) -> None:
         """Save processed data, merging with existing if incrementing."""
         try:
             if self.incrementation_flag and os.path.exists(self.processed_data_path):
@@ -179,12 +182,12 @@ class Indexing:
             self.logger.error(f"Failed to save processed data: {e}")
             raise
 
-    def split_to_chunks(self, df, source_file=None):
+    def split_to_chunks(self, df: pd.DataFrame, source_file: Optional[str] = None) -> pd.DataFrame:
         """Split texts into chunks.
 
         Args:
-            df (DataFrame): DataFrame with 'text' column.
-            source_file (str): Optional source filename for tracking
+            df: DataFrame with 'text' column.
+            source_file: Optional source filename for tracking.
 
         Returns:
             DataFrame: new DataFrame with chunks.
@@ -205,7 +208,7 @@ class Indexing:
         self.logger.info(f"Created {len(res)} chunks from {len(df)} texts")
         return res_df
 
-    def run_indexing(self, data=None):
+    def run_indexing(self, data: Optional[Any] = None) -> None:
         try:
             if data is None:
                 if self.data_url:
@@ -263,14 +266,16 @@ class Indexing:
             )
 
             # Create embeddings in memory first (may fail — no disk writes yet)
-            new_embeddings = create_embeddings(df_chunks_new['text'].tolist(),
-                                               self.emb_model,
-                                               batch_size=self.batch_size)
+            new_embeddings = create_embeddings(
+                df_chunks_new['text'].tolist(),
+                self.emb_model,
+                batch_size=self.batch_size,
+            )
 
             # All heavy computation succeeded — now persist to disk atomically:
             # save processed_data FIRST, then embeddings, then index.
             # This way texts and vectors stay in sync.
-            new_hashes = df_chunks_new['hash'].tolist()
+            new_hashes: List[str] = df_chunks_new['hash'].tolist()
 
             self.save_processed_data(df_chunks_new)
 
@@ -308,7 +313,7 @@ class Indexing:
                 self.clear_existing_data()
             raise
 
-    def clear_existing_data(self):
+    def clear_existing_data(self) -> None:
         """Clear existing processed data and embeddings."""
         files_to_remove = [
             self.processed_data_path,
@@ -325,6 +330,6 @@ class Indexing:
             self.existing_hashes = []
             self.logger.info("Cleared existing hashes (incrementation disabled)")
 
-    def clear_data(self):
+    def clear_data(self) -> None:
         """Clear all indexed data (alias for clear_existing_data)."""
         self.clear_existing_data()

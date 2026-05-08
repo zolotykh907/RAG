@@ -20,13 +20,18 @@ from typing import Optional
 from rag_system.shared.logs import setup_logging
 from rag_system.shared.my_config import Config as SharedConfig
 from rag_system.shared.data_base import FaissDB
+from rag_system.shared.data_loader import DataLoader
 from rag_system.query.query import Query
 from rag_system.query.pipeline import RAGPipeline
 from rag_system.query.llm import LLMResponder
 from rag_system.query.redis_client import RedisDB
+from rag_system.indexing import Indexing
+import os as _os
 
-# Configuration
-query_config: Any = SharedConfig('rag_system/query/config.yaml')
+# Configuration — resolve relative to this file so CWD doesn't matter
+_APP_DIR = _os.path.dirname(_os.path.abspath(__file__))
+_RAG_DIR = _os.path.dirname(_os.path.dirname(_os.path.dirname(_APP_DIR)))  # .../rag_system/
+query_config: Any = SharedConfig(_os.path.join(_RAG_DIR, 'query', 'config.yaml'))
 logger = setup_logging(query_config.logs_dir, 'QUERY_SERVICE')
 
 # Global services
@@ -35,11 +40,12 @@ query_service: Optional[Query] = None
 responder: Optional[LLMResponder] = None
 pipeline: Optional[RAGPipeline] = None
 redis_client: Optional[RedisDB] = None
+temp_indexing_service: Optional[Indexing] = None  # reused for session-based queries
 
 
 def initialize_services():
     """Initialize query services with error handling."""
-    global data_base, query_service, responder, pipeline, redis_client
+    global data_base, query_service, responder, pipeline, redis_client, temp_indexing_service
 
     try:
         # Initialize Redis
@@ -54,7 +60,7 @@ def initialize_services():
 
         # Initialize database and query service (may fail if no index exists yet)
         try:
-            shared_config = SharedConfig('rag_system/indexing/config.yaml')
+            shared_config = SharedConfig(_os.path.join(_RAG_DIR, 'indexing', 'config.yaml'))
             data_base = FaissDB(shared_config)
 
             if os.path.exists(query_config.index_path):
@@ -71,6 +77,19 @@ def initialize_services():
 
         except Exception as e:
             logger.warning(f'Query service initialization skipped (no index): {str(e)}')
+
+        # Initialize shared indexing service for session-based (temp) queries.
+        # Loaded once at startup so the embedding model is not re-created per request.
+        try:
+            indexing_config = SharedConfig(_os.path.join(_RAG_DIR, 'indexing', 'config.yaml'))
+            temp_indexing_service = Indexing(
+                indexing_config,
+                DataLoader(indexing_config),
+                FaissDB(indexing_config),
+            )
+            logger.info('Temp indexing service initialized for session queries.')
+        except Exception as e:
+            logger.warning(f'Temp indexing service init failed: {str(e)}')
 
         logger.info('Query Service initialized.')
 
@@ -155,8 +174,8 @@ async def reload_index():
 
         # Reload database index
         if data_base is None:
-            shared_config = SharedConfig('rag_system/indexing/config.yaml')
-            data_base = FaissDB(shared_config)
+            _indexing_cfg = SharedConfig(_os.path.join(_RAG_DIR, 'indexing', 'config.yaml'))
+            data_base = FaissDB(_indexing_cfg)
 
         data_base.load_index(query_config.index_path)
 
@@ -168,6 +187,9 @@ async def reload_index():
             responder=responder,
             redis_client=redis_client
         )
+
+        if redis_client is not None:
+            redis_client.flush_cache()
 
         logger.info("Index reloaded successfully")
         return {"status": "reloaded", "message": "Index reloaded successfully"}
