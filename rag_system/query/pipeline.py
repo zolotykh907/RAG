@@ -1,7 +1,43 @@
+import hashlib
+import os
 from typing import Any, Dict, List, Optional
 
 from rag_system.shared.logs import setup_logging
 from rag_system.query.highlight import find_highlights
+
+
+def _path_signature(path: Any) -> str:
+    if not path:
+        return "none"
+
+    path_str = os.path.abspath(str(path))
+    try:
+        stat = os.stat(path_str)
+    except OSError:
+        return f"{path_str}:missing"
+    return f"{path_str}:{stat.st_mtime_ns}:{stat.st_size}"
+
+
+def build_cache_namespace(
+    config: Any,
+    prefix: str = "permanent",
+    extra: Optional[List[str]] = None,
+) -> str:
+    """Build a cache namespace from the corpus and generation settings."""
+    prompt_template = str(getattr(config, "prompt_template", ""))
+    prompt_hash = hashlib.sha256(prompt_template.encode("utf-8")).hexdigest()
+
+    parts = [
+        prefix,
+        f"index={_path_signature(getattr(config, 'index_path', None))}",
+        f"data={_path_signature(getattr(config, 'processed_data_path', None))}",
+        f"llm={getattr(config, 'llm', '')}",
+        f"emb={getattr(config, 'emb_model_name', '')}",
+        f"prompt={prompt_hash}",
+    ]
+    if extra:
+        parts.extend(extra)
+    return "|".join(parts)
 
 
 class RAGPipeline:
@@ -13,6 +49,7 @@ class RAGPipeline:
         query: Any,
         responder: Any,
         redis_client: Any,
+        cache_namespace: Optional[str] = None,
     ) -> None:
         """Initialize RAG pipeline.
 
@@ -21,11 +58,13 @@ class RAGPipeline:
             query: component responsible for retrieving relevant texts.
             responder: component responsible for generating answers using LLM.
             redis_client: Redis cache client.
+            cache_namespace: cache scope for the current corpus and generation settings.
         """
         self.query = query
         self.responder = responder
         self.logger = setup_logging(config.logs_dir, 'RAGPipeline')
         self.redis_client = redis_client
+        self.cache_namespace = cache_namespace or build_cache_namespace(config)
 
     def answer(self, question: str) -> Dict[str, Any]:
         """Generate answer using RAG.
@@ -44,7 +83,10 @@ class RAGPipeline:
             cached_answer: Optional[Dict[str, Any]] = None
             try:
                 self.logger.info("Checking Redis cache...")
-                cached_answer = self.redis_client.get_from_cache(question)
+                cached_answer = self.redis_client.get_from_cache(
+                    question,
+                    namespace=self.cache_namespace,
+                )
             except Exception as e:
                 self.logger.warning(f"Redis cache unavailable, skipping: {e}")
 
@@ -65,7 +107,11 @@ class RAGPipeline:
 
             # Try to save to cache, but don't fail if Redis is down
             try:
-                self.redis_client.save_to_cache(question, {"answer": answer, "texts": results, "highlights": highlights})
+                self.redis_client.save_to_cache(
+                    question,
+                    {"answer": answer, "texts": results, "highlights": highlights},
+                    namespace=self.cache_namespace,
+                )
             except Exception as e:
                 self.logger.warning(f"Failed to save to Redis cache: {e}")
 

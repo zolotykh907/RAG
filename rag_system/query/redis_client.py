@@ -20,22 +20,23 @@ class RedisDB:
             self.logger.warning(f"Redis not available at {host}:{port}: {e}")
             self.redis_client = None
 
-    def make_cache_key(self, query: str) -> str:
-        return f"rag:{hashlib.sha256(query.encode()).hexdigest()}"
+    def make_cache_key(self, query: str, namespace: str = "default") -> str:
+        cache_input = f"{namespace}\0{query}"
+        return f"rag:{hashlib.sha256(cache_input.encode()).hexdigest()}"
 
-    def get_from_cache(self, query: str) -> Optional[Dict[str, Any]]:
+    def get_from_cache(self, query: str, namespace: str = "default") -> Optional[Dict[str, Any]]:
         if self.redis_client is None:
             return None
-        key = self.make_cache_key(query)
+        key = self.make_cache_key(query, namespace=namespace)
         value = self.redis_client.get(key)
         if value:
             return json.loads(value)
         return None
 
-    def save_to_cache(self, query: str, answer: Dict[str, Any]) -> None:
+    def save_to_cache(self, query: str, answer: Dict[str, Any], namespace: str = "default") -> None:
         if self.redis_client is None:
             return
-        key = self.make_cache_key(query)
+        key = self.make_cache_key(query, namespace=namespace)
         self.redis_client.setex(key, 60 * 60 * 24, json.dumps(answer))
         self.logger.info("Saved query result to cache")
 

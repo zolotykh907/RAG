@@ -67,7 +67,8 @@ async def query_rag(request: QueryRequest):
                 temp_indexing,
                 query_config,
                 responder,
-                redis_client
+                redis_client,
+                session_id=session_id,
             )
 
             result = combined_pipeline.answer(request.question)

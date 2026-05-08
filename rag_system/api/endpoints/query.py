@@ -38,7 +38,8 @@ async def query_rag(request: QueryRequest):
 
             combined_pipeline = create_combined_pipeline(
                 query_service, temp_data, indexing_service,
-                main_module.query_config, responder, redis_client
+                main_module.query_config, responder, redis_client,
+                session_id=request.session_id,
             )
             result = combined_pipeline.answer(request.question)
             logger.info(f"Combined query processed for session {request.session_id}")

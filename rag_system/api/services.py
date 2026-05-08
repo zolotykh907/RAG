@@ -1,5 +1,6 @@
 import logging
 import os
+import hashlib
 from typing import Any, Dict, List, Optional, Union
 
 import faiss
@@ -10,12 +11,36 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from rag_system.indexing.data_processing import normalize_text
 from rag_system.indexing.indexing import Indexing
 from rag_system.query.llm import LLMResponder
-from rag_system.query.pipeline import RAGPipeline
+from rag_system.query.pipeline import RAGPipeline, build_cache_namespace
 from rag_system.query.query import Query
 from rag_system.query.redis_client import RedisDB
 from rag_system.shared.data_loader import DataLoader
 
 logger = logging.getLogger(__name__)
+
+
+def _temp_data_signature(temp_data_list: Union[List[Dict[str, Any]], Dict[str, Any]]) -> str:
+    if isinstance(temp_data_list, dict):
+        temp_items = [temp_data_list]
+    else:
+        temp_items = temp_data_list
+
+    digest = hashlib.sha256()
+    for temp_data in temp_items:
+        chunks = temp_data.get('chunks', [])
+        digest.update(str(len(chunks)).encode('utf-8'))
+        for chunk in chunks:
+            if isinstance(chunk, dict):
+                source = str(chunk.get('source', ''))
+                text = str(chunk.get('text', ''))
+            else:
+                source = ''
+                text = str(chunk)
+            digest.update(source.encode('utf-8'))
+            digest.update(b'\0')
+            digest.update(text.encode('utf-8'))
+            digest.update(b'\0')
+    return digest.hexdigest()
 
 
 class CombinedQueryService:
@@ -150,6 +175,7 @@ def create_combined_pipeline(
     query_config: Any,
     responder: LLMResponder,
     redis_client: Optional[RedisDB] = None,
+    session_id: Optional[str] = None,
 ) -> RAGPipeline:
     """Create a combined pipeline for temporary and permanent data.
 
@@ -160,6 +186,7 @@ def create_combined_pipeline(
         query_config: Query configuration.
         responder: LLM responder instance.
         redis_client: Redis client instance (optional).
+        session_id: Temporary session ID for session-scoped cache isolation.
 
     Returns:
         RAGPipeline: Combined RAG pipeline instance.
@@ -201,12 +228,21 @@ def create_combined_pipeline(
         rerank_enabled=rerank_enabled,
         rerank_candidate_k=rerank_candidate_k,
     )
+    cache_namespace = build_cache_namespace(
+        query_config,
+        prefix="combined",
+        extra=[
+            f"session={session_id or 'none'}",
+            f"temp={_temp_data_signature(temp_data_list)}",
+        ],
+    )
 
     combined_pipeline = RAGPipeline(
         config=query_config,
         query=combined_query_service,
         responder=responder,
         redis_client=redis_client,
+        cache_namespace=cache_namespace,
     )
 
     return combined_pipeline

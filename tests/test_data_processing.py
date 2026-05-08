@@ -16,7 +16,7 @@ morph = pymorphy2.MorphAnalyzer()
 
 
 def test_normalize_text(input_text, expected_tokens):
-    result = normalize_text(input_text, morph=morph)
+    result = normalize_text(input_text, morph=morph, clear_flag=True)
     result_tokens = set(result.split())
     assert result_tokens == expected_tokens
 
