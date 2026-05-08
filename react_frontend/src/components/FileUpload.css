@@ -57,6 +57,14 @@
   color: #cc785c;
 }
 
+.file-input-label.disabled,
+.file-input-label.disabled:hover {
+  border-color: #d8d8d8;
+  background: #f6f6f6;
+  color: #777;
+  cursor: not-allowed;
+}
+
 .file-input-label svg {
   color: #999;
   transition: color 0.3s ease;
@@ -64,6 +72,11 @@
 
 .file-input-label:hover svg {
   color: #cc785c;
+}
+
+.file-input-label.disabled svg,
+.file-input-label.disabled:hover svg {
+  color: #aaa;
 }
 
 .file-label-text {
@@ -157,6 +170,12 @@
   background: #f0f7ff;
   color: #0066cc;
   border: 1px solid #b3d9ff;
+}
+
+.pending-message {
+  background: #fff8ec;
+  color: #7d5600;
+  border: 1px solid #efd7aa;
 }
 
 /* Адаптивность */

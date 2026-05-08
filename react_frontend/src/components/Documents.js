@@ -11,6 +11,7 @@ const Documents = forwardRef(function Documents({ searchQuery = '', searchMode =
   const [loadingContent, setLoadingContent] = useState(false);
   const [totalChunks, setTotalChunks] = useState(0);
   const [searchResults, setSearchResults] = useState(null);
+  const [serviceError, setServiceError] = useState(null);
 
   useEffect(() => {
     loadDocuments();
@@ -38,12 +39,20 @@ const Documents = forwardRef(function Documents({ searchQuery = '', searchMode =
 
   const loadDocuments = async () => {
     setLoading(true);
+    setServiceError(null);
     try {
       const data = await apiService.getDocuments();
       setDocuments(data.documents || []);
       setTotalChunks(data.total_chunks || 0);
     } catch (error) {
       console.error('Error loading documents:', error);
+      if (error.status === 502) {
+        setServiceError('Сервис индексации пока недоступен через gateway. Backend может еще запускаться.');
+      } else if (error.status === 503) {
+        setServiceError(error.message || 'Сервис индексации еще не готов. Подождите завершения запуска.');
+      } else {
+        setServiceError('Не удалось загрузить список документов. Проверьте состояние backend и попробуйте снова.');
+      }
     } finally {
       setLoading(false);
     }
@@ -154,6 +163,15 @@ const Documents = forwardRef(function Documents({ searchQuery = '', searchMode =
           <p>Загрузка документов...</p>
         </div>
       ) : documents.length === 0 ? (
+        serviceError ? (
+          <div className="documents-empty documents-service-unavailable">
+            <h3>Сервис индексации недоступен</h3>
+            <p>{serviceError}</p>
+            <button type="button" className="documents-retry-btn" onClick={loadDocuments}>
+              Проверить снова
+            </button>
+          </div>
+        ) : (
         <div className="documents-empty">
           <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
             <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
@@ -162,6 +180,7 @@ const Documents = forwardRef(function Documents({ searchQuery = '', searchMode =
           <h3>Нет индексированных документов</h3>
           <p>Нажмите «Загрузить» для добавления документов</p>
         </div>
+        )
       ) : filteredDocuments.length === 0 ? (
         <div className="documents-empty">
           <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">

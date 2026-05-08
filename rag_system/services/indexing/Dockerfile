@@ -7,10 +7,13 @@ LABEL version="2.0.0"
 # Set working directory
 WORKDIR /docker_app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    build-essential \
+# Install system dependencies, including OCR tools for PDF/image ingestion.
+RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    build-essential \
+    tesseract-ocr \
+    tesseract-ocr-rus \
+    poppler-utils \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy project config and install dependencies

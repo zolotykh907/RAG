@@ -9,11 +9,15 @@ Responsibilities:
 - Document management (CRUD)
 """
 
+import asyncio
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from typing import Any
+from typing import Optional
+
 from fastapi import FastAPI
 from fastapi import HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from typing import Any
-from typing import Optional
 
 from rag_system.shared.logs import setup_logging
 from rag_system.shared.my_config import Config as SharedConfig
@@ -32,30 +36,62 @@ logger = setup_logging(shared_config.logs_dir, 'INDEXING_SERVICE')
 data_loader: Optional[DataLoader] = None
 data_base: Optional[FaissDB] = None
 indexing_service: Optional[Indexing] = None
+initialization_status: str = "not_started"
+initialization_error: Optional[str] = None
+initialization_task: Optional[asyncio.Task[None]] = None
 
 
-def initialize_services():
+def initialize_services() -> None:
     """Initialize indexing services with error handling."""
-    global data_loader, data_base, indexing_service
+    global data_loader, data_base, indexing_service, initialization_status, initialization_error
 
+    initialization_status = "loading"
+    initialization_error = None
     try:
         data_loader = DataLoader(shared_config)
         data_base = FaissDB(shared_config)
         indexing_service = Indexing(shared_config, data_loader, data_base)
 
+        initialization_status = "ready"
         logger.info('Indexing service initialized successfully.')
     except Exception as e:
+        data_loader = None
+        data_base = None
+        indexing_service = None
+        initialization_status = "error"
+        initialization_error = str(e)
         logger.error(f'Failed to initialize Indexing service: {str(e)}')
         raise
 
 
-initialize_services()
+async def _initialize_services_on_startup() -> None:
+    try:
+        await asyncio.to_thread(initialize_services)
+    except Exception:
+        logger.exception("Background initialization failed")
+
+
+async def start_background_initialization() -> None:
+    """Start serving liveness/readiness while the embedding model loads in background."""
+    global initialization_task, initialization_status
+
+    if initialization_task is None or initialization_task.done():
+        initialization_status = "starting"
+        initialization_task = asyncio.create_task(_initialize_services_on_startup())
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    await start_background_initialization()
+    yield
+
 
 # FastAPI rag-app
 app = FastAPI(
     title="RAG Indexing Service",
     description="Microservice for document indexing and embedding generation",
-    version="2.0.0"
+    version="2.0.0",
+    lifespan=lifespan,
 )
 
 # CORS
@@ -74,7 +110,7 @@ def get_indexing_service() -> Indexing:
     if indexing_service is None:
         raise HTTPException(
             status_code=503,
-            detail="Indexing service not available"
+            detail=_service_unavailable_detail()
         )
     return indexing_service
 
@@ -84,7 +120,7 @@ def get_data_loader() -> DataLoader:
     if data_loader is None:
         raise HTTPException(
             status_code=503,
-            detail="Data loader not available"
+            detail=_service_unavailable_detail()
         )
     return data_loader
 
@@ -94,9 +130,17 @@ def get_data_base() -> FaissDB:
     if data_base is None:
         raise HTTPException(
             status_code=503,
-            detail="Database not available"
+            detail=_service_unavailable_detail()
         )
     return data_base
+
+
+def _service_unavailable_detail() -> str:
+    if initialization_status in {"not_started", "starting", "loading"}:
+        return "Indexing service is starting. The embedding model is still loading."
+    if initialization_status == "error":
+        return f"Indexing service failed to initialize: {initialization_error or 'unknown error'}"
+    return "Indexing service not available"
 
 
 # Import routers after app initialization to avoid circular imports

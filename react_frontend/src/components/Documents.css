@@ -77,6 +77,28 @@
   margin: 0;
 }
 
+.documents-service-unavailable p {
+  max-width: 560px;
+  line-height: 1.5;
+}
+
+.documents-retry-btn {
+  padding: 11px 18px;
+  background: #cc785c;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.documents-retry-btn:hover {
+  background: #b86a4f;
+  transform: translateY(-1px);
+}
+
 .spinner-large {
   width: 40px;
   height: 40px;

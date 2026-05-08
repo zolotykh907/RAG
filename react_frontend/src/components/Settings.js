@@ -47,56 +47,6 @@ const CONFIG_DESCRIPTIONS = {
   }
 };
 
-// Иконки для секций
-const SECTION_ICONS = {
-  llm: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-    </svg>
-  ),
-  embeddings: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="12" r="10"></circle>
-      <line x1="2" y1="12" x2="22" y2="12"></line>
-      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-    </svg>
-  ),
-  qdrant: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-      <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-      <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-    </svg>
-  ),
-  prompts: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-      <polyline points="14 2 14 8 20 8"></polyline>
-      <line x1="16" y1="13" x2="8" y2="13"></line>
-      <line x1="16" y1="17" x2="8" y2="17"></line>
-    </svg>
-  ),
-  models: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
-      <rect x="9" y="9" width="6" height="6"></rect>
-      <line x1="9" y1="1" x2="9" y2="4"></line>
-      <line x1="15" y1="1" x2="15" y2="4"></line>
-      <line x1="9" y1="20" x2="9" y2="23"></line>
-      <line x1="15" y1="20" x2="15" y2="23"></line>
-      <line x1="20" y1="9" x2="23" y2="9"></line>
-      <line x1="20" y1="14" x2="23" y2="14"></line>
-      <line x1="1" y1="9" x2="4" y2="9"></line>
-      <line x1="1" y1="14" x2="4" y2="14"></line>
-    </svg>
-  ),
-  rag: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-    </svg>
-  )
-};
-
 // Компонент настроек системы
 function Settings() {
   const [activeService, setActiveService] = useState('query');
@@ -236,13 +186,11 @@ function Settings() {
 
     if (typeof value === 'object' && !Array.isArray(value)) {
       const isCollapsed = collapsedSections[fullPath];
-      const icon = SECTION_ICONS[key] || null;
 
       return (
         <div key={fullPath} className={`config-section ${isCollapsed ? 'collapsed' : ''}`}>
           <button className="config-section-header" onClick={() => toggleSection(fullPath)}>
             <div className="section-header-left">
-              {icon && <span className="section-icon">{icon}</span>}
               <h4 className="config-section-title">{key}</h4>
             </div>
             <svg className="section-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -348,11 +296,6 @@ function Settings() {
           <div className="config-section config-section-general">
             <div className="config-section-header config-section-header-static">
               <div className="section-header-left">
-                <span className="section-icon">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-                  </svg>
-                </span>
                 <h4 className="config-section-title">Основные</h4>
               </div>
             </div>

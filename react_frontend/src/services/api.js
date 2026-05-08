@@ -6,6 +6,46 @@ class ApiService {
     this.baseUrl = API_BASE_URL;
   }
 
+  async parseJsonResponse(response) {
+    if (!response.ok) {
+      await this.throwResponseError(response);
+    }
+
+    return response.json();
+  }
+
+  async throwResponseError(response) {
+    const body = await response.text();
+    const contentType = response.headers.get('content-type') || '';
+    let message = `HTTP error! status: ${response.status}`;
+
+    if (response.status === 502) {
+      message = 'Сервис временно недоступен. Backend еще запускается или недоступен через gateway.';
+    } else if (response.status === 503) {
+      message = 'Сервис временно не готов. Подождите завершения запуска backend.';
+    }
+
+    if (body) {
+      if (contentType.includes('application/json')) {
+        try {
+          const data = JSON.parse(body);
+          const detail = data.detail || data.message || data.error;
+          if (detail) {
+            message = typeof detail === 'string' ? detail : JSON.stringify(detail);
+          }
+        } catch (error) {
+          console.error('Error parsing error response:', error);
+        }
+      } else if (!body.trim().startsWith('<')) {
+        message = body.trim();
+      }
+    }
+
+    const error = new Error(message);
+    error.status = response.status;
+    throw error;
+  }
+
   async sendQuery(question, sessionId = null) {
     try {
       const response = await fetch(`${this.baseUrl}/api/query/ask`, {
@@ -19,11 +59,7 @@ class ApiService {
         }),
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await this.parseJsonResponse(response);
       return data;
     } catch (error) {
       console.error('Error sending query:', error);
@@ -41,11 +77,7 @@ class ApiService {
         body: formData,
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await this.parseJsonResponse(response);
       return data;
     } catch (error) {
       console.error('Error uploading file:', error);
@@ -63,11 +95,7 @@ class ApiService {
         body: formData,
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await this.parseJsonResponse(response);
       return data;
     } catch (error) {
       console.error('Error uploading temp file:', error);
@@ -81,11 +109,7 @@ class ApiService {
         method: 'DELETE',
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await this.parseJsonResponse(response);
       return data;
     } catch (error) {
       console.error('Error clearing temp session:', error);
@@ -97,14 +121,25 @@ class ApiService {
     try {
       const response = await fetch(`${this.baseUrl}/health`);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await this.parseJsonResponse(response);
       return data;
     } catch (error) {
       console.error('Error checking health:', error);
+      throw error;
+    }
+  }
+
+  async getIndexingReadiness() {
+    try {
+      const response = await fetch(`${this.baseUrl}/health/indexing/ready`);
+      const data = await this.parseJsonResponse(response);
+      return data;
+    } catch (error) {
+      if (error.status === 404) {
+        const response = await fetch(`${this.baseUrl}/ready`);
+        return this.parseJsonResponse(response);
+      }
+      console.error('Error checking indexing readiness:', error);
       throw error;
     }
   }
@@ -113,11 +148,7 @@ class ApiService {
     try {
       const response = await fetch(`${this.baseUrl}/api/indexing/config?service=${service}`);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await this.parseJsonResponse(response);
       return data;
     } catch (error) {
       console.error('Error getting config:', error);
@@ -135,11 +166,7 @@ class ApiService {
         body: JSON.stringify(config),
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await this.parseJsonResponse(response);
       return data;
     } catch (error) {
       console.error('Error updating config:', error);
@@ -153,11 +180,7 @@ class ApiService {
         method: 'POST',
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await this.parseJsonResponse(response);
       return data;
     } catch (error) {
       console.error('Error reloading service:', error);
@@ -171,11 +194,7 @@ class ApiService {
         method: 'DELETE',
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await this.parseJsonResponse(response);
       return data;
     } catch (error) {
       console.error('Error clearing index:', error);
@@ -187,11 +206,7 @@ class ApiService {
     try {
       const response = await fetch(`${this.baseUrl}/api/indexing/documents`);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await this.parseJsonResponse(response);
       return data;
     } catch (error) {
       console.error('Error getting documents:', error);
@@ -207,11 +222,7 @@ class ApiService {
 
       const response = await fetch(url);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await this.parseJsonResponse(response);
       return data;
     } catch (error) {
       console.error('Error getting document content:', error);
@@ -225,11 +236,7 @@ class ApiService {
         method: 'DELETE',
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await this.parseJsonResponse(response);
       return data;
     } catch (error) {
       console.error('Error deleting document:', error);
@@ -241,11 +248,7 @@ class ApiService {
     try {
       const response = await fetch(`${this.baseUrl}/api/indexing/search-documents?query=${encodeURIComponent(query)}`);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await this.parseJsonResponse(response);
       return data;
     } catch (error) {
       console.error('Error searching documents:', error);
@@ -261,11 +264,7 @@ class ApiService {
 
       const response = await fetch(`${this.baseUrl}/api/query/sessions/${sessionId}/files`);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await this.parseJsonResponse(response);
       return data;
     } catch (error) {
       console.error('Error getting temp files info:', error);
@@ -279,11 +278,7 @@ class ApiService {
         method: 'DELETE',
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await this.parseJsonResponse(response);
       return data;
     } catch (error) {
       console.error('Error deleting temp file:', error);

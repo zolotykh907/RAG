@@ -1,5 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import apiService from '../services/api';
 import './FileUpload.css';
+
+const INDEXING_STARTING_MESSAGE = 'Сервис индексации запускается. Дождитесь завершения загрузки модели embeddings.';
 
 // Компонент для загрузки файлов
 function FileUpload({ onPermanentUpload }) {
@@ -7,6 +10,52 @@ function FileUpload({ onPermanentUpload }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [indexingReady, setIndexingReady] = useState(false);
+  const [readinessMessage, setReadinessMessage] = useState('Проверяем готовность сервиса индексации...');
+  const [checkingReadiness, setCheckingReadiness] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    let retryTimer = null;
+
+    async function checkReadiness() {
+      if (!cancelled) {
+        setCheckingReadiness(true);
+      }
+
+      let ready = false;
+      try {
+        const readiness = await apiService.getIndexingReadiness();
+        ready = readiness.status === 'ready';
+
+        if (!cancelled) {
+          setIndexingReady(ready);
+          setReadinessMessage(ready ? null : readiness.message || INDEXING_STARTING_MESSAGE);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setIndexingReady(false);
+          setReadinessMessage(err.message || INDEXING_STARTING_MESSAGE);
+        }
+      } finally {
+        if (!cancelled) {
+          setCheckingReadiness(false);
+          if (!ready) {
+            retryTimer = window.setTimeout(checkReadiness, 3000);
+          }
+        }
+      }
+    }
+
+    checkReadiness();
+
+    return () => {
+      cancelled = true;
+      if (retryTimer) {
+        window.clearTimeout(retryTimer);
+      }
+    };
+  }, []);
 
   // Обработка выбора файла
   const handleFileChange = (event) => {
@@ -20,6 +69,11 @@ function FileUpload({ onPermanentUpload }) {
   const handlePermanentUpload = async () => {
     if (!file) {
       setError('Пожалуйста, выберите файл');
+      return;
+    }
+
+    if (!indexingReady) {
+      setError(readinessMessage || INDEXING_STARTING_MESSAGE);
       return;
     }
 
@@ -52,10 +106,24 @@ function FileUpload({ onPermanentUpload }) {
             type="file"
             onChange={handleFileChange}
             accept=".txt,.pdf,.doc,.docx"
-            disabled={uploading}
+            disabled={uploading || !indexingReady}
           />
-          <label htmlFor="file-input" className="file-input-label">
-            {file ? (
+          <label
+            htmlFor="file-input"
+            className={`file-input-label${!indexingReady ? ' disabled' : ''}`}
+          >
+            {!indexingReady ? (
+              <>
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M12 6v6l4 2"></path>
+                </svg>
+                <span className="file-label-text">Сервис индексации запускается</span>
+                <span className="file-label-hint">
+                  {checkingReadiness ? 'Проверяем готовность...' : readinessMessage}
+                </span>
+              </>
+            ) : file ? (
               <>
                 <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
@@ -81,13 +149,18 @@ function FileUpload({ onPermanentUpload }) {
         <div className="upload-buttons">
           <button
             onClick={handlePermanentUpload}
-            disabled={!file || uploading}
+            disabled={!file || uploading || !indexingReady}
             className="upload-button upload-button-permanent"
           >
-            {uploading ? 'Загрузка...' : 'Загрузить в базу'}
+            {!indexingReady ? 'Сервис запускается' : uploading ? 'Загрузка...' : 'Загрузить в базу'}
           </button>
         </div>
 
+        {!indexingReady && (
+          <div className="upload-message pending-message">
+            {checkingReadiness ? 'Проверяем готовность сервиса индексации...' : readinessMessage}
+          </div>
+        )}
         {error && <div className="upload-message error-message">{error}</div>}
         {success && <div className="upload-message success-message">{success}</div>}
       </div>
