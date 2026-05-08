@@ -71,7 +71,8 @@ def save_embeddings(embeddings: np.ndarray, embeddings_path: str) -> None:
     """
     tmp_path = embeddings_path + ".tmp"
     try:
-        np.save(tmp_path, embeddings)
+        with open(tmp_path, "wb") as f:
+            np.save(f, embeddings)
         os.replace(tmp_path, embeddings_path)
     except Exception:
         if os.path.exists(tmp_path):
