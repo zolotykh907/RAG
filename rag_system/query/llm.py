@@ -28,6 +28,22 @@ class LLMResponder:
         self.chain = self.prompt_template | self.llm
         self.logger = setup_logging(config.logs_dir, 'RAG_LLM')
 
+    @staticmethod
+    def format_context(texts: List[str]) -> str:
+        """Format retrieved chunks with stable boundaries for the prompt."""
+        chunks = [
+            str(text).strip()
+            for text in texts
+            if isinstance(text, str) and text.strip()
+        ]
+        if not chunks:
+            raise ValueError("Texts must contain at least one non-empty string")
+
+        return '\n\n'.join(
+            f"[Фрагмент {index}]\n{text}"
+            for index, text in enumerate(chunks, 1)
+        )
+
     def generate_answer(self, question: str, texts: List[str]) -> str:
         """Generate answer using LLM and context.
 
@@ -45,7 +61,7 @@ class LLMResponder:
             raise ValueError("Texts must be a non-empty list")
 
         try:
-            context = '\n'.join(texts)
+            context = self.format_context(texts)
             response = self.chain.invoke({"question": question, "context": context})
 
             # Extract content from AIMessage object
