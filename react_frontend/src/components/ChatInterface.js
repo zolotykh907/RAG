@@ -210,7 +210,7 @@ function ChatInterface({ onSendMessage, sessionId = null, onFileUpload, onMessag
   // Обработка клика по временному файлу
   const handleTempFileClick = async (filename) => {
     try {
-      const content = await apiService.getDocumentContent(filename, sessionId);
+      const content = await apiService.getTempFileContent(sessionId, filename);
       setSelectedTempFile(content);
       setShowTempFileContent(true);
       setShowTempFilesModal(false);
@@ -276,6 +276,31 @@ function ChatInterface({ onSendMessage, sessionId = null, onFileUpload, onMessag
       </div>
 
       <div className="messages-container">
+        {tempFiles.length > 0 && (
+          <div className="temp-files-strip">
+            <div className="temp-files-strip-header">
+              <span>Временные документы</span>
+              <button type="button" onClick={() => setShowTempFilesModal(true)}>
+                Все ({tempFiles.length})
+              </button>
+            </div>
+            <div className="temp-files-strip-list">
+              {tempFiles.slice(0, 3).map((file) => (
+                <button
+                  type="button"
+                  key={file.filename}
+                  className="temp-file-pill"
+                  onClick={() => handleTempFileClick(file.filename)}
+                  title={file.filename}
+                >
+                  <span className="temp-file-name">{file.filename}</span>
+                  <span className="temp-file-meta">{file.chunks_count} фр.</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {messages.length === 0 ? (
           <div className="empty-state">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -301,8 +326,9 @@ function ChatInterface({ onSendMessage, sessionId = null, onFileUpload, onMessag
                   </svg>
                 ) : (
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path>
+                    <path d="M8 9h8"></path>
+                    <path d="M8 13h5"></path>
                   </svg>
                 )}
               </div>

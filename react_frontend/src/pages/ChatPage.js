@@ -20,7 +20,8 @@ function ChatPage({ sessionId, setSessionId }) {
   };
 
   const handleTempUpload = async (file) => {
-    const result = await apiService.uploadTempFile(file);
+    const sid = ensureSession();
+    const result = await apiService.uploadTempFile(file, sid);
     setSessionId(result.session_id);
 
     if (window.chatHistory) {

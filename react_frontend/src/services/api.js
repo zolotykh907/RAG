@@ -85,10 +85,13 @@ class ApiService {
     }
   }
 
-  async uploadTempFile(file) {
+  async uploadTempFile(file, sessionId = null) {
     try {
       const formData = new FormData();
       formData.append('file', file);
+      if (sessionId) {
+        formData.append('session_id', sessionId);
+      }
 
       const response = await fetch(`${this.baseUrl}/api/query/upload-temp`, {
         method: 'POST',
@@ -226,6 +229,18 @@ class ApiService {
       return data;
     } catch (error) {
       console.error('Error getting document content:', error);
+      throw error;
+    }
+  }
+
+  async getTempFileContent(sessionId, filename) {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/query/sessions/${sessionId}/files/${encodeURIComponent(filename)}`);
+
+      const data = await this.parseJsonResponse(response);
+      return data;
+    } catch (error) {
+      console.error('Error getting temp file content:', error);
       throw error;
     }
   }

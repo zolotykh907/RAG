@@ -40,6 +40,83 @@
   background: #fafafa;
 }
 
+.temp-files-strip {
+  background: white;
+  border: 1px solid #e5e5e5;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 20px;
+  max-width: 700px;
+}
+
+.temp-files-strip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+}
+
+.temp-files-strip-header button {
+  border: none;
+  background: transparent;
+  color: #cc785c;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 0;
+}
+
+.temp-files-strip-header button:hover {
+  color: #b86a4f;
+}
+
+.temp-files-strip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.temp-file-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 220px;
+  padding: 7px 10px;
+  border: 1px solid #eaded8;
+  border-radius: 8px;
+  background: #fffaf7;
+  color: #555;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.temp-file-pill:hover {
+  border-color: #cc785c;
+  background: #f8eee9;
+  color: #2f2f2f;
+}
+
+.temp-file-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.temp-file-meta {
+  flex-shrink: 0;
+  color: #cc785c;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .empty-state {
   display: flex;
   flex-direction: column;
