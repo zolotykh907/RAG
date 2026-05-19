@@ -4,7 +4,6 @@ from typing import Any, Dict, List, Optional
 
 from rag_system.shared.index_snapshot import IndexSnapshotStore
 from rag_system.shared.logs import setup_logging
-from rag_system.query.highlight import find_highlights
 
 
 def _path_signature(path: Any) -> str:
@@ -96,7 +95,7 @@ class RAGPipeline:
             question: input question to answer.
 
         Returns:
-            dict: generated answer, list of relevant texts, and highlight offsets.
+            dict: generated answer, list of relevant texts, and disabled highlight data.
         """
         if not isinstance(question, str) or not question.strip():
             raise ValueError("Question must be a non-empty string")
@@ -118,7 +117,7 @@ class RAGPipeline:
                 return {
                     "answer": cached_answer['answer'],
                     "texts": cached_answer['texts'],
-                    "highlights": cached_answer.get('highlights', [])
+                    "highlights": [],
                 }
 
             self.logger.info("Searching for relevant texts for question")
@@ -126,13 +125,11 @@ class RAGPipeline:
 
             answer: str = self.responder.generate_answer(question, results)
 
-            highlights = find_highlights(answer, results)
-
             # Try to save to cache, but don't fail if Redis is down
             try:
                 self.redis_client.save_to_cache(
                     question,
-                    {"answer": answer, "texts": results, "highlights": highlights},
+                    {"answer": answer, "texts": results, "highlights": []},
                     namespace=self.cache_namespace,
                 )
             except Exception as e:
@@ -141,7 +138,7 @@ class RAGPipeline:
             return {
                 "answer": answer,
                 "texts": results,
-                "highlights": highlights
+                "highlights": [],
             }
         except Exception as e:
             self.logger.error(f'Failed to generate answer: {str(e)}')
