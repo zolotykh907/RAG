@@ -7,7 +7,7 @@ function Tooltip({ children, text }) {
   if (!text) return children;
 
   return (
-    <div className="tooltip-wrapper">
+    <div className={`tooltip-wrapper${visible ? ' tooltip-wrapper-open' : ''}`}>
       <span
         onMouseEnter={() => setVisible(true)}
         onMouseLeave={() => setVisible(false)}

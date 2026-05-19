@@ -117,8 +117,12 @@
   background: white;
   border-radius: 12px;
   border: 1px solid #e5e5e5;
-  overflow: hidden;
+  overflow: visible;
   transition: box-shadow 0.2s ease;
+}
+
+.config-section.collapsed {
+  overflow: hidden;
 }
 
 .config-section:hover {
@@ -192,7 +196,7 @@
 }
 
 .config-section-content {
-  overflow: hidden;
+  overflow: visible;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -200,6 +204,7 @@
 }
 
 .config-section.collapsed .config-section-content {
+  overflow: hidden;
   padding-top: 0;
   padding-bottom: 0;
 }

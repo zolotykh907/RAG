@@ -1,6 +1,11 @@
 .tooltip-wrapper {
   position: relative;
   display: inline-block;
+  z-index: 1;
+}
+
+.tooltip-wrapper-open {
+  z-index: 1001;
 }
 
 .tooltip-content {
