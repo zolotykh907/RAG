@@ -23,7 +23,7 @@ data:
   - .pdf
   - .doc
 model:
-  emb_model_name: BAAI/bge-m3
+  emb_model_name: intfloat/multilingual-e5-base
   emb_device: cpu
   batch_size: 64
   hnsw_m: 32

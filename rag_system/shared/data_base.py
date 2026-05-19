@@ -1,7 +1,6 @@
 import os
 from typing import Any, Optional, Tuple
 
-import faiss
 import numpy as np
 
 from rag_system.shared.logs import setup_logging
@@ -11,7 +10,7 @@ class FaissDB:
     def __init__(self, config: Any, k: int = 5) -> None:
         self.index_path: str = config.index_path
         self.logs_dir: str = config.logs_dir
-        self.index: Optional[faiss.Index] = None
+        self.index: Optional[Any] = None
         self.k: int = k
         self.hnsw_m: int = int(getattr(config, 'hnsw_m', 32))
         self.hnsw_ef_construction: int = int(getattr(config, 'hnsw_ef_construction', 200))
@@ -38,14 +37,18 @@ class FaissDB:
 
             assert self.index is not None
             self.index.add(np.array(embeddings, dtype=np.float32))
+            import faiss
+
             faiss.write_index(self.index, self.index_path)
             self.logger.info(f"FAISS index saved to {self.index_path}.")
         except Exception as e:
             self.logger.error(f'Error adding embeddings or creating index: {e}')
             raise
 
-    def build_index(self, embeddings: np.ndarray, add_embeddings: bool = True) -> faiss.Index:
+    def build_index(self, embeddings: np.ndarray, add_embeddings: bool = True) -> Any:
         """Build a FAISS HNSW index in memory without writing it to disk."""
+        import faiss
+
         dim = embeddings.shape[1]
         index = faiss.IndexHNSWFlat(dim, self.hnsw_m, faiss.METRIC_INNER_PRODUCT)
         index.hnsw.efConstruction = self.hnsw_ef_construction
@@ -66,6 +69,8 @@ class FaissDB:
             self.index = None
             return
         try:
+            import faiss
+
             self.index = faiss.read_index(index_path)
             self.logger.info(f'Index loaded from {index_path}')
         except Exception as e:

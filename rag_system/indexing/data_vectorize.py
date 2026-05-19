@@ -4,11 +4,15 @@ from typing import List, Optional
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
+from rag_system.shared.embedding_prefix import prepare_embedding_texts
+
 
 def create_embeddings(
     texts: List[str],
     model: SentenceTransformer,
     batch_size: int = 32,
+    model_name: Optional[str] = None,
+    is_query: bool = False,
 ) -> np.ndarray:
     """Create embeddings for input texts.
 
@@ -23,8 +27,10 @@ def create_embeddings(
     """
     import faiss
 
+    prepared_texts = prepare_embedding_texts(model_name, texts, is_query=is_query)
+
     embeddings = model.encode(
-        texts,
+        prepared_texts,
         batch_size=batch_size,
         show_progress_bar=True,
         convert_to_numpy=True

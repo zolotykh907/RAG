@@ -9,6 +9,8 @@ from sentence_transformers import SentenceTransformer
 from rag_system.shared.data_base import FaissDB
 from rag_system.shared.index_snapshot import IndexArtifacts
 from rag_system.shared.index_snapshot import IndexSnapshotStore
+from rag_system.shared.embedding_prefix import prepare_embedding_texts
+from rag_system.shared.embedding_prefix import uses_e5_prefix
 from rag_system.shared.logs import setup_logging
 from rag_system.shared.model_loader import get_hf_cache_model_path
 from rag_system.query.reranker import CrossEncoderReranker
@@ -128,18 +130,24 @@ class Query:
             res: List[str] = []
 
             request = self.normalize_text(request)
-            try:
+            if uses_e5_prefix(self.emb_model_name):
                 request_embedding = self.embedding_model.encode(
-                    [request],
-                    prompt_name="query",
-                    convert_to_numpy=True
+                    prepare_embedding_texts(self.emb_model_name, [request], is_query=True),
+                    convert_to_numpy=True,
                 )
-            except (ValueError, TypeError):
-                self.logger.warning("prompt_name='query' not supported by this model, encoding without prompt")
-                request_embedding = self.embedding_model.encode(
-                    [request],
-                    convert_to_numpy=True
-                )
+            else:
+                try:
+                    request_embedding = self.embedding_model.encode(
+                        [request],
+                        prompt_name="query",
+                        convert_to_numpy=True
+                    )
+                except (ValueError, TypeError):
+                    self.logger.warning("prompt_name='query' not supported by this model, encoding without prompt")
+                    request_embedding = self.embedding_model.encode(
+                        [request],
+                        convert_to_numpy=True
+                    )
             request_embedding = np.array(request_embedding, dtype=np.float32)
             faiss.normalize_L2(request_embedding)
 

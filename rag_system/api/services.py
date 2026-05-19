@@ -3,7 +3,6 @@ import os
 import hashlib
 from typing import Any, Dict, List, Optional, Union
 
-import faiss
 import numpy as np
 import pandas as pd
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -15,6 +14,7 @@ from rag_system.query.pipeline import RAGPipeline, build_cache_namespace
 from rag_system.query.query import Query
 from rag_system.query.redis_client import RedisDB
 from rag_system.shared.data_loader import DataLoader
+from rag_system.shared.embedding_prefix import prepare_embedding_texts
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +43,27 @@ def _temp_data_signature(temp_data_list: Union[List[Dict[str, Any]], Dict[str, A
     return digest.hexdigest()
 
 
+def _embedding_matrix(embeddings: Any, expected_count: int, label: str) -> np.ndarray:
+    """Convert model output to a validated 2D float32 embedding matrix."""
+    if expected_count <= 0:
+        raise ValueError("Не удалось извлечь текст из файла. Проверьте, что документ содержит читаемый текст.")
+
+    matrix = np.asarray(embeddings, dtype=np.float32)
+    if matrix.ndim == 1:
+        if expected_count != 1:
+            raise ValueError(f"{label}: expected {expected_count} embeddings, got a single vector")
+        matrix = matrix.reshape(1, -1)
+
+    if matrix.ndim != 2:
+        raise ValueError(f"{label}: expected a 2D embedding matrix, got shape {matrix.shape}")
+    if matrix.shape[0] != expected_count:
+        raise ValueError(f"{label}: expected {expected_count} embeddings, got {matrix.shape[0]}")
+    if matrix.shape[1] == 0:
+        raise ValueError(f"{label}: embedding dimension is empty")
+
+    return matrix
+
+
 class CombinedQueryService:
     """Combined query service that searches both permanent and temporary indexes."""
 
@@ -56,11 +77,13 @@ class CombinedQueryService:
         reranker: Optional[Any] = None,
         rerank_enabled: bool = False,
         rerank_candidate_k: int = 20,
+        emb_model_name: Optional[str] = None,
     ) -> None:
         self.permanent_query = permanent_query
         self.temp_index = temp_index
         self.temp_chunks = temp_chunks
         self.emb_model = emb_model
+        self.emb_model_name = emb_model_name
         self.k = k
         self.reranker = reranker
         self.rerank_enabled = rerank_enabled and reranker is not None
@@ -87,8 +110,15 @@ class CombinedQueryService:
 
         temp_search_k = self.rerank_candidate_k if self.rerank_enabled else self.k
         try:
-            query_embedding = self.emb_model.encode([question])
-            query_embedding = np.array(query_embedding, dtype=np.float32)
+            prepared_question = prepare_embedding_texts(
+                self.emb_model_name,
+                [question],
+                is_query=True,
+            )
+            query_embedding = self.emb_model.encode(prepared_question, convert_to_numpy=True)
+            query_embedding = _embedding_matrix(query_embedding, expected_count=1, label="Query embedding")
+            import faiss
+
             faiss.normalize_L2(query_embedding)
             _, indices = self.temp_index.search(
                 query_embedding,
@@ -150,9 +180,28 @@ def process_file_temp(
                         'source': filename
                     })
 
+        if not chunks:
+            raise ValueError("Не удалось извлечь текст из файла. Проверьте, что документ содержит читаемый текст.")
+
         chunk_texts = [chunk['text'] for chunk in chunks]
-        embeddings = indexing_service.emb_model.encode(chunk_texts, show_progress_bar=True)
-        embeddings = np.array(embeddings, dtype=np.float32)
+        prepared_chunk_texts = prepare_embedding_texts(
+            getattr(indexing_service, 'emb_model_name', None),
+            chunk_texts,
+            is_query=False,
+        )
+        embeddings = indexing_service.emb_model.encode(
+            prepared_chunk_texts,
+            batch_size=indexing_service.batch_size,
+            show_progress_bar=True,
+            convert_to_numpy=True,
+        )
+        embeddings = _embedding_matrix(
+            embeddings,
+            expected_count=len(chunk_texts),
+            label="Temporary file embeddings",
+        )
+        import faiss
+
         faiss.normalize_L2(embeddings)
 
         temp_data: Dict[str, Any] = {
@@ -208,7 +257,18 @@ def create_combined_pipeline(
         else:
             raise ValueError("No temporary or permanent data available")
 
-    temp_embeddings = np.array(all_embeddings, dtype=np.float32)
+    if len(all_chunks) != len(all_embeddings):
+        raise ValueError(
+            f"Temporary chunks count ({len(all_chunks)}) does not match embeddings count ({len(all_embeddings)})"
+        )
+
+    temp_embeddings = _embedding_matrix(
+        all_embeddings,
+        expected_count=len(all_chunks),
+        label="Temporary index embeddings",
+    )
+    import faiss
+
     faiss.normalize_L2(temp_embeddings)
     temp_index = faiss.IndexFlatIP(temp_embeddings.shape[1])
     temp_index.add(temp_embeddings)
@@ -227,6 +287,7 @@ def create_combined_pipeline(
         reranker=reranker,
         rerank_enabled=rerank_enabled,
         rerank_candidate_k=rerank_candidate_k,
+        emb_model_name=getattr(indexing_service, 'emb_model_name', None),
     )
     cache_namespace = build_cache_namespace(
         query_config,

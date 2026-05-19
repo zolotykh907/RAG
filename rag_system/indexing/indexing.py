@@ -263,6 +263,8 @@ class Indexing:
                 df_chunks_new['text'].tolist(),
                 self.emb_model,
                 batch_size=self.batch_size,
+                model_name=self.emb_model_name,
+                is_query=False,
             )
 
             combined_df = self.build_processed_data(df_chunks_new)
@@ -284,6 +286,8 @@ class Indexing:
                         combined_df['text'].tolist(),
                         self.emb_model,
                         batch_size=self.batch_size,
+                        model_name=self.emb_model_name,
+                        is_query=False,
                     )
                 else:
                     all_embeddings = new_embeddings

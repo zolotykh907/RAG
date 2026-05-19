@@ -93,7 +93,7 @@ class IndexSnapshotStore:
         self,
         processed_data: List[Dict[str, Any]],
         embeddings: np.ndarray,
-        index: faiss.Index,
+        index: Any,
     ) -> IndexArtifacts:
         """Write a complete snapshot, then atomically publish it via pointer replacement."""
         embeddings = np.array(embeddings, dtype=np.float32)
@@ -182,7 +182,7 @@ class IndexSnapshotStore:
     def _validate_snapshot(
         processed_data: List[Dict[str, Any]],
         embeddings: np.ndarray,
-        index: faiss.Index,
+        index: Any,
     ) -> None:
         if embeddings.ndim != 2:
             raise ValueError("Embeddings must be a 2D array")
