@@ -28,6 +28,7 @@ documentation/react-app/build/
 # IDE
 .vscode/
 .idea/
+.understand-anything/
 *.swp
 *.swo
 *~
@@ -48,6 +49,11 @@ docker-compose*.yml
 # Documentation
 *.md
 !README.md
+*.docx
+*.pptx
+*.xlsx
+*.xls
+*.csv
 
 # Tests
 tests/
@@ -56,6 +62,9 @@ __tests__/
 *.spec.js
 
 # Other
+.graphify_chunks.json
+graphify-out/
+output/
 .env.local
 .env.*.local
 *.bak
