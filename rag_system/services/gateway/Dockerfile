@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.7
+
 # Multi-stage build: Build React frontend
 FROM node:18-alpine AS frontend-builder
 
@@ -7,7 +9,8 @@ WORKDIR /app
 COPY react_frontend/package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --omit=dev
 
 # Copy frontend source
 COPY react_frontend/ ./

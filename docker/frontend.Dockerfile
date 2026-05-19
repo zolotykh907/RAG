@@ -1,10 +1,13 @@
+# syntax=docker/dockerfile:1.7
+
 FROM node:18-alpine as build
 
 WORKDIR /app
 
 COPY react_frontend/package*.json ./
 
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
 
 COPY react_frontend/ ./
 

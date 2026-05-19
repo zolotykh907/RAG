@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.7
+
 FROM python:3.10-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -12,7 +14,8 @@ WORKDIR /docker_app
 
 # Copy project config and install dependencies
 COPY pyproject.toml ./pyproject.toml
-RUN pip install --no-cache-dir .
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install .
 
 # Copy application code
 COPY rag_system/ /docker_app/rag_system/

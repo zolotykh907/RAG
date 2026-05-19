@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.7
+
 FROM python:3.10-slim
 
 LABEL maintainer="RAG Team"
@@ -8,14 +10,15 @@ LABEL version="2.0.0"
 WORKDIR /docker_app
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy project config and install dependencies
 COPY pyproject.toml ./pyproject.toml
-RUN pip install --no-cache-dir .
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install .
 
 # Copy application code
 COPY rag_system/ /docker_app/rag_system/
