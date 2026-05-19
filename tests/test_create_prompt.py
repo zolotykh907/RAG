@@ -1,5 +1,9 @@
 from unittest.mock import MagicMock
+
+import pytest
+
 from rag_system.query.llm import LLMResponder
+
 
 class DummyConfig:
     llm = "dummy-model"
@@ -12,6 +16,7 @@ class DummyConfig:
     )
     lm_studio_host = "http://localhost:1234/v1"
     logs_dir = "./logs"
+
 
 def test_generate_prompt_format_with_mock():
     config = DummyConfig()
@@ -30,7 +35,19 @@ def test_generate_prompt_format_with_mock():
 
     called_args = responder.chain.invoke.call_args[0][0]
     assert called_args["question"] == question
+    assert "[Фрагмент 1]" in called_args["context"]
     assert "ЦСКА" in called_args["context"]
 
     assert isinstance(result, str)
     assert len(result) > 0
+
+
+def test_format_context_filters_empty_chunks_and_keeps_boundaries():
+    context = LLMResponder.format_context([" Первый фрагмент ", "", "Второй фрагмент"])
+
+    assert context == "[Фрагмент 1]\nПервый фрагмент\n\n[Фрагмент 2]\nВторой фрагмент"
+
+
+def test_format_context_rejects_empty_context():
+    with pytest.raises(ValueError, match="at least one non-empty"):
+        LLMResponder.format_context(["", "   "])
