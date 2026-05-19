@@ -54,6 +54,15 @@ def build_cache_namespace(
     return "|".join(parts)
 
 
+def build_chat_cache_namespace(config: Any, session_id: str) -> str:
+    """Build a cache namespace isolated to a browser chat session."""
+    return build_cache_namespace(
+        config,
+        prefix="chat",
+        extra=[f"session={session_id}"],
+    )
+
+
 class RAGPipeline:
     """Class of pipeline for RAG."""
 

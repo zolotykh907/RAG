@@ -4,9 +4,10 @@ import shutil
 import uuid
 import logging
 from tempfile import TemporaryDirectory
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter
+from fastapi import Form
 from fastapi import HTTPException
 from fastapi import UploadFile
 from fastapi import File
@@ -29,7 +30,10 @@ def _safe_filename(filename: str) -> str:
 
 
 @router.post('/upload-temp')
-async def upload_temp_file(file: UploadFile = File(...)) -> Dict[str, Any]:
+async def upload_temp_file(
+    file: UploadFile = File(...),
+    session_id: Optional[str] = Form(default=None),
+) -> Dict[str, Any]:
     """Upload and temporarily index a file for session use.
 
     Args:
@@ -51,7 +55,7 @@ async def upload_temp_file(file: UploadFile = File(...)) -> Dict[str, Any]:
         raise HTTPException(status_code=503, detail="Data loader not available.")
 
     try:
-        session_id = temp_index_manager.generate_session_id()
+        target_session_id = session_id or temp_index_manager.generate_session_id()
 
         with TemporaryDirectory() as temp_dir:
             safe_name = _safe_filename(file.filename or "upload")
@@ -66,15 +70,18 @@ async def upload_temp_file(file: UploadFile = File(...)) -> Dict[str, Any]:
                 None, process_file_temp, temp_path, data_loader, indexing_svc
             )
 
-            temp_index_manager.add_temp_index(session_id, temp_data)
+            temp_index_manager.add_temp_index(target_session_id, temp_data)
 
-            logger.info(f"Temporary file indexed successfully. Session ID: {session_id}")
+            logger.info(f"Temporary file indexed successfully. Session ID: {target_session_id}")
             return {
                 "message": "File processed and temporarily indexed successfully.",
-                "session_id": session_id,
+                "session_id": target_session_id,
                 "chunks_count": len(temp_data['chunks'])
             }
 
+    except ValueError as e:
+        logger.warning(f"Temporary indexing rejected: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Temporary indexing failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -166,6 +173,12 @@ async def clear_temp_session(session_id: str) -> Dict[str, Any]:
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.delete('/query/sessions/{session_id}')
+async def clear_temp_session_alias(session_id: str) -> Dict[str, Any]:
+    """Compatibility route for frontend calls shared with query microservice."""
+    return await clear_temp_session(session_id)
+
+
 @router.delete('/clear-index')
 async def clear_permanent_index() -> Dict[str, Any]:
     """Clear all permanently indexed data."""
@@ -234,6 +247,39 @@ async def get_temp_files_info(session_id: str) -> Dict[str, Any]:
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get('/query/sessions/{session_id}/files')
+async def get_temp_files_info_alias(session_id: str) -> Dict[str, Any]:
+    """Compatibility route for frontend calls shared with query microservice."""
+    return await get_temp_files_info(session_id)
+
+
+@router.get('/query/sessions/{session_id}/files/{filename}')
+async def get_temp_file_content(session_id: str, filename: str) -> Dict[str, Any]:
+    """Get content of a temporary file from the monolith-compatible query path."""
+    try:
+        temp_data = temp_index_manager.get_temp_file_content(session_id, filename)
+        if not temp_data or 'chunks' not in temp_data:
+            raise HTTPException(status_code=404, detail=f"File '{filename}' not found in session {session_id}")
+
+        chunks = temp_data['chunks']
+        return {
+            "filename": filename,
+            "chunks": chunks,
+            "total_chunks": len(chunks),
+            "total_chars": sum(
+                len(chunk.get('text', '')) if isinstance(chunk, dict) else 0
+                for chunk in chunks
+            ),
+            "is_temporary": True,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get temp file content: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.delete('/temp-files/{session_id}/{filename}')
 async def delete_temp_file(session_id: str, filename: str) -> Dict[str, Any]:
     """Delete a specific temporary file from a session."""
@@ -251,3 +297,9 @@ async def delete_temp_file(session_id: str, filename: str) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Failed to delete temp file: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete('/query/sessions/{session_id}/files/{filename}')
+async def delete_temp_file_alias(session_id: str, filename: str) -> Dict[str, Any]:
+    """Compatibility route for frontend calls shared with query microservice."""
+    return await delete_temp_file(session_id, filename)

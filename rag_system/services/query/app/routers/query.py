@@ -7,6 +7,9 @@ from pydantic import BaseModel
 from typing import List
 from typing import Optional
 
+from rag_system.query.pipeline import RAGPipeline
+from rag_system.query.pipeline import build_chat_cache_namespace
+
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
@@ -84,7 +87,23 @@ async def query_rag(request: QueryRequest):
                     texts=[]
                 )
 
-            result = pipeline.answer(request.question)
+            if request.session_id:
+                if query_service is None:
+                    raise HTTPException(status_code=503, detail="Query service not available")
+                if responder is None:
+                    raise HTTPException(status_code=503, detail="LLM responder not available")
+
+                session_pipeline = RAGPipeline(
+                    config=query_config,
+                    query=query_service,
+                    responder=responder,
+                    redis_client=redis_client,
+                    cache_namespace=build_chat_cache_namespace(query_config, request.session_id),
+                )
+                result = session_pipeline.answer(request.question)
+            else:
+                result = pipeline.answer(request.question)
+
             logger.info("Query processed successfully")
             return QueryResponse(answer=result['answer'], texts=result['texts'], highlights=result.get('highlights', []))
 

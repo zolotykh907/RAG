@@ -6,6 +6,8 @@ from fastapi.responses import JSONResponse
 
 from rag_system.api.models import QueryRequest
 from rag_system.api.models import QueryResponse
+from rag_system.query.pipeline import RAGPipeline
+from rag_system.query.pipeline import build_chat_cache_namespace
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -25,6 +27,7 @@ async def query_rag(request: QueryRequest):
         responder = main_module.responder
         indexing_service = main_module.indexing_service
         redis_client = main_module.redis_client
+        query_config = main_module.query_config
 
     try:
         if request.session_id and temp_index_manager.has_session(request.session_id):
@@ -38,7 +41,7 @@ async def query_rag(request: QueryRequest):
 
             combined_pipeline = create_combined_pipeline(
                 query_service, temp_data, indexing_service,
-                main_module.query_config, responder, redis_client,
+                query_config, responder, redis_client,
                 session_id=request.session_id,
             )
             result = combined_pipeline.answer(request.question)
@@ -55,7 +58,22 @@ async def query_rag(request: QueryRequest):
                 status_code=503
             )
 
-        result = pipeline.answer(request.question)
+        if request.session_id:
+            if query_service is None:
+                raise HTTPException(status_code=503, detail="Query service not available")
+            if responder is None:
+                raise HTTPException(status_code=503, detail="LLM responder not available")
+
+            session_pipeline = RAGPipeline(
+                config=query_config,
+                query=query_service,
+                responder=responder,
+                redis_client=redis_client,
+                cache_namespace=build_chat_cache_namespace(query_config, request.session_id),
+            )
+            result = session_pipeline.answer(request.question)
+        else:
+            result = pipeline.answer(request.question)
         logger.info('Successfully processed question')
         return result
 
