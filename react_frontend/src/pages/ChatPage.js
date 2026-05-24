@@ -2,12 +2,12 @@ import ChatInterface from '../components/ChatInterface';
 import apiService from '../services/api';
 
 function ChatPage({ sessionId, setSessionId }) {
-  const ensureSession = () => {
+  const ensureSession = (historyTitle = 'Новый чат') => {
     if (!sessionId) {
       const newId = crypto.randomUUID();
       setSessionId(newId);
       if (window.chatHistory) {
-        window.chatHistory.saveChat(newId, 'Новый чат');
+        window.chatHistory.saveChat(newId, historyTitle);
       }
       return newId;
     }
@@ -20,12 +20,11 @@ function ChatPage({ sessionId, setSessionId }) {
   };
 
   const handleTempUpload = async (file) => {
-    const sid = ensureSession();
+    const sid = ensureSession(file.name);
     const result = await apiService.uploadTempFile(file, sid);
-    setSessionId(result.session_id);
 
-    if (window.chatHistory) {
-      window.chatHistory.saveChat(result.session_id, file.name);
+    if (result.session_id !== sid) {
+      setSessionId(result.session_id);
     }
 
     return result;

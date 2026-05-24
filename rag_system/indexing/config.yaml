@@ -15,13 +15,14 @@ data:
   - .png
   doc_types:
   - .pdf
-  - .doc
+  - .docx
+  - .md
+  - .markdown
   ocr_types:
   - .jpg
   - .jpeg
   - .png
   - .pdf
-  - .doc
 model:
   emb_model_name: intfloat/multilingual-e5-base
   emb_device: cpu

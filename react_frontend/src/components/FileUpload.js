@@ -105,7 +105,7 @@ function FileUpload({ onPermanentUpload }) {
             id="file-input"
             type="file"
             onChange={handleFileChange}
-            accept=".txt,.pdf,.doc,.docx"
+            accept=".txt,.md,.markdown,.pdf,.docx"
             disabled={uploading || !indexingReady}
           />
           <label

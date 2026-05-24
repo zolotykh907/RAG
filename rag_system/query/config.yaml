@@ -7,7 +7,9 @@ api:
 data:
   doc_types:
   - .pdf
-  - .doc
+  - .docx
+  - .md
+  - .markdown
   image_types:
   - .jpg
   - .jpeg

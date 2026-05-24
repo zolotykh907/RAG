@@ -99,12 +99,15 @@ function ChatInterface({ onSendMessage, sessionId = null, onFileUpload, onMessag
       const stored = localStorage.getItem(`chat_${sid}`);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (parsed.length > 0) {
+        if (Array.isArray(parsed)) {
           setMessages(parsed);
+          return;
         }
       }
+      setMessages([]);
     } catch (error) {
       console.error('Error loading messages:', error);
+      setMessages([]);
     }
   };
 
@@ -393,7 +396,7 @@ function ChatInterface({ onSendMessage, sessionId = null, onFileUpload, onMessag
           type="file"
           ref={fileInputRef}
           onChange={handleFileChange}
-          accept=".txt,.pdf,.doc,.docx"
+          accept=".txt,.md,.markdown,.pdf,.docx"
           style={{ display: 'none' }}
         />
 
