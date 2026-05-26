@@ -19,6 +19,7 @@ router = APIRouter()
 
 
 def _safe_filename(filename: str) -> str:
+    """Return a safe basename for an uploaded file."""
     base = os.path.basename(filename or "").strip().replace("\x00", "")
     if base in ("", ".", ".."):
         base = f"upload-{uuid.uuid4().hex}"
@@ -34,9 +35,13 @@ async def upload_temp_file(
 
     Args:
         file: The file to be uploaded and indexed temporarily.
+        session_id: Optional existing session identifier.
 
     Returns:
-        dict: Session ID and chunk count.
+        Session ID and chunk count.
+
+    Raises:
+        HTTPException: If temporary indexing fails.
     """
     import rag_system.services.query.app.main as main_module
     from rag_system.shared.temp_storage import temp_index_manager
@@ -87,7 +92,10 @@ async def clear_session(session_id: str) -> Dict[str, Any]:
         session_id: The session ID to clear.
 
     Returns:
-        dict: Confirmation message.
+        Confirmation message.
+
+    Raises:
+        HTTPException: If the session does not exist or cannot be cleared.
     """
     from rag_system.shared.temp_storage import temp_index_manager
 
@@ -113,7 +121,10 @@ async def get_temp_files(session_id: str) -> Dict[str, Any]:
         session_id: The session ID.
 
     Returns:
-        dict: List of temporary files.
+        List of temporary files.
+
+    Raises:
+        HTTPException: If metadata retrieval fails.
     """
     from rag_system.shared.temp_storage import temp_index_manager
 
@@ -166,7 +177,10 @@ async def delete_temp_file(session_id: str, filename: str) -> Dict[str, Any]:
         filename: Name of the file to delete.
 
     Returns:
-        dict: Confirmation message.
+        Confirmation message.
+
+    Raises:
+        HTTPException: If the file does not exist or cannot be deleted.
     """
     from rag_system.shared.temp_storage import temp_index_manager
 
@@ -191,7 +205,18 @@ async def delete_temp_file(session_id: str, filename: str) -> Dict[str, Any]:
 
 @router.get('/sessions/{session_id}/files/{filename}')
 async def get_temp_file_content(session_id: str, filename: str) -> Dict[str, Any]:
-    """Get content of a temporary file in a session."""
+    """Get content of a temporary file in a session.
+
+    Args:
+        session_id: Temporary session identifier.
+        filename: Source filename to retrieve.
+
+    Returns:
+        Temporary file chunks and aggregate metadata.
+
+    Raises:
+        HTTPException: If the file does not exist or retrieval fails.
+    """
     from rag_system.shared.temp_storage import temp_index_manager
 
     try:

@@ -34,6 +34,7 @@ def get_hf_cache_model_path(model_name: str) -> str:
     # Pick the snapshot with the most files — alphabetical sort is unreliable when
     # multiple snapshots exist (e.g. one partial and one full download).
     def _snapshot_file_count(name: str) -> int:
+        """Count directories and files in a cached model snapshot."""
         path = os.path.join(cache_dir, name)
         return sum(1 for _ in os.walk(path))
 

@@ -15,7 +15,17 @@ router = APIRouter()
 
 @router.post('/query', response_model=QueryResponse)
 async def query_rag(request: QueryRequest):
-    """Handle RAG query request."""
+    """Handle a RAG query request.
+
+    Args:
+        request: Query payload with question and optional session ID.
+
+    Returns:
+        Query response payload or a JSON response when the index is unavailable.
+
+    Raises:
+        HTTPException: If required services are unavailable or query processing fails.
+    """
     import rag_system.api.main as main_module
     from rag_system.shared.temp_storage import temp_index_manager
     from rag_system.query.combined import create_combined_pipeline

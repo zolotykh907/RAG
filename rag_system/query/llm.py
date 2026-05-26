@@ -8,7 +8,7 @@ from rag_system.shared.logs import setup_logging
 
 
 class LLMResponder:
-    """Class for generating answers using LLM and context."""
+    """Generate final answers from retrieved context with an OpenAI-compatible LLM."""
 
     def __init__(self, config: Any) -> None:
         """Initialize LLMResponder with configuration parameters.
@@ -30,7 +30,17 @@ class LLMResponder:
 
     @staticmethod
     def format_context(texts: List[str]) -> str:
-        """Format retrieved chunks with stable boundaries for the prompt."""
+        """Format retrieved chunks with stable boundaries for the prompt.
+
+        Args:
+            texts: Retrieved text chunks.
+
+        Returns:
+            Prompt-ready context string.
+
+        Raises:
+            ValueError: If no non-empty text chunks are provided.
+        """
         chunks = [
             str(text).strip()
             for text in texts
@@ -52,7 +62,11 @@ class LLMResponder:
             texts: list of texts for context.
 
         Returns:
-            str: generated answer.
+            Generated answer text.
+
+        Raises:
+            ValueError: If the question or context texts are invalid.
+            Exception: If the LLM call fails.
         """
         if not isinstance(question, str) or not question.strip():
             raise ValueError("Question must be a non-empty string")

@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 def _temp_data_signature(temp_data_list: Union[List[Dict[str, Any]], Dict[str, Any]]) -> str:
+    """Build a deterministic signature for temporary indexed data."""
     if isinstance(temp_data_list, dict):
         temp_items = [temp_data_list]
     else:
@@ -65,7 +66,7 @@ def _embedding_matrix(embeddings: Any, expected_count: int, label: str) -> np.nd
 
 
 class CombinedQueryService:
-    """Combined query service that searches both permanent and temporary indexes."""
+    """Search both permanent and temporary indexes with optional reranking."""
 
     def __init__(
         self,
@@ -96,7 +97,7 @@ class CombinedQueryService:
             question: The query question.
 
         Returns:
-            list: Combined search results from both indexes.
+            Combined search results from both indexes.
         """
         results: List[str] = []
         skip_rerank = self.rerank_enabled
@@ -161,7 +162,11 @@ def process_file_temp(
         indexing_service: Indexing service instance for embedding.
 
     Returns:
-        dict: Dictionary with chunks and embeddings.
+        Dictionary with chunks and embeddings.
+
+    Raises:
+        ValueError: If no readable chunks can be extracted.
+        Exception: If loading, embedding, or temporary index preparation fails.
     """
     try:
         df = data_loader.load_data(file_path)
@@ -238,7 +243,10 @@ def create_combined_pipeline(
         session_id: Temporary session ID for session-scoped cache isolation.
 
     Returns:
-        RAGPipeline: Combined RAG pipeline instance.
+        Combined RAG pipeline instance.
+
+    Raises:
+        ValueError: If no permanent or temporary data is available or data shapes differ.
     """
     if isinstance(temp_data_list, dict):
         temp_data_list = [temp_data_list]

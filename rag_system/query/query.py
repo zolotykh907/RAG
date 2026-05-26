@@ -17,7 +17,7 @@ from rag_system.query.reranker import CrossEncoderReranker
 
 
 class Query:
-    """A class for preprocessing the question and semantic searching."""
+    """Preprocess user questions and run semantic search against a FAISS index."""
 
     def __init__(self, config: Any, data_base: FaissDB) -> None:
         """Initialize the Query service with configuration parameters.
@@ -52,6 +52,14 @@ class Query:
         self.rerank_enabled = self.rerank_enabled and self.reranker.enabled
 
     def load_local_embedding_model(self) -> SentenceTransformer:
+        """Load the embedding model from local Hugging Face cache.
+
+        Returns:
+            A SentenceTransformer embedding model.
+
+        Raises:
+            Exception: If the local load fails for reasons other than a missing cache.
+        """
         try:
             model_path = get_hf_cache_model_path(self.emb_model_name)
             self.logger.info(f"Loading embedding model from local cache: {model_path}")
@@ -68,6 +76,14 @@ class Query:
             raise
 
     def download_embedding_model(self) -> SentenceTransformer:
+        """Download the configured embedding model from Hugging Face.
+
+        Returns:
+            A SentenceTransformer embedding model.
+
+        Raises:
+            Exception: If the model cannot be downloaded or initialized.
+        """
         try:
             return SentenceTransformer(
                 self.emb_model_name,
@@ -79,7 +95,13 @@ class Query:
             raise
 
     def load_texts(self) -> None:
-        """Load the processed text from file."""
+        """Load processed texts and validate their count against the FAISS index.
+
+        Raises:
+            FileNotFoundError: If processed data does not exist.
+            ValueError: If data shape is invalid or inconsistent with the index.
+            Exception: If the processed data file cannot be read.
+        """
         if not os.path.exists(self.processed_data_path):
             raise FileNotFoundError(f"Data file not found at {self.processed_data_path}")
 
@@ -106,7 +128,10 @@ class Query:
             text: input text to normalize.
 
         Returns:
-            str: normalized text.
+            Normalized text.
+
+        Raises:
+            ValueError: If the input is not a string.
         """
         if not isinstance(text, str):
             raise ValueError("Input text must be a string.")
@@ -121,7 +146,12 @@ class Query:
             skip_rerank: if True, return full candidate set without reranking or truncation.
 
         Returns:
-            list[str]: list of top-k most similar texts from the dataset.
+            Top-k most similar texts from the dataset.
+
+        Raises:
+            ValueError: If the request is invalid or the index is inconsistent.
+            RuntimeError: If processed texts are not loaded.
+            Exception: If embedding or FAISS search fails.
         """
         if not isinstance(request, str):
             raise ValueError("Request must be a string.")

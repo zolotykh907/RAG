@@ -21,7 +21,10 @@ async def get_documents():
     """Get list of all indexed documents with metadata.
 
     Returns:
-        dict: List of documents with metadata.
+        List of documents with metadata.
+
+    Raises:
+        HTTPException: If document metadata cannot be loaded.
     """
     try:
         processed_data_path = IndexSnapshotStore.from_config(shared_config).current_artifacts().processed_data_path
@@ -77,7 +80,10 @@ async def get_document_content(filename: str):
         filename: Name of the document to retrieve.
 
     Returns:
-        dict: Document content with all chunks.
+        Document content with all chunks.
+
+    Raises:
+        HTTPException: If the document is missing or cannot be loaded.
     """
     try:
         processed_data_path = IndexSnapshotStore.from_config(shared_config).current_artifacts().processed_data_path
@@ -119,7 +125,10 @@ async def delete_document(
         filename: Name of the document to delete.
 
     Returns:
-        dict: Confirmation message.
+        Confirmation message with deletion statistics.
+
+    Raises:
+        HTTPException: If the database is unavailable, the document is missing, or deletion fails.
     """
     import rag_system.services.indexing.app.main as main_module
     data_base = main_module.data_base
@@ -203,7 +212,10 @@ async def search_documents(query: str = ''):
         query: Search query string.
 
     Returns:
-        dict: List of matching documents.
+        Matching documents grouped by filename.
+
+    Raises:
+        HTTPException: If search fails.
     """
     if not query:
         return {"results": [], "total_results": 0}

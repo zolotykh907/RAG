@@ -6,6 +6,8 @@ from rag_system.query.llm import LLMResponder
 
 
 class DummyConfig:
+    """Minimal configuration object for LLMResponder tests."""
+
     llm = "dummy-model"
     prompt_template = (
         "Ты — интеллектуальный помощник, использующий информацию из базы знаний, чтобы точно ответить на вопрос.\n\n"
@@ -19,6 +21,7 @@ class DummyConfig:
 
 
 def test_generate_prompt_format_with_mock():
+    """Verify generated prompts contain the question and formatted context."""
     config = DummyConfig()
 
     responder = LLMResponder(config)
@@ -43,11 +46,13 @@ def test_generate_prompt_format_with_mock():
 
 
 def test_format_context_filters_empty_chunks_and_keeps_boundaries():
+    """Verify context formatting drops empty chunks and keeps boundaries."""
     context = LLMResponder.format_context([" Первый фрагмент ", "", "Второй фрагмент"])
 
     assert context == "[Фрагмент 1]\nПервый фрагмент\n\n[Фрагмент 2]\nВторой фрагмент"
 
 
 def test_format_context_rejects_empty_context():
+    """Verify empty context lists are rejected."""
     with pytest.raises(ValueError, match="at least one non-empty"):
         LLMResponder.format_context(["", "   "])

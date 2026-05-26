@@ -6,6 +6,11 @@ from rag_system.query.query import Query
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse CLI arguments for a single corpus query.
+
+    Returns:
+        Parsed CLI arguments.
+    """
     parser = argparse.ArgumentParser(description="Run a single search query against the indexed corpus.")
     parser.add_argument("query", help="Search query string.")
     parser.add_argument("--k", type=int, default=None, help="Number of results (overrides config).")
@@ -14,6 +19,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
+    """Run a single query from the command line and print search results."""
     args = parse_args()
 
     config = Config("rag_system/query/config.yaml")

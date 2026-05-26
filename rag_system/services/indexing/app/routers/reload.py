@@ -16,7 +16,10 @@ async def reload_service(service: str):
         service: The name of the service to reload.
 
     Returns:
-        Dict: Status message.
+        Status message.
+
+    Raises:
+        HTTPException: If the service is unknown or reload fails.
     """
     try:
         if service == "indexing":

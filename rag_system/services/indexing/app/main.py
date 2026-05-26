@@ -42,7 +42,11 @@ initialization_task: Optional[asyncio.Task[None]] = None
 
 
 def initialize_services() -> None:
-    """Initialize indexing services with error handling."""
+    """Initialize indexing service dependencies.
+
+    Raises:
+        Exception: If any dependency cannot be initialized.
+    """
     global data_loader, data_base, indexing_service, initialization_status, initialization_error
 
     initialization_status = "loading"
@@ -65,6 +69,7 @@ def initialize_services() -> None:
 
 
 async def _initialize_services_on_startup() -> None:
+    """Initialize services from the startup background task."""
     try:
         await asyncio.to_thread(initialize_services)
     except Exception:
@@ -72,7 +77,7 @@ async def _initialize_services_on_startup() -> None:
 
 
 async def start_background_initialization() -> None:
-    """Start serving liveness/readiness while the embedding model loads in background."""
+    """Start background initialization for heavyweight indexing dependencies."""
     global initialization_task, initialization_status
 
     if initialization_task is None or initialization_task.done():
@@ -82,6 +87,14 @@ async def start_background_initialization() -> None:
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    """Run FastAPI lifespan startup for the indexing service.
+
+    Args:
+        _app: FastAPI application instance.
+
+    Returns:
+        Async iterator used by FastAPI lifespan management.
+    """
     await start_background_initialization()
     yield
 
@@ -106,7 +119,14 @@ app.add_middleware(
 
 # Dependency injection
 def get_indexing_service() -> Indexing:
-    """Get indexing service instance."""
+    """Return the initialized indexing service.
+
+    Returns:
+        Indexing service instance.
+
+    Raises:
+        HTTPException: If the service is not ready.
+    """
     if indexing_service is None:
         raise HTTPException(
             status_code=503,
@@ -116,7 +136,14 @@ def get_indexing_service() -> Indexing:
 
 
 def get_data_loader() -> DataLoader:
-    """Get data loader instance."""
+    """Return the initialized data loader.
+
+    Returns:
+        DataLoader instance.
+
+    Raises:
+        HTTPException: If the service is not ready.
+    """
     if data_loader is None:
         raise HTTPException(
             status_code=503,
@@ -126,7 +153,14 @@ def get_data_loader() -> DataLoader:
 
 
 def get_data_base() -> FaissDB:
-    """Get database instance."""
+    """Return the initialized FAISS database wrapper.
+
+    Returns:
+        FaissDB instance.
+
+    Raises:
+        HTTPException: If the service is not ready.
+    """
     if data_base is None:
         raise HTTPException(
             status_code=503,
@@ -136,6 +170,7 @@ def get_data_base() -> FaissDB:
 
 
 def _service_unavailable_detail() -> str:
+    """Return a user-facing reason for indexing service unavailability."""
     if initialization_status in {"not_started", "starting", "loading"}:
         return "Indexing service is starting. The embedding model is still loading."
     if initialization_status == "error":
@@ -159,7 +194,11 @@ app.include_router(health.router, tags=["health"])
 
 @app.get("/")
 async def root():
-    """Root endpoint."""
+    """Return indexing service metadata.
+
+    Returns:
+        Service metadata payload.
+    """
     return {
         "service": "RAG Indexing Service",
         "version": "2.0.0",

@@ -15,13 +15,24 @@ router = APIRouter()
 
 
 class QueryRequest(BaseModel):
-    """Request model for RAG query."""
+    """Request model for RAG query.
+
+    Attributes:
+        question: User question to answer.
+        session_id: Optional temporary session identifier.
+    """
     question: str
     session_id: Optional[str] = None
 
 
 class QueryResponse(BaseModel):
-    """Response model for RAG query."""
+    """Response model for RAG query.
+
+    Attributes:
+        answer: Generated answer text.
+        texts: Retrieved context chunks.
+        highlights: Disabled highlight metadata.
+    """
     answer: str
     texts: List[str]
     highlights: list = []
@@ -35,7 +46,10 @@ async def query_rag(request: QueryRequest):
         request: Query request with question and optional session_id.
 
     Returns:
-        QueryResponse: Answer and relevant text chunks.
+        Answer and relevant text chunks.
+
+    Raises:
+        HTTPException: If required services are unavailable or query processing fails.
     """
     import rag_system.services.query.app.main as main_module
     pipeline = main_module.pipeline

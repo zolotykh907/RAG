@@ -18,7 +18,7 @@ _data_cache: Dict[str, Any] = {"path": None, "mtime": None, "data": None}
 
 
 def _load_processed_data(path: str) -> List[Dict[str, Any]]:
-    """Load processed_data.json, using a mtime cache to avoid redundant disk reads."""
+    """Load processed data with an mtime cache."""
     try:
         mtime = os.path.getmtime(path)
     except OSError:
@@ -34,13 +34,14 @@ def _load_processed_data(path: str) -> List[Dict[str, Any]]:
 
 
 def _invalidate_cache() -> None:
+    """Clear the processed data cache."""
     _data_cache["path"] = None
     _data_cache["mtime"] = None
     _data_cache["data"] = None
 
 
 def _write_json_atomic(path: str, data: List[Any]) -> None:
-    """Write JSON atomically: write to a sibling tmp file then rename."""
+    """Write JSON atomically through a sibling temporary file."""
     dir_ = os.path.dirname(path) or "."
     fd, tmp_path = tempfile.mkstemp(dir=dir_, suffix=".tmp")
     try:
@@ -56,7 +57,18 @@ def _write_json_atomic(path: str, data: List[Any]) -> None:
 
 @router.get('/documents')
 async def get_documents(limit: int = 100, offset: int = 0) -> Dict[str, Any]:
-    """Get list of all indexed documents with metadata (paginated)."""
+    """Get indexed documents with metadata.
+
+    Args:
+        limit: Maximum number of documents to return.
+        offset: Number of documents to skip.
+
+    Returns:
+        Paginated document metadata and chunk counts.
+
+    Raises:
+        HTTPException: If indexing services are unavailable or retrieval fails.
+    """
     import rag_system.api.main as main_module
 
     if main_module.indexing_service is None:
@@ -112,7 +124,18 @@ async def get_documents(limit: int = 100, offset: int = 0) -> Dict[str, Any]:
 
 @router.get('/documents/{filename}')
 async def get_document_content(filename: str, session_id: Optional[str] = None) -> Dict[str, Any]:
-    """Get content of a specific document (permanent or temporary)."""
+    """Get content for a permanent or temporary document.
+
+    Args:
+        filename: Source filename to retrieve.
+        session_id: Optional temporary session identifier.
+
+    Returns:
+        Document chunks and aggregate metadata.
+
+    Raises:
+        HTTPException: If the document is missing or retrieval fails.
+    """
     import rag_system.api.main as main_module
     from rag_system.shared.temp_storage import temp_index_manager
 
@@ -159,7 +182,17 @@ async def get_document_content(filename: str, session_id: Optional[str] = None) 
 
 @router.get('/search-documents')
 async def search_documents(query: str = '') -> Dict[str, Any]:
-    """Search documents by content."""
+    """Search indexed documents by substring match.
+
+    Args:
+        query: Search text.
+
+    Returns:
+        Matching document snippets and result counts.
+
+    Raises:
+        HTTPException: If search fails.
+    """
     import rag_system.api.main as main_module
 
     if not query:
@@ -203,7 +236,17 @@ async def search_documents(query: str = '') -> Dict[str, Any]:
 
 @router.delete('/documents/{filename}')
 async def delete_document(filename: str) -> Dict[str, Any]:
-    """Delete a specific document and reindex."""
+    """Delete one indexed document and rebuild the remaining index.
+
+    Args:
+        filename: Source filename to delete.
+
+    Returns:
+        Deletion summary with deleted and remaining chunk counts.
+
+    Raises:
+        HTTPException: If services are unavailable, the document is missing, or deletion fails.
+    """
     import rag_system.api.main as main_module
 
     indexing_svc = main_module.indexing_service

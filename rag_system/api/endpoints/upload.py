@@ -23,6 +23,7 @@ router = APIRouter()
 
 
 def _safe_filename(filename: str) -> str:
+    """Return a safe basename for an uploaded file."""
     base = os.path.basename(filename or "").strip().replace("\x00", "")
     if base in ("", ".", ".."):
         base = f"upload-{uuid.uuid4().hex}"
@@ -38,9 +39,13 @@ async def upload_temp_file(
 
     Args:
         file: The file to be uploaded and indexed.
+        session_id: Optional existing session identifier.
 
     Returns:
-        dict: Confirmation message with session ID and chunk count.
+        Confirmation message with session ID and chunk count.
+
+    Raises:
+        HTTPException: If required services are unavailable or temporary indexing fails.
     """
     import rag_system.api.main as main_module
 
@@ -95,7 +100,10 @@ async def upload_file(file: UploadFile = File(...)) -> Dict[str, Any]:
         file: The file to be uploaded and indexed.
 
     Returns:
-        dict: Confirmation message indicating successful indexing.
+        Confirmation message indicating successful indexing.
+
+    Raises:
+        HTTPException: If required services are unavailable or indexing fails.
     """
     import rag_system.api.main as main_module
 
@@ -160,7 +168,17 @@ async def upload_file(file: UploadFile = File(...)) -> Dict[str, Any]:
 
 @router.delete('/clear-temp/{session_id}')
 async def clear_temp_session(session_id: str) -> Dict[str, Any]:
-    """Clear temporary session data."""
+    """Clear temporary session data.
+
+    Args:
+        session_id: Temporary session identifier.
+
+    Returns:
+        Confirmation message.
+
+    Raises:
+        HTTPException: If the session does not exist or clearing fails.
+    """
     try:
         if temp_index_manager.remove_temp_index(session_id):
             return {"message": "Session cleared successfully"}
@@ -175,13 +193,27 @@ async def clear_temp_session(session_id: str) -> Dict[str, Any]:
 
 @router.delete('/query/sessions/{session_id}')
 async def clear_temp_session_alias(session_id: str) -> Dict[str, Any]:
-    """Compatibility route for frontend calls shared with query microservice."""
+    """Clear temporary session data through the query-compatible route.
+
+    Args:
+        session_id: Temporary session identifier.
+
+    Returns:
+        Confirmation message from the canonical clear route.
+    """
     return await clear_temp_session(session_id)
 
 
 @router.delete('/clear-index')
 async def clear_permanent_index() -> Dict[str, Any]:
-    """Clear all permanently indexed data."""
+    """Clear all permanently indexed data.
+
+    Returns:
+        Confirmation message.
+
+    Raises:
+        HTTPException: If required services are unavailable or clearing fails.
+    """
     import rag_system.api.main as main_module
 
     indexing_svc = main_module.indexing_service
@@ -210,7 +242,17 @@ async def clear_permanent_index() -> Dict[str, Any]:
 
 @router.get('/temp-files/{session_id}')
 async def get_temp_files_info(session_id: str) -> Dict[str, Any]:
-    """Get information about all temporary files for a specific session."""
+    """Get metadata for all temporary files in a session.
+
+    Args:
+        session_id: Temporary session identifier.
+
+    Returns:
+        Temporary file metadata and total count.
+
+    Raises:
+        HTTPException: If metadata retrieval fails.
+    """
     try:
         temp_data_list = temp_index_manager.get_temp_index(session_id)
 
@@ -249,13 +291,31 @@ async def get_temp_files_info(session_id: str) -> Dict[str, Any]:
 
 @router.get('/query/sessions/{session_id}/files')
 async def get_temp_files_info_alias(session_id: str) -> Dict[str, Any]:
-    """Compatibility route for frontend calls shared with query microservice."""
+    """Get temporary file metadata through the query-compatible route.
+
+    Args:
+        session_id: Temporary session identifier.
+
+    Returns:
+        Temporary file metadata from the canonical route.
+    """
     return await get_temp_files_info(session_id)
 
 
 @router.get('/query/sessions/{session_id}/files/{filename}')
 async def get_temp_file_content(session_id: str, filename: str) -> Dict[str, Any]:
-    """Get content of a temporary file from the monolith-compatible query path."""
+    """Get temporary file content from the query-compatible route.
+
+    Args:
+        session_id: Temporary session identifier.
+        filename: Source filename to retrieve.
+
+    Returns:
+        Temporary file chunks and aggregate metadata.
+
+    Raises:
+        HTTPException: If the file does not exist or retrieval fails.
+    """
     try:
         temp_data = temp_index_manager.get_temp_file_content(session_id, filename)
         if not temp_data or 'chunks' not in temp_data:
@@ -282,7 +342,18 @@ async def get_temp_file_content(session_id: str, filename: str) -> Dict[str, Any
 
 @router.delete('/temp-files/{session_id}/{filename}')
 async def delete_temp_file(session_id: str, filename: str) -> Dict[str, Any]:
-    """Delete a specific temporary file from a session."""
+    """Delete a temporary file from a session.
+
+    Args:
+        session_id: Temporary session identifier.
+        filename: Source filename to delete.
+
+    Returns:
+        Confirmation message.
+
+    Raises:
+        HTTPException: If the file does not exist or deletion fails.
+    """
     try:
         removed = temp_index_manager.remove_temp_file(session_id, filename)
 
@@ -301,5 +372,13 @@ async def delete_temp_file(session_id: str, filename: str) -> Dict[str, Any]:
 
 @router.delete('/query/sessions/{session_id}/files/{filename}')
 async def delete_temp_file_alias(session_id: str, filename: str) -> Dict[str, Any]:
-    """Compatibility route for frontend calls shared with query microservice."""
+    """Delete a temporary file through the query-compatible route.
+
+    Args:
+        session_id: Temporary session identifier.
+        filename: Source filename to delete.
+
+    Returns:
+        Confirmation message from the canonical deletion route.
+    """
     return await delete_temp_file(session_id, filename)

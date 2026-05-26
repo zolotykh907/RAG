@@ -43,8 +43,8 @@ pipeline: Optional[RAGPipeline] = None
 redis_client: Optional[RedisDB] = None
 
 
-def initialize_services():
-    """Initialize all services with error handling."""
+def initialize_services() -> None:
+    """Initialize monolith API services with degraded startup handling."""
     global data_loader, data_base, indexing_service, query_service, responder, pipeline, redis_client
 
     try:

@@ -45,7 +45,11 @@ temp_indexing_service: Optional[Indexing] = None  # reused for session-based que
 
 
 def initialize_services():
-    """Initialize query services with error handling."""
+    """Initialize query service dependencies.
+
+    Raises:
+        Exception: If required dependencies cannot be initialized.
+    """
     global data_base, query_service, responder, pipeline, redis_client, temp_indexing_service
 
     try:
@@ -121,7 +125,14 @@ app.add_middleware(
 
 # Dependency injection
 def get_pipeline() -> RAGPipeline:
-    """Get RAG pipeline instance."""
+    """Return the initialized RAG pipeline.
+
+    Returns:
+        RAG pipeline instance.
+
+    Raises:
+        HTTPException: If the pipeline is not ready.
+    """
     if pipeline is None:
         raise HTTPException(
             status_code=503,
@@ -131,7 +142,14 @@ def get_pipeline() -> RAGPipeline:
 
 
 def get_redis_client() -> RedisDB:
-    """Get Redis client instance."""
+    """Return the initialized Redis client.
+
+    Returns:
+        Redis client wrapper.
+
+    Raises:
+        HTTPException: If Redis is unavailable.
+    """
     if redis_client is None:
         raise HTTPException(
             status_code=503,
@@ -152,7 +170,11 @@ app.include_router(health.router, tags=["health"])
 
 @app.get("/")
 async def root():
-    """Root endpoint."""
+    """Return query service metadata.
+
+    Returns:
+        Service metadata payload.
+    """
     return {
         "service": "RAG Query Service",
         "version": "2.0.0",
@@ -165,7 +187,11 @@ async def root():
 async def reload_index():
     """Reload index after indexing service updates.
 
-    Called by indexing service after new documents are indexed.
+    Returns:
+        Reload status payload.
+
+    Raises:
+        HTTPException: If index reload fails.
     """
     global query_service, pipeline, data_base
 
@@ -206,7 +232,8 @@ async def reload_index():
 async def reset_service():
     """Reset query service when index is cleared.
 
-    Called by indexing service when all documents are deleted.
+    Returns:
+        Reset status payload.
     """
     global query_service, pipeline
 

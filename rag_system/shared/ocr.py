@@ -9,6 +9,8 @@ from rag_system.shared.logs import setup_logging
 
 
 class OCR:
+    """Extract text from supported image and PDF files with Tesseract OCR."""
+
     def __init__(self, config: Any) -> None:
         self.logs_dir: str = config.logs_dir
         self.logger = setup_logging(self.logs_dir, 'OCRsystem')
@@ -16,6 +18,14 @@ class OCR:
         self.doc_types: tuple = config.doc_types
 
     def rotate_image(self, img: Image.Image) -> Image.Image:
+        """Rotate an image according to OCR orientation metadata.
+
+        Args:
+            img: PIL image to inspect and rotate.
+
+        Returns:
+            The rotated image, or the original image if orientation detection fails.
+        """
         try:
             osd = pytesseract.image_to_osd(img, output_type='dict')
             angle = osd['orientation']
@@ -25,11 +35,28 @@ class OCR:
             return img
 
     def get_text_from_image(self, img: Image.Image) -> str:
+        """Extract Russian and English text from one image.
+
+        Args:
+            img: PIL image to process.
+
+        Returns:
+            Text recognized by Tesseract.
+        """
         img = self.rotate_image(img)
         text: str = pytesseract.image_to_string(image=img, lang='rus+eng')
         return text
 
     def load_pages(self, path: Union[str, Path], dpi: int = 150) -> Generator[Image.Image, None, None]:
+        """Yield images from a PDF, image file, or directory.
+
+        Args:
+            path: File or directory path to process.
+            dpi: PDF rendering resolution.
+
+        Returns:
+            A generator of PIL images ready for OCR.
+        """
         path = Path(path)
 
         if path.suffix.lower() == '.pdf':
@@ -61,6 +88,14 @@ class OCR:
                 self.logger.error(f"Error opening image {path}: {e}")
 
     def run_ocr(self, path: Union[str, Path]) -> List[str]:
+        """Run OCR over all pages or images found at a path.
+
+        Args:
+            path: File or directory path to process.
+
+        Returns:
+            Recognized text for each processed page or image.
+        """
         texts: List[str] = []
         try:
             for i, page in enumerate(self.load_pages(path), 1):

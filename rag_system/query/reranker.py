@@ -46,6 +46,7 @@ class CrossEncoderReranker:
             self.model = None
 
     def _truncate(self, text: Any) -> str:
+        """Trim text to the configured reranker input length."""
         if not isinstance(text, str):
             return ""
         if self.max_chars <= 0:
@@ -61,7 +62,7 @@ class CrossEncoderReranker:
             top_k: Maximum number of results to return.
 
         Returns:
-            list[str]: Reranked texts (filtered by score threshold, limited by top_k).
+            Reranked texts filtered by score threshold and limited by top_k.
         """
         if not self.enabled or self.model is None:
             return texts

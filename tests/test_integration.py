@@ -7,6 +7,7 @@ question = 'Что такое ЦСКА?'
 
 
 def test_pipeline():
+    """Verify the local API can answer a query when it is running."""
     json_question = {"question": question}
     try:
         response = requests.post(API_URL, json=json_question, timeout=5)

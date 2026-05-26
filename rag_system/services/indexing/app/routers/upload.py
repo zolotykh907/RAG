@@ -25,6 +25,7 @@ router: APIRouter = APIRouter()
 
 
 def _safe_filename(filename: str) -> str:
+    """Return a safe basename for an uploaded file."""
     base = os.path.basename(filename or "").strip().replace("\x00", "")
     if base in ("", ".", ".."):
         base = f"upload-{uuid.uuid4().hex}"
@@ -45,7 +46,10 @@ async def upload_file(
         data_loader: Injected data loader.
 
     Returns:
-        dict: Confirmation message and indexing stats.
+        Confirmation message and indexing stats.
+
+    Raises:
+        HTTPException: If indexing fails.
     """
     with TemporaryDirectory() as temp_dir:
         safe_name = _safe_filename(file.filename or "upload")
@@ -97,7 +101,10 @@ async def clear_index(
         indexing_service: Injected indexing service.
 
     Returns:
-        dict: Confirmation message.
+        Confirmation message.
+
+    Raises:
+        HTTPException: If the database is unavailable or clearing fails.
     """
     import rag_system.services.indexing.app.main as main_module
     data_base = main_module.data_base

@@ -17,7 +17,10 @@ def normalize_text(text: str, morph: Optional[Any] = None, clear_flag: bool = Fa
         clear_flag: if True, perform lemmatization.
 
     Returns:
-        str: normalized text.
+        Normalized text.
+
+    Raises:
+        ValueError: If text is not a string or lemmatization lacks a morph analyzer.
     """
     if not isinstance(text, str):
         raise ValueError("Input text must be a string")
@@ -48,7 +51,7 @@ def compute_text_hash(text: str) -> str:
         text: input text for hashing.
 
     Returns:
-        str: sha256 hash for input text.
+        SHA-256 hash for input text.
     """
     return hashlib.sha256(text.strip().lower().encode('utf-8')).hexdigest()
 
@@ -66,7 +69,7 @@ def check_data_quality(
         min_len: Min text length threshold.
 
     Returns:
-        tuple: dict with quality check results and clean DataFrame.
+        Quality check results and clean DataFrame.
     """
     df = df.copy()
     df['text'] = df['text'].str.strip()

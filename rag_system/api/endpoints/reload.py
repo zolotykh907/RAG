@@ -17,7 +17,17 @@ _VALID_SERVICES = {"query", "indexing"}
 
 @router.post("/reload")
 async def reload_pipeline(service: str):
-    """Reload pipeline configuration."""
+    """Reload runtime services after configuration changes.
+
+    Args:
+        service: Service name to reload.
+
+    Returns:
+        Reload status payload.
+
+    Raises:
+        HTTPException: If the service name is invalid or reload fails.
+    """
     if service not in _VALID_SERVICES:
         raise HTTPException(
             status_code=400,

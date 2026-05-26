@@ -31,6 +31,17 @@ _BLOCKED_KEY_PATHS: Dict[str, Set[Tuple[str, str]]] = {
 
 
 def get_config_path(service: str) -> str:
+    """Resolve the configuration file path for a supported service.
+
+    Args:
+        service: Service name to resolve.
+
+    Returns:
+        Absolute path to the service configuration file.
+
+    Raises:
+        ValueError: If the service name is not supported.
+    """
     if service not in ALLOWED_SERVICES:
         raise ValueError(f"Invalid service name: {service}")
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -38,6 +49,19 @@ def get_config_path(service: str) -> str:
 
 
 def load_config(service: str) -> Dict[str, Any]:
+    """Load a service configuration from YAML.
+
+    Args:
+        service: Service name to load.
+
+    Returns:
+        Parsed configuration data.
+
+    Raises:
+        ValueError: If the service name is not supported.
+        FileNotFoundError: If the configuration file does not exist.
+        Exception: If the YAML file cannot be read or parsed.
+    """
     config_path = get_config_path(service)
     if not os.path.exists(config_path):
         raise FileNotFoundError(f"Configuration file for {service} not found")
@@ -52,7 +76,7 @@ def load_config(service: str) -> Dict[str, Any]:
 
 
 def _validate_config(service: str, new_config: Dict[str, Any], current_config: Dict[str, Any]) -> None:
-    """Raise ValueError if the incoming config changes any blocked keys."""
+    """Raise when an incoming config changes protected keys."""
     blocked = _BLOCKED_KEY_PATHS.get(service, set())
     for section, key in blocked:
         new_val = (new_config.get(section) or {}).get(key)
@@ -65,6 +89,17 @@ def _validate_config(service: str, new_config: Dict[str, Any], current_config: D
 
 
 def save_config(service: str, config_data: Dict[str, Any]) -> None:
+    """Validate and save a service configuration to YAML.
+
+    Args:
+        service: Service name to update.
+        config_data: Configuration data to persist.
+
+    Raises:
+        ValueError: If the service is invalid or protected keys are changed.
+        FileNotFoundError: If the configuration file does not exist.
+        Exception: If the YAML file cannot be written.
+    """
     config_path = get_config_path(service)
     if not os.path.exists(config_path):
         raise FileNotFoundError(f"Configuration file for {service} not found")
@@ -75,21 +110,24 @@ def save_config(service: str, config_data: Dict[str, Any]) -> None:
     _validate_config(service, config_data, current)
 
     try:
-        class CustomDumper(yaml.Dumper):
+        class _CustomDumper(yaml.Dumper):
+            """YAML dumper that preserves multiline strings."""
+
             pass
 
-        def str_presenter(dumper: yaml.Dumper, data: str) -> yaml.ScalarNode:
+        def _str_presenter(dumper: yaml.Dumper, data: str) -> yaml.ScalarNode:
+            """Represent multiline strings as block scalars."""
             if '\n' in data:
                 return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
             return dumper.represent_scalar('tag:yaml.org,2002:str', data)
 
-        CustomDumper.add_representer(str, str_presenter)
+        _CustomDumper.add_representer(str, _str_presenter)
 
         with open(config_path, 'w', encoding='utf-8') as f:
             yaml.dump(
                 config_data,
                 f,
-                Dumper=CustomDumper,
+                Dumper=_CustomDumper,
                 allow_unicode=True,
                 sort_keys=False,
                 default_flow_style=False,

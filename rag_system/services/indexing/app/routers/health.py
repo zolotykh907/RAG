@@ -10,7 +10,11 @@ router = APIRouter()
 
 @router.get('/health')
 async def health_check():
-    """Liveness endpoint for monitoring."""
+    """Return liveness and initialization status for indexing service.
+
+    Returns:
+        Health status payload.
+    """
     import rag_system.services.indexing.app.main as main_module
 
     ready = main_module.indexing_service is not None and main_module.data_base is not None
@@ -30,7 +34,11 @@ async def health_check():
 
 @router.get('/ready')
 async def readiness_check():
-    """Readiness check for routing and user-facing upload state."""
+    """Return readiness status for indexing traffic.
+
+    Returns:
+        Ready payload when dependencies are initialized, otherwise a 503 JSON response.
+    """
     import rag_system.services.indexing.app.main as main_module
 
     ready = main_module.indexing_service is not None and main_module.data_base is not None

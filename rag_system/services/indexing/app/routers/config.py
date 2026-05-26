@@ -21,7 +21,10 @@ async def get_config(service: str):
         service: The name of the service (indexing or query).
 
     Returns:
-        Dict: The configuration data.
+        Configuration data.
+
+    Raises:
+        HTTPException: If the configuration is missing or cannot be read.
     """
     try:
         config_data = load_config(service)
@@ -45,7 +48,10 @@ async def update_config(service: str, new_config: Dict = Body(...)):
         new_config: The new configuration data.
 
     Returns:
-        Dict: Confirmation message.
+        Confirmation message.
+
+    Raises:
+        HTTPException: If the configuration is missing or cannot be written.
     """
     try:
         save_config(service, new_config)

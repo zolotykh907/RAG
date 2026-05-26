@@ -17,13 +17,14 @@ def create_embeddings(
     """Create embeddings for input texts.
 
     Args:
-        texts: list of texts.
+        texts: Texts to embed.
         model: SentenceTransformer model for generating embeddings.
-        batch_size: The number of texts to process in one batch.
+        batch_size: Number of texts to process in one batch.
+        model_name: Optional embedding model name used for model-specific preprocessing.
+        is_query: If True, prepare texts as query embeddings.
 
     Returns:
-        numpy.ndarray: L2-normalized float32 array of embeddings
-            (for cosine similarity via inner product).
+        L2-normalized float32 array of embeddings.
     """
     import faiss
 
@@ -72,8 +73,11 @@ def save_embeddings(embeddings: np.ndarray, embeddings_path: str) -> None:
     """Save embeddings atomically: write to a temp file then rename.
 
     Args:
-        embeddings: numpy array of embeddings to persist.
+        embeddings: Numpy array of embeddings to persist.
         embeddings_path: Destination path for the .npy file.
+
+    Raises:
+        Exception: If the file cannot be written or atomically replaced.
     """
     tmp_path = embeddings_path + ".tmp"
     try:

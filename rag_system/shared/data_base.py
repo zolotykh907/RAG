@@ -7,6 +7,8 @@ from rag_system.shared.logs import setup_logging
 
 
 class FaissDB:
+    """Manage FAISS index creation, persistence, loading, and search."""
+
     def __init__(self, config: Any, k: int = 5) -> None:
         self.index_path: str = config.index_path
         self.logs_dir: str = config.logs_dir
@@ -18,11 +20,14 @@ class FaissDB:
         self.logger = setup_logging(self.logs_dir, 'FaissDB')
 
     def create_index(self, embeddings: np.ndarray, replace: bool = False) -> None:
-        """Create a new FAISS index or updates an existing.
+        """Create a new FAISS index or update an existing one.
 
         Args:
             embeddings: L2-normalized numpy array of embeddings to index.
-            replace: if True, replace existing index instead of adding to it.
+            replace: If True, replace the existing index instead of adding to it.
+
+        Raises:
+            Exception: If FAISS cannot build, update, or persist the index.
         """
         try:
             if self.index is None or replace:
@@ -46,7 +51,15 @@ class FaissDB:
             raise
 
     def build_index(self, embeddings: np.ndarray, add_embeddings: bool = True) -> Any:
-        """Build a FAISS HNSW index in memory without writing it to disk."""
+        """Build a FAISS HNSW index in memory.
+
+        Args:
+            embeddings: Embedding matrix used to infer index dimensionality.
+            add_embeddings: If True, add the provided embeddings to the index.
+
+        Returns:
+            A FAISS index instance.
+        """
         import faiss
 
         dim = embeddings.shape[1]
@@ -60,7 +73,7 @@ class FaissDB:
         """Load the FAISS index from file.
 
         Args:
-            index_path: Path to the index file. Defaults to self.index_path.
+            index_path: Optional path to the index file.
         """
         if index_path is None:
             index_path = self.index_path
@@ -111,12 +124,12 @@ class FaissDB:
         return valid_ids, valid_scores
 
     def delete_index(self) -> None:
-        """Deletes the FAISS index."""
+        """Delete the persisted FAISS index and reset the in-memory index."""
         if os.path.exists(self.index_path):
             os.remove(self.index_path)
             self.logger.info(f'Deleted index at {self.index_path}')
         self.index = None
 
     def clear_index(self) -> None:
-        """Clears the FAISS index (alias for delete_index)."""
+        """Clear the FAISS index using the deletion workflow."""
         self.delete_index()

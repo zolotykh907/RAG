@@ -10,7 +10,11 @@ router = APIRouter()
 
 @router.get('/')
 async def root() -> Dict[str, Any]:
-    """Root endpoint with API information."""
+    """Return API metadata and available endpoint paths.
+
+    Returns:
+        API metadata payload.
+    """
     return {
         "message": "RAG System API",
         "version": "1.0.0",
@@ -27,13 +31,21 @@ async def root() -> Dict[str, Any]:
 
 @router.get('/health')
 async def health_check() -> Dict[str, Any]:
-    """Liveness probe — process is alive."""
+    """Return liveness status for the monolith API.
+
+    Returns:
+        Health status payload.
+    """
     return {"status": "healthy", "message": "RAG API is running"}
 
 
 @router.get('/ready')
 async def readiness_check() -> Union[Dict[str, Any], JSONResponse]:
-    """Readiness probe — core services are initialised and can serve requests."""
+    """Return readiness status for core API services.
+
+    Returns:
+        Ready payload when services are initialized, otherwise a 503 JSON response.
+    """
     import rag_system.api.main as main_module
 
     not_ready = []

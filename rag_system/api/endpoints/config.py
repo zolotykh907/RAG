@@ -14,7 +14,17 @@ router = APIRouter()
 
 @router.get("/config")
 async def get_config(service: str) -> Dict[str, Any]:
-    """Get configuration for a specified service."""
+    """Get configuration for a specified service.
+
+    Args:
+        service: Service name to read.
+
+    Returns:
+        Parsed service configuration.
+
+    Raises:
+        HTTPException: If the service is invalid, missing, or cannot be read.
+    """
     try:
         config_data = load_config(service)
         return config_data
@@ -29,7 +39,18 @@ async def get_config(service: str) -> Dict[str, Any]:
 
 @router.post("/config")
 async def update_config(service: str, new_config: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
-    """Update configuration for a specified service."""
+    """Update configuration for a specified service.
+
+    Args:
+        service: Service name to update.
+        new_config: New configuration payload.
+
+    Returns:
+        Confirmation message.
+
+    Raises:
+        HTTPException: If the service is invalid, missing, protected, or cannot be written.
+    """
     try:
         save_config(service, new_config)
         return {"message": f"Configuration for {service} updated successfully"}

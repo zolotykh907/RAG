@@ -7,11 +7,21 @@ logger = logging.getLogger(__name__)
 
 
 class Config:
+    """Load YAML configuration and expose leaf keys as attributes."""
+
     def __init__(self, config_file_path: str = 'indexing/config.yaml') -> None:
         self.config_file_path = config_file_path
         self.set_items()
 
     def get_items(self, elem: Any) -> List[Tuple[str, Any]]:
+        """Flatten nested configuration dictionaries into leaf key-value pairs.
+
+        Args:
+            elem: Configuration fragment to flatten.
+
+        Returns:
+            Leaf key-value pairs discovered in the fragment.
+        """
         items: List[Tuple[str, Any]] = []
         if isinstance(elem, dict):
             for key, value in elem.items():
@@ -23,6 +33,12 @@ class Config:
         return items
 
     def set_items(self) -> None:
+        """Load the YAML file and set configuration keys as attributes.
+
+        Raises:
+            FileNotFoundError: If the configuration file does not exist.
+            yaml.YAMLError: If the configuration file contains invalid YAML.
+        """
         with open(self.config_file_path, "r", encoding="utf-8") as f:
             cfg = yaml.safe_load(f)
 
@@ -41,6 +57,7 @@ class Config:
             setattr(self, key, value)
 
     def reload(self) -> None:
+        """Reload configuration attributes from disk."""
         for attr in list(self.__dict__.keys()):
             if attr != "config_file_path":
                 delattr(self, attr)

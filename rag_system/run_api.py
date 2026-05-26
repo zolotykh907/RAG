@@ -2,7 +2,8 @@ import uvicorn
 from rag_system.api.main import app
 
 
-def main():
+def main() -> None:
+    """Run the monolith RAG API with uvicorn."""
     uvicorn.run(app, host="0.0.0.0", port=8000)
 
 

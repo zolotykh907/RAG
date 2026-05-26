@@ -13,7 +13,14 @@ import numpy as np
 
 @dataclass(frozen=True)
 class IndexArtifacts:
-    """Paths that make up one consistent index snapshot."""
+    """Paths that make up one consistent index snapshot.
+
+    Attributes:
+        processed_data_path: Path to the processed data JSON file.
+        embeddings_path: Path to the embeddings NPY file.
+        index_path: Path to the FAISS index file.
+        snapshot_id: Optional snapshot identifier for published snapshots.
+    """
 
     processed_data_path: str
     embeddings_path: str
@@ -45,6 +52,14 @@ class IndexSnapshotStore:
 
     @classmethod
     def from_config(cls, config: Any) -> "IndexSnapshotStore":
+        """Create a snapshot store from a configuration object.
+
+        Args:
+            config: Configuration object with data and index paths.
+
+        Returns:
+            An initialized snapshot store.
+        """
         processed_data_path = str(config.processed_data_path)
         index_path = str(config.index_path)
         data_dir = str(getattr(config, "data_dir", "") or Path(processed_data_path).parent)
@@ -57,7 +72,15 @@ class IndexSnapshotStore:
         )
 
     def current_artifacts(self) -> IndexArtifacts:
-        """Return the currently published snapshot, or legacy paths if no pointer exists."""
+        """Return the currently published snapshot paths.
+
+        Returns:
+            Current snapshot artifacts, or legacy paths when no pointer exists.
+
+        Raises:
+            KeyError: If the pointer file does not contain a snapshot identifier.
+            json.JSONDecodeError: If the pointer file contains invalid JSON.
+        """
         if not self.pointer_path.exists():
             return self.legacy_artifacts
 
@@ -74,6 +97,15 @@ class IndexSnapshotStore:
         )
 
     def load_processed_data(self) -> List[Dict[str, Any]]:
+        """Load processed data from the current snapshot.
+
+        Returns:
+            Processed data records, or an empty list if no data file exists.
+
+        Raises:
+            ValueError: If the processed data file does not contain a list.
+            json.JSONDecodeError: If the processed data file contains invalid JSON.
+        """
         artifacts = self.current_artifacts()
         if not os.path.exists(artifacts.processed_data_path):
             return []
@@ -84,6 +116,11 @@ class IndexSnapshotStore:
         return data
 
     def load_embeddings(self) -> Optional[np.ndarray]:
+        """Load embeddings from the current snapshot.
+
+        Returns:
+            Embedding matrix if the file exists, otherwise None.
+        """
         artifacts = self.current_artifacts()
         if not os.path.exists(artifacts.embeddings_path):
             return None
@@ -95,7 +132,20 @@ class IndexSnapshotStore:
         embeddings: np.ndarray,
         index: Any,
     ) -> IndexArtifacts:
-        """Write a complete snapshot, then atomically publish it via pointer replacement."""
+        """Write and atomically publish a complete index snapshot.
+
+        Args:
+            processed_data: Processed text records that correspond to embeddings.
+            embeddings: Embedding matrix for the processed records.
+            index: FAISS index built from the same embeddings.
+
+        Returns:
+            Paths for the newly published snapshot.
+
+        Raises:
+            ValueError: If processed data, embeddings, and index sizes are inconsistent.
+            Exception: If any snapshot file cannot be written or published.
+        """
         embeddings = np.array(embeddings, dtype=np.float32)
         self._validate_snapshot(processed_data, embeddings, index)
 
@@ -143,6 +193,7 @@ class IndexSnapshotStore:
             raise
 
     def clear(self) -> None:
+        """Remove all published snapshots, the pointer, and legacy artifacts."""
         if self.pointer_path.exists():
             os.remove(self.pointer_path)
         if self.snapshot_dir.exists():
@@ -157,6 +208,7 @@ class IndexSnapshotStore:
                 os.remove(path)
 
     def _replace_pointer(self, snapshot_id: str, items_count: int) -> None:
+        """Atomically replace the current snapshot pointer."""
         self.data_dir.mkdir(parents=True, exist_ok=True)
         pointer_tmp = self.pointer_path.with_suffix(".json.tmp")
         pointer_data = {
@@ -170,6 +222,7 @@ class IndexSnapshotStore:
         os.replace(pointer_tmp, self.pointer_path)
 
     def _pointer_references(self, snapshot_id: str) -> bool:
+        """Return whether the current pointer references a snapshot."""
         if not self.pointer_path.exists():
             return False
         try:
@@ -184,6 +237,7 @@ class IndexSnapshotStore:
         embeddings: np.ndarray,
         index: Any,
     ) -> None:
+        """Validate consistency between processed data, embeddings, and index."""
         if embeddings.ndim != 2:
             raise ValueError("Embeddings must be a 2D array")
         if len(processed_data) != embeddings.shape[0]:

@@ -12,6 +12,8 @@ from rag_system.shared.ocr import OCR
 
 
 class DataLoader:
+    """Load text content from supported file types and Python data structures."""
+
     _text_file_extensions = ('.txt', '.md', '.markdown')
     _word_xml_namespace = '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}'
     _docx_text_parts = (
@@ -27,6 +29,19 @@ class DataLoader:
         self.ocr = OCR(config)
 
     def from_json(self, path: str, column_name: str = 'text') -> pd.DataFrame:
+        """Load records from a JSON file into a DataFrame.
+
+        Args:
+            path: Path to the JSON file.
+            column_name: Required text column name.
+
+        Returns:
+            A DataFrame containing the loaded records.
+
+        Raises:
+            FileNotFoundError: If the JSON file does not exist.
+            ValueError: If the required text column is missing.
+        """
         try:
             with open(path, 'r') as f:
                 data = json.load(f)
@@ -44,6 +59,17 @@ class DataLoader:
             raise
 
     def from_text_file(self, path: str) -> pd.DataFrame:
+        """Load a plain text file into a single-row DataFrame.
+
+        Args:
+            path: Path to the text file.
+
+        Returns:
+            A DataFrame with one ``text`` column.
+
+        Raises:
+            Exception: If the file cannot be read.
+        """
         try:
             with open(path, 'r', encoding='utf-8') as f:
                 text = f.read()
@@ -55,6 +81,17 @@ class DataLoader:
             raise
 
     def from_docx(self, path: str) -> pd.DataFrame:
+        """Load text from a DOCX file into a single-row DataFrame.
+
+        Args:
+            path: Path to the DOCX file.
+
+        Returns:
+            A DataFrame with extracted DOCX text.
+
+        Raises:
+            ValueError: If the DOCX archive or structure is invalid.
+        """
         try:
             texts: List[str] = []
             with zipfile.ZipFile(path) as archive:
@@ -71,6 +108,7 @@ class DataLoader:
             raise ValueError(f'Invalid DOCX structure: {path}') from e
 
     def _docx_part_names(self, archive: zipfile.ZipFile) -> List[str]:
+        """Return DOCX XML part names that may contain visible text."""
         archive_names = set(archive.namelist())
         part_names = [part for part in self._docx_text_parts if part in archive_names]
         part_names.extend(
@@ -88,6 +126,7 @@ class DataLoader:
         return part_names
 
     def _extract_docx_part_text(self, xml_content: bytes) -> str:
+        """Extract text from one DOCX XML part."""
         root = ET.fromstring(xml_content)
         paragraph_tag = f'{self._word_xml_namespace}p'
         paragraphs: List[str] = []
@@ -100,6 +139,7 @@ class DataLoader:
         return '\n'.join(paragraphs)
 
     def _extract_docx_paragraph_text(self, paragraph: ET.Element) -> str:
+        """Extract plain text from one DOCX paragraph element."""
         text_tag = f'{self._word_xml_namespace}t'
         tab_tag = f'{self._word_xml_namespace}tab'
         break_tags = {
@@ -119,19 +159,55 @@ class DataLoader:
         return ''.join(chunks)
 
     def from_string(self, string: str) -> pd.DataFrame:
+        """Create a DataFrame from a raw string.
+
+        Args:
+            string: Text content to wrap.
+
+        Returns:
+            A single-row DataFrame with the provided text.
+        """
         df = pd.DataFrame({'text': [string]})
         return df
 
     def from_list(self, data_list: List[str]) -> pd.DataFrame:
+        """Create a DataFrame from a list of text strings.
+
+        Args:
+            data_list: Text records to wrap.
+
+        Returns:
+            A DataFrame with one row per input string.
+        """
         df = pd.DataFrame({'text': data_list})
         return df
 
     def from_pdf_or_img(self, path: str) -> pd.DataFrame:
+        """Extract text from a PDF or image file with OCR.
+
+        Args:
+            path: Path to a supported PDF or image file.
+
+        Returns:
+            A DataFrame containing OCR text for each processed page or image.
+        """
         texts = self.ocr.run_ocr(path)
         df = pd.DataFrame({'text': texts})
         return df
 
     def from_dir(self, path: str) -> pd.DataFrame:
+        """Load all supported files from a directory.
+
+        Args:
+            path: Directory path to scan.
+
+        Returns:
+            A concatenated DataFrame with text from valid files.
+
+        Raises:
+            FileNotFoundError: If the directory does not exist.
+            NotADirectoryError: If the path is not a directory.
+        """
         if not os.path.exists(path):
             raise FileNotFoundError(f"Directory not found: {path}")
         if not os.path.isdir(path):
@@ -155,6 +231,19 @@ class DataLoader:
         return pd.concat(res_df, ignore_index=True)
 
     def load_data(self, data: Union[str, List[str]]) -> pd.DataFrame:
+        """Load data from a path, raw string, directory, or list of strings.
+
+        Args:
+            data: Data source to load.
+
+        Returns:
+            A DataFrame with a ``text`` column.
+
+        Raises:
+            TypeError: If the data source type is unsupported.
+            ValueError: If a path has an unsupported existing file extension.
+            Exception: If a supported loader fails.
+        """
         try:
             if isinstance(data, str):
                 if os.path.isdir(data):

@@ -7,6 +7,7 @@ from rag_system.shared.logs import setup_logging
 
 
 def _path_signature(path: Any) -> str:
+    """Build a stable signature for a path based on metadata."""
     if not path:
         return "none"
 
@@ -23,7 +24,16 @@ def build_cache_namespace(
     prefix: str = "permanent",
     extra: Optional[List[str]] = None,
 ) -> str:
-    """Build a cache namespace from the corpus and generation settings."""
+    """Build a cache namespace from corpus and generation settings.
+
+    Args:
+        config: Configuration object with paths and model settings.
+        prefix: Namespace prefix for the cache scope.
+        extra: Optional extra namespace components.
+
+    Returns:
+        A cache namespace string.
+    """
     prompt_template = str(getattr(config, "prompt_template", ""))
     prompt_hash = hashlib.sha256(prompt_template.encode("utf-8")).hexdigest()
     index_path: Any
@@ -54,7 +64,15 @@ def build_cache_namespace(
 
 
 def build_chat_cache_namespace(config: Any, session_id: str) -> str:
-    """Build a cache namespace isolated to a browser chat session."""
+    """Build a cache namespace isolated to a browser chat session.
+
+    Args:
+        config: Configuration object with paths and model settings.
+        session_id: Browser chat session identifier.
+
+    Returns:
+        A session-scoped cache namespace string.
+    """
     return build_cache_namespace(
         config,
         prefix="chat",
@@ -63,7 +81,7 @@ def build_chat_cache_namespace(config: Any, session_id: str) -> str:
 
 
 class RAGPipeline:
-    """Class of pipeline for RAG."""
+    """Coordinate retrieval, answer generation, and cache access for RAG."""
 
     def __init__(
         self,
@@ -95,7 +113,11 @@ class RAGPipeline:
             question: input question to answer.
 
         Returns:
-            dict: generated answer, list of relevant texts, and disabled highlight data.
+            Generated answer, relevant texts, and disabled highlight data.
+
+        Raises:
+            ValueError: If the question is empty or not a string.
+            Exception: If retrieval, generation, or cache serialization fails unexpectedly.
         """
         if not isinstance(question, str) or not question.strip():
             raise ValueError("Question must be a non-empty string")

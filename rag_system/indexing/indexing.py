@@ -20,7 +20,7 @@ from rag_system.shared.model_loader import get_hf_cache_model_path
 
 
 class Indexing:
-    """Manage text indexing process with embedding creation and FAISS index maintenance."""
+    """Manage text indexing, embedding creation, and FAISS snapshot publication."""
 
     def __init__(self, config: Any, data_loader: DataLoader, data_base: FaissDB) -> None:
         """Initialize Indexing with configuration parameters.
@@ -64,7 +64,14 @@ class Indexing:
             self.load_existing_hashes()
 
     def load_local_embedding_model(self) -> SentenceTransformer:
-        """Load model from local HuggingFace cache."""
+        """Load the embedding model from local Hugging Face cache.
+
+        Returns:
+            A SentenceTransformer embedding model.
+
+        Raises:
+            Exception: If the local load fails for reasons other than a missing cache.
+        """
         try:
             model_path = get_hf_cache_model_path(self.emb_model_name)
             self.logger.info(f"Loading embedding model from local cache: {model_path}")
@@ -80,7 +87,14 @@ class Indexing:
             raise
 
     def download_embedding_model(self) -> SentenceTransformer:
-        """Download embedding model from Hugging Face."""
+        """Download the configured embedding model from Hugging Face.
+
+        Returns:
+            A SentenceTransformer embedding model.
+
+        Raises:
+            Exception: If the model cannot be downloaded or initialized.
+        """
         self.logger.info(f"Downloading model {self.emb_model_name}...")
         try:
             emb_model = SentenceTransformer(
@@ -95,7 +109,11 @@ class Indexing:
             raise
 
     def download_data(self) -> None:
-        """Download and save data from URL."""
+        """Download source data to the configured local path.
+
+        Raises:
+            Exception: If the HTTP request or file write fails.
+        """
         if not os.path.exists(self.data_path):
             self.logger.info(f'Downloading data from {self.data_url}.')
             try:
@@ -112,7 +130,17 @@ class Indexing:
             self.logger.info(f'File {self.data_path} exists.')
 
     def load_data(self, data_source: Any) -> pd.DataFrame:
-        """Load data from various sources."""
+        """Load data from a configured source with the data loader.
+
+        Args:
+            data_source: Path, raw string, directory, or list accepted by DataLoader.
+
+        Returns:
+            Loaded data with a ``text`` column.
+
+        Raises:
+            Exception: If the data loader cannot load the source.
+        """
         try:
             df = self.data_loader.load_data(data_source)
             self.logger.info(f"Loaded {len(df)} records from data source")
@@ -122,7 +150,7 @@ class Indexing:
             raise
 
     def load_existing_hashes(self) -> None:
-        """Load texts hashes from processed data file."""
+        """Load text hashes from the current processed data snapshot."""
         processed_data = self.snapshot_store.load_processed_data()
         if processed_data:
             df = pd.DataFrame(processed_data)
@@ -139,7 +167,10 @@ class Indexing:
             df: DataFrame with texts.
 
         Returns:
-            DataFrame: clean DataFrame after quality check.
+            Clean DataFrame after quality checks.
+
+        Raises:
+            Exception: If the quality log cannot be written.
         """
         quality_log, df_clean = check_data_quality(df)
         self.logger.info(f"Data quality check completed. {len(df_clean)} texts passed the quality check.")
@@ -150,7 +181,14 @@ class Indexing:
         return df_clean
 
     def save_processed_data(self, df: pd.DataFrame) -> None:
-        """Save processed data, merging with existing if incrementing."""
+        """Save processed data, merging with existing data if incrementing.
+
+        Args:
+            df: New processed records to persist.
+
+        Raises:
+            Exception: If records cannot be merged or written.
+        """
         try:
             combined_df = self.build_processed_data(df)
             combined_df.to_json(
@@ -167,7 +205,14 @@ class Indexing:
             raise
 
     def build_processed_data(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Merge new processed chunks with the current snapshot without writing to disk."""
+        """Merge new processed chunks with the current snapshot in memory.
+
+        Args:
+            df: New processed records.
+
+        Returns:
+            Combined processed records with duplicate hashes removed when incrementing.
+        """
         if self.incrementation_flag:
             existing_data = self.snapshot_store.load_processed_data()
             if existing_data:
@@ -184,7 +229,7 @@ class Indexing:
             source_file: Optional source filename for tracking.
 
         Returns:
-            DataFrame: new DataFrame with chunks.
+            New DataFrame with chunks.
         """
         from datetime import datetime
 
@@ -203,6 +248,15 @@ class Indexing:
         return res_df
 
     def run_indexing(self, data: Optional[Any] = None) -> None:
+        """Build and publish a new index snapshot from source data.
+
+        Args:
+            data: Optional data source. If omitted, the configured URL or data path is used.
+
+        Raises:
+            ValueError: If processed data, embeddings, and index sizes are inconsistent.
+            Exception: If loading, embedding, indexing, or snapshot publication fails.
+        """
         try:
             if data is None:
                 if self.data_url:
@@ -329,12 +383,12 @@ class Indexing:
             raise
 
     def clear_existing_data(self) -> None:
-        """Clear existing processed data and embeddings."""
+        """Clear existing processed data, embeddings, and FAISS index state."""
         self.snapshot_store.clear()
         self.data_base.index = None
         self.existing_hashes = []
         self.logger.info("Cleared existing hashes")
 
     def clear_data(self) -> None:
-        """Clear all indexed data (alias for clear_existing_data)."""
+        """Clear all indexed data through the primary clear workflow."""
         self.clear_existing_data()

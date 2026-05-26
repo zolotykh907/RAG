@@ -16,12 +16,19 @@ morph = pymorphy2.MorphAnalyzer()
 
 
 def test_normalize_text(input_text, expected_tokens):
+    """Verify text normalization with lemmatization.
+
+    Args:
+        input_text: Raw text from the parametrized case.
+        expected_tokens: Expected normalized tokens.
+    """
     result = normalize_text(input_text, morph=morph, clear_flag=True)
     result_tokens = set(result.split())
     assert result_tokens == expected_tokens
 
 
 def test_compute_text_hash_consistency():
+    """Verify equivalent normalized texts produce the same hash."""
     text = "Пример текста"
     hash1 = compute_text_hash(text)
     hash2 = compute_text_hash(" пример ТЕКСТА  ")
@@ -29,10 +36,12 @@ def test_compute_text_hash_consistency():
 
 
 def test_compute_text_hash_different():
+    """Verify different texts produce different hashes."""
     assert compute_text_hash("abc") != compute_text_hash("def")
 
 
 def test_check_data_quality():
+    """Verify quality checks remove empty, short, and duplicate texts."""
     data = {
         'uid': ['1', '2', '3', '4', '5'],
         'text': [

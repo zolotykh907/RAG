@@ -10,7 +10,11 @@ router = APIRouter()
 
 @router.get('/health')
 async def health_check():
-    """Health check endpoint for monitoring."""
+    """Return liveness status for query service.
+
+    Returns:
+        Health status payload.
+    """
     import rag_system.services.query.app.main as main_module
 
     status = {
@@ -27,7 +31,11 @@ async def health_check():
 
 @router.get('/ready')
 async def readiness_check():
-    """Readiness check for Kubernetes/orchestration."""
+    """Return readiness status for query traffic.
+
+    Returns:
+        Ready payload when dependencies are initialized, otherwise a 503 JSON response.
+    """
     import rag_system.services.query.app.main as main_module
 
     # Query service can be ready even without pipeline (it will be initialized after first upload)
