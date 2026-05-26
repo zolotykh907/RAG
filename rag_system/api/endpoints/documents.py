@@ -271,21 +271,25 @@ async def delete_document(filename: str) -> Dict[str, Any]:
             raise HTTPException(status_code=404, detail="Document not found")
 
         if filtered_data:
-            import faiss
-            import numpy as np
+            from rag_system.indexing.data_vectorize import create_embeddings
             from rag_system.query.query import Query
             from rag_system.query.pipeline import RAGPipeline
 
-            # Compute embeddings BEFORE writing anything to disk
-            embedding_model = indexing_svc.load_local_embedding_model()
+            # Compute embeddings BEFORE writing anything to disk.
+            # Use the same helper as the normal indexing path so model-specific
+            # preprocessing, such as E5 passage prefixes, stays consistent.
             texts = [item['text'] for item in filtered_data]
             loop = asyncio.get_running_loop()
             embeddings = await loop.run_in_executor(
                 None,
-                lambda: embedding_model.encode(texts, convert_to_numpy=True, show_progress_bar=False)
+                lambda: create_embeddings(
+                    texts,
+                    indexing_svc.emb_model,
+                    batch_size=indexing_svc.batch_size,
+                    model_name=indexing_svc.emb_model_name,
+                    is_query=False,
+                )
             )
-            embeddings = np.array(embeddings, dtype=np.float32)
-            faiss.normalize_L2(embeddings)
 
             new_index = data_base.build_index(embeddings)
             snapshot_store.publish(filtered_data, embeddings, new_index)
