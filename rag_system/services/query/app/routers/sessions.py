@@ -14,6 +14,10 @@ from fastapi import Form
 from fastapi import HTTPException
 from fastapi import UploadFile
 
+from rag_system.query.combined import process_file_temp
+from rag_system.services.query.app import state
+from rag_system.shared.temp_storage import temp_index_manager
+
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
@@ -43,13 +47,9 @@ async def upload_temp_file(
     Raises:
         HTTPException: If temporary indexing fails.
     """
-    import rag_system.services.query.app.main as main_module
-    from rag_system.shared.temp_storage import temp_index_manager
-    from rag_system.query.combined import process_file_temp
-
-    indexing_service = main_module.temp_indexing_service
+    indexing_service = state.temp_indexing_service
     if indexing_service is None:
-        raise HTTPException(status_code=503, detail="Indexing service not available")
+        indexing_service = await asyncio.to_thread(state.get_temp_indexing_service)
     data_loader = indexing_service.data_loader
 
     try:
@@ -97,8 +97,6 @@ async def clear_session(session_id: str) -> Dict[str, Any]:
     Raises:
         HTTPException: If the session does not exist or cannot be cleared.
     """
-    from rag_system.shared.temp_storage import temp_index_manager
-
     try:
         if temp_index_manager.remove_temp_index(session_id):
             logger.info(f"Session {session_id} cleared")
@@ -126,8 +124,6 @@ async def get_temp_files(session_id: str) -> Dict[str, Any]:
     Raises:
         HTTPException: If metadata retrieval fails.
     """
-    from rag_system.shared.temp_storage import temp_index_manager
-
     try:
         temp_data_list = temp_index_manager.get_temp_index(session_id)
 
@@ -182,8 +178,6 @@ async def delete_temp_file(session_id: str, filename: str) -> Dict[str, Any]:
     Raises:
         HTTPException: If the file does not exist or cannot be deleted.
     """
-    from rag_system.shared.temp_storage import temp_index_manager
-
     try:
         removed = temp_index_manager.remove_temp_file(session_id, filename)
 
@@ -217,8 +211,6 @@ async def get_temp_file_content(session_id: str, filename: str) -> Dict[str, Any
     Raises:
         HTTPException: If the file does not exist or retrieval fails.
     """
-    from rag_system.shared.temp_storage import temp_index_manager
-
     try:
         temp_data = temp_index_manager.get_temp_file_content(session_id, filename)
         if not temp_data or 'chunks' not in temp_data:

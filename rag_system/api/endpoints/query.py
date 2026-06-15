@@ -4,10 +4,13 @@ from fastapi import APIRouter
 from fastapi import HTTPException
 from fastapi.responses import JSONResponse
 
+from rag_system.api import state
 from rag_system.api.models import QueryRequest
 from rag_system.api.models import QueryResponse
+from rag_system.query.combined import create_combined_pipeline
 from rag_system.query.pipeline import RAGPipeline
 from rag_system.query.pipeline import build_chat_cache_namespace
+from rag_system.shared.temp_storage import temp_index_manager
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -26,18 +29,14 @@ async def query_rag(request: QueryRequest):
     Raises:
         HTTPException: If required services are unavailable or query processing fails.
     """
-    import rag_system.api.main as main_module
-    from rag_system.shared.temp_storage import temp_index_manager
-    from rag_system.query.combined import create_combined_pipeline
-
     # Snapshot global state under lock to avoid races with concurrent uploads/reloads
-    with main_module.services_lock:
-        pipeline = main_module.pipeline
-        query_service = main_module.query_service
-        responder = main_module.responder
-        indexing_service = main_module.indexing_service
-        redis_client = main_module.redis_client
-        query_config = main_module.query_config
+    with state.services_lock:
+        pipeline = state.pipeline
+        query_service = state.query_service
+        responder = state.responder
+        indexing_service = state.indexing_service
+        redis_client = state.redis_client
+        query_config = state.query_config
 
     try:
         if request.session_id and temp_index_manager.has_session(request.session_id):

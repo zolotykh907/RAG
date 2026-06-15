@@ -3,6 +3,7 @@ from typing import Any, List
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
+from pydantic import SecretStr
 
 from rag_system.shared.logs import setup_logging
 
@@ -22,7 +23,7 @@ class LLMResponder:
         self.llm = ChatOpenAI(
             model=self.model_name,
             base_url=os.getenv("LM_STUDIO_HOST", self.lm_studio_host),
-            api_key=os.getenv("LM_STUDIO_API_KEY", "lm-studio"),
+            api_key=SecretStr(os.getenv("LM_STUDIO_API_KEY", "lm-studio")),
             temperature=0.7
         )
         self.chain = self.prompt_template | self.llm
@@ -79,10 +80,12 @@ class LLMResponder:
             response = self.chain.invoke({"question": question, "context": context})
 
             # Extract content from AIMessage object
+            raw_answer: Any
             if hasattr(response, 'content'):
-                answer = response.content
+                raw_answer = response.content
             else:
-                answer = str(response)
+                raw_answer = response
+            answer = raw_answer if isinstance(raw_answer, str) else str(raw_answer)
 
             if not answer or not answer.strip():
                 self.logger.warning("LLM returned empty response")

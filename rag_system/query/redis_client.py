@@ -1,7 +1,7 @@
 import hashlib
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 import redis
 
@@ -48,7 +48,7 @@ class RedisDB:
         if self.redis_client is None:
             return None
         key = self.make_cache_key(query, namespace=namespace)
-        value = self.redis_client.get(key)
+        value = cast(Optional[bytes], self.redis_client.get(key))
         if value:
             return json.loads(value)
         return None
@@ -72,7 +72,7 @@ class RedisDB:
         if self.redis_client is None:
             return
         try:
-            keys: List[Any] = self.redis_client.keys("rag:*")
+            keys = cast(List[Any], self.redis_client.keys("rag:*"))
             if keys:
                 self.redis_client.delete(*keys)
                 self.logger.info(f"Flushed {len(keys)} cached query results")

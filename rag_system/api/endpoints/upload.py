@@ -12,8 +12,10 @@ from fastapi import HTTPException
 from fastapi import UploadFile
 from fastapi import File
 
+from rag_system.api import state
 from rag_system.api.services import process_file_temp
 from rag_system.api.temp_storage import temp_index_manager
+from rag_system.indexing import Indexing
 from rag_system.query.query import Query
 from rag_system.query.pipeline import RAGPipeline
 from rag_system.shared.index_snapshot import IndexSnapshotStore
@@ -28,6 +30,21 @@ def _safe_filename(filename: str) -> str:
     if base in ("", ".", ".."):
         base = f"upload-{uuid.uuid4().hex}"
     return base
+
+
+async def _require_indexing_service() -> Indexing:
+    """Return the indexing service, lazily initializing it when needed."""
+    indexing_svc = state.indexing_service
+    if indexing_svc is not None:
+        return indexing_svc
+
+    try:
+        return await asyncio.to_thread(state.get_indexing_service)
+    except RuntimeError as e:
+        raise HTTPException(
+            status_code=503,
+            detail=str(e)
+        ) from e
 
 
 @router.post('/upload-temp')
@@ -47,17 +64,8 @@ async def upload_temp_file(
     Raises:
         HTTPException: If required services are unavailable or temporary indexing fails.
     """
-    import rag_system.api.main as main_module
-
-    indexing_svc = main_module.indexing_service
-    data_loader = main_module.data_loader
-    if indexing_svc is None:
-        raise HTTPException(
-            status_code=503,
-            detail="Indexing service not available. Please check configuration and try again."
-        )
-    if data_loader is None:
-        raise HTTPException(status_code=503, detail="Data loader not available.")
+    indexing_svc = await _require_indexing_service()
+    data_loader = indexing_svc.data_loader
 
     try:
         target_session_id = session_id or temp_index_manager.generate_session_id()
@@ -105,18 +113,8 @@ async def upload_file(file: UploadFile = File(...)) -> Dict[str, Any]:
     Raises:
         HTTPException: If required services are unavailable or indexing fails.
     """
-    import rag_system.api.main as main_module
-
-    indexing_svc = main_module.indexing_service
-    data_base = main_module.data_base
-
-    if indexing_svc is None:
-        raise HTTPException(
-            status_code=503,
-            detail="Indexing service not available. Please check configuration and try again."
-        )
-    if data_base is None:
-        raise HTTPException(status_code=503, detail="Database not available.")
+    indexing_svc = await _require_indexing_service()
+    data_base = indexing_svc.data_base
 
     with TemporaryDirectory() as temp_dir:
         safe_name = _safe_filename(file.filename or "upload")
@@ -133,26 +131,26 @@ async def upload_file(file: UploadFile = File(...)) -> Dict[str, Any]:
             )
             logger.info("End indexing!")
 
-            artifacts = IndexSnapshotStore.from_config(main_module.query_config).current_artifacts()
+            artifacts = IndexSnapshotStore.from_config(state.query_config).current_artifacts()
             if os.path.exists(artifacts.processed_data_path) and os.path.exists(artifacts.index_path):
                 try:
                     data_base.load_index(artifacts.index_path)
 
-                    query_service = Query(main_module.query_config, data_base)
+                    query_service = Query(state.query_config, data_base)
                     pipeline = RAGPipeline(
-                        config=main_module.query_config,
+                        config=state.query_config,
                         query=query_service,
-                        responder=main_module.responder,
-                        redis_client=main_module.redis_client,
+                        responder=state.responder,
+                        redis_client=state.redis_client,
                     )
 
-                    with main_module.services_lock:
-                        main_module.query_service = query_service
-                        main_module.pipeline = pipeline
+                    with state.services_lock:
+                        state.query_service = query_service
+                        state.pipeline = pipeline
 
                     logger.info('Query service and pipeline reinitialized after indexing.')
-                    if main_module.redis_client is not None:
-                        main_module.redis_client.flush_cache()
+                    if state.redis_client is not None:
+                        state.redis_client.flush_cache()
                     return {"message": "File processed and indexed successfully.", "query_service_restarted": True}
                 except Exception as e:
                     logger.warning(f'Failed to reinitialize query service after indexing: {str(e)}')
@@ -214,10 +212,8 @@ async def clear_permanent_index() -> Dict[str, Any]:
     Raises:
         HTTPException: If required services are unavailable or clearing fails.
     """
-    import rag_system.api.main as main_module
-
-    indexing_svc = main_module.indexing_service
-    data_base = main_module.data_base
+    indexing_svc = state.indexing_service
+    data_base = state.data_base
 
     if indexing_svc is None:
         raise HTTPException(status_code=503, detail="Indexing service not available.")
@@ -229,9 +225,9 @@ async def clear_permanent_index() -> Dict[str, Any]:
         indexing_svc.clear_data()
         indexing_svc.existing_hashes = []
 
-        with main_module.services_lock:
-            main_module.query_service = None
-            main_module.pipeline = None
+        with state.services_lock:
+            state.query_service = None
+            state.pipeline = None
 
         logger.info("Permanent index cleared successfully")
         return {"message": "All indexed data cleared successfully"}

@@ -1,6 +1,7 @@
 import os
 from typing import Any, Optional, Tuple
 
+import faiss
 import numpy as np
 
 from rag_system.shared.logs import setup_logging
@@ -42,7 +43,6 @@ class FaissDB:
 
             assert self.index is not None
             self.index.add(np.array(embeddings, dtype=np.float32))
-            import faiss
 
             faiss.write_index(self.index, self.index_path)
             self.logger.info(f"FAISS index saved to {self.index_path}.")
@@ -60,8 +60,6 @@ class FaissDB:
         Returns:
             A FAISS index instance.
         """
-        import faiss
-
         dim = embeddings.shape[1]
         index = faiss.IndexHNSWFlat(dim, self.hnsw_m, faiss.METRIC_INNER_PRODUCT)
         index.hnsw.efConstruction = self.hnsw_ef_construction
@@ -82,8 +80,6 @@ class FaissDB:
             self.index = None
             return
         try:
-            import faiss
-
             self.index = faiss.read_index(index_path)
             self.logger.info(f'Index loaded from {index_path}')
         except Exception as e:

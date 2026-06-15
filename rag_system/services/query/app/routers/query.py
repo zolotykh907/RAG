@@ -7,8 +7,11 @@ from pydantic import BaseModel
 from typing import List
 from typing import Optional
 
+from rag_system.query.combined import create_combined_pipeline
 from rag_system.query.pipeline import RAGPipeline
 from rag_system.query.pipeline import build_chat_cache_namespace
+from rag_system.services.query.app import state
+from rag_system.shared.temp_storage import temp_index_manager
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -51,14 +54,11 @@ async def query_rag(request: QueryRequest):
     Raises:
         HTTPException: If required services are unavailable or query processing fails.
     """
-    import rag_system.services.query.app.main as main_module
-    pipeline = main_module.pipeline
-    query_config = main_module.query_config
-    query_service = main_module.query_service
-    responder = main_module.responder
-    redis_client = main_module.redis_client
-    from rag_system.shared.temp_storage import temp_index_manager
-    from rag_system.query.combined import create_combined_pipeline
+    pipeline = state.pipeline
+    query_config = state.query_config
+    query_service = state.query_service
+    responder = state.responder
+    redis_client = state.redis_client
 
     try:
         # Check if session has temporary data
@@ -68,7 +68,7 @@ async def query_rag(request: QueryRequest):
             if temp_data is None:
                 raise HTTPException(status_code=404, detail="Temporary session not found")
 
-            temp_indexing = main_module.temp_indexing_service
+            temp_indexing = state.temp_indexing_service
             if temp_indexing is None:
                 raise HTTPException(
                     status_code=503,

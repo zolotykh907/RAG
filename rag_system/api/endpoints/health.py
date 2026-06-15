@@ -4,6 +4,8 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 import logging
 
+from rag_system.api import state
+
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
@@ -46,14 +48,12 @@ async def readiness_check() -> Union[Dict[str, Any], JSONResponse]:
     Returns:
         Ready payload when services are initialized, otherwise a 503 JSON response.
     """
-    import rag_system.api.main as main_module
-
     not_ready = []
-    if main_module.responder is None:
+    if state.responder is None:
         not_ready.append("llm_responder")
-    if main_module.indexing_service is None:
+    if state.indexing_service is None:
         not_ready.append("indexing_service")
-    if main_module.redis_client is None:
+    if state.redis_client is None:
         not_ready.append("redis")
 
     if not_ready:

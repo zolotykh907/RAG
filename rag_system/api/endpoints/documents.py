@@ -8,7 +8,12 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter
 from fastapi import HTTPException
 
+from rag_system.api import state
+from rag_system.indexing.data_vectorize import create_embeddings
+from rag_system.query.pipeline import RAGPipeline
+from rag_system.query.query import Query
 from rag_system.shared.index_snapshot import IndexSnapshotStore
+from rag_system.shared.temp_storage import temp_index_manager
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -69,13 +74,11 @@ async def get_documents(limit: int = 100, offset: int = 0) -> Dict[str, Any]:
     Raises:
         HTTPException: If indexing services are unavailable or retrieval fails.
     """
-    import rag_system.api.main as main_module
-
-    if main_module.indexing_service is None:
+    if state.indexing_service is None:
         raise HTTPException(status_code=503, detail="Indexing service not available.")
 
     try:
-        processed_data_path = IndexSnapshotStore.from_config(main_module.query_config).current_artifacts().processed_data_path
+        processed_data_path = IndexSnapshotStore.from_config(state.query_config).current_artifacts().processed_data_path
 
         if not os.path.exists(processed_data_path):
             return {"documents": [], "total_chunks": 0}
@@ -136,9 +139,6 @@ async def get_document_content(filename: str, session_id: Optional[str] = None) 
     Raises:
         HTTPException: If the document is missing or retrieval fails.
     """
-    import rag_system.api.main as main_module
-    from rag_system.shared.temp_storage import temp_index_manager
-
     try:
         if session_id:
             temp_data = temp_index_manager.get_temp_file_content(session_id, filename)
@@ -155,7 +155,7 @@ async def get_document_content(filename: str, session_id: Optional[str] = None) 
                     "is_temporary": True
                 }
 
-        processed_data_path = IndexSnapshotStore.from_config(main_module.query_config).current_artifacts().processed_data_path
+        processed_data_path = IndexSnapshotStore.from_config(state.query_config).current_artifacts().processed_data_path
         if not os.path.exists(processed_data_path):
             raise HTTPException(status_code=404, detail="No documents found")
 
@@ -193,13 +193,11 @@ async def search_documents(query: str = '') -> Dict[str, Any]:
     Raises:
         HTTPException: If search fails.
     """
-    import rag_system.api.main as main_module
-
     if not query:
         return {"results": [], "total_results": 0}
 
     try:
-        processed_data_path = IndexSnapshotStore.from_config(main_module.query_config).current_artifacts().processed_data_path
+        processed_data_path = IndexSnapshotStore.from_config(state.query_config).current_artifacts().processed_data_path
         if not os.path.exists(processed_data_path):
             return {"results": [], "total_results": 0}
 
@@ -247,10 +245,8 @@ async def delete_document(filename: str) -> Dict[str, Any]:
     Raises:
         HTTPException: If services are unavailable, the document is missing, or deletion fails.
     """
-    import rag_system.api.main as main_module
-
-    indexing_svc = main_module.indexing_service
-    data_base = main_module.data_base
+    indexing_svc = state.indexing_service
+    data_base = state.data_base
 
     if indexing_svc is None:
         raise HTTPException(status_code=503, detail="Indexing service not available.")
@@ -258,7 +254,7 @@ async def delete_document(filename: str) -> Dict[str, Any]:
         raise HTTPException(status_code=503, detail="Database not available.")
 
     try:
-        snapshot_store = IndexSnapshotStore.from_config(main_module.query_config)
+        snapshot_store = IndexSnapshotStore.from_config(state.query_config)
         processed_data_path = snapshot_store.current_artifacts().processed_data_path
         if not os.path.exists(processed_data_path):
             raise HTTPException(status_code=404, detail="No documents found")
@@ -271,10 +267,6 @@ async def delete_document(filename: str) -> Dict[str, Any]:
             raise HTTPException(status_code=404, detail="Document not found")
 
         if filtered_data:
-            from rag_system.indexing.data_vectorize import create_embeddings
-            from rag_system.query.query import Query
-            from rag_system.query.pipeline import RAGPipeline
-
             # Compute embeddings BEFORE writing anything to disk.
             # Use the same helper as the normal indexing path so model-specific
             # preprocessing, such as E5 passage prefixes, stays consistent.
@@ -298,38 +290,38 @@ async def delete_document(filename: str) -> Dict[str, Any]:
             logger.info(f"Deleted '{filename}' ({deleted_count} chunks), reindexed remaining")
 
             try:
-                query_service = Query(main_module.query_config, data_base)
+                query_service = Query(state.query_config, data_base)
                 pipeline = RAGPipeline(
-                    config=main_module.query_config,
+                    config=state.query_config,
                     query=query_service,
-                    responder=main_module.responder,
-                    redis_client=main_module.redis_client,
+                    responder=state.responder,
+                    redis_client=state.redis_client,
                 )
-                with main_module.services_lock:
-                    main_module.query_service = query_service
-                    main_module.pipeline = pipeline
+                with state.services_lock:
+                    state.query_service = query_service
+                    state.pipeline = pipeline
                 logger.info("Query service reinitialized after document deletion")
             except Exception as e:
                 logger.error(f"Failed to reinitialize query service: {e}")
-                with main_module.services_lock:
-                    main_module.query_service = None
-                    main_module.pipeline = None
+                with state.services_lock:
+                    state.query_service = None
+                    state.pipeline = None
 
             # Invalidate Redis cache so stale answers are not served
-            if main_module.redis_client is not None:
-                main_module.redis_client.flush_cache()
+            if state.redis_client is not None:
+                state.redis_client.flush_cache()
 
         else:
             snapshot_store.clear()
             data_base.index = None
             logger.info(f"Deleted last document '{filename}', index cleared")
 
-            with main_module.services_lock:
-                main_module.query_service = None
-                main_module.pipeline = None
+            with state.services_lock:
+                state.query_service = None
+                state.pipeline = None
 
-            if main_module.redis_client is not None:
-                main_module.redis_client.flush_cache()
+            if state.redis_client is not None:
+                state.redis_client.flush_cache()
 
         return {
             "message": "Document deleted successfully",

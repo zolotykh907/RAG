@@ -10,162 +10,60 @@ Responsibilities:
 """
 
 import os
+from typing import Any
 
+import uvicorn
 from fastapi import FastAPI
 from fastapi import HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from typing import Any
-from typing import Optional
 
-from rag_system.shared.logs import setup_logging
-from rag_system.shared.my_config import Config as SharedConfig
-from rag_system.shared.data_base import FaissDB
-from rag_system.shared.data_loader import DataLoader
-from rag_system.shared.index_snapshot import IndexSnapshotStore
-from rag_system.query.query import Query
 from rag_system.query.pipeline import RAGPipeline
-from rag_system.query.llm import LLMResponder
-from rag_system.query.redis_client import RedisDB
-from rag_system.indexing import Indexing
-import os as _os
+from rag_system.query.query import Query
+from rag_system.shared.data_base import FaissDB
+from rag_system.shared.index_snapshot import IndexSnapshotStore
+from rag_system.services.query.app import state
+from rag_system.services.query.app.routers import config
+from rag_system.services.query.app.routers import health
+from rag_system.services.query.app.routers import query
+from rag_system.services.query.app.routers import sessions
 
-# Configuration — resolve relative to this file so CWD doesn't matter
-_APP_DIR = _os.path.dirname(_os.path.abspath(__file__))
-_RAG_DIR = _os.path.dirname(_os.path.dirname(_os.path.dirname(_APP_DIR)))  # .../rag_system/
-query_config: Any = SharedConfig(_os.path.join(_RAG_DIR, 'query', 'config.yaml'))
-logger = setup_logging(query_config.logs_dir, 'QUERY_SERVICE')
+state.initialize_services()
 
-# Global services
-data_base: Optional[FaissDB] = None
-query_service: Optional[Query] = None
-responder: Optional[LLMResponder] = None
-pipeline: Optional[RAGPipeline] = None
-redis_client: Optional[RedisDB] = None
-temp_indexing_service: Optional[Indexing] = None  # reused for session-based queries
-
-
-def initialize_services():
-    """Initialize query service dependencies.
-
-    Raises:
-        Exception: If required dependencies cannot be initialized.
-    """
-    global data_base, query_service, responder, pipeline, redis_client, temp_indexing_service
-
-    try:
-        # Initialize Redis
-        redis_host = os.getenv('REDIS_HOST', 'localhost')
-        redis_port = int(os.getenv('REDIS_PORT', 6379))
-        redis_client = RedisDB(host=redis_host, port=redis_port)
-        logger.info('Redis client initialized successfully.')
-
-        # Initialize LLM responder (required)
-        responder = LLMResponder(query_config)
-        logger.info('LLM responder initialized successfully.')
-
-        # Initialize database and query service (may fail if no index exists yet)
-        try:
-            shared_config = SharedConfig(_os.path.join(_RAG_DIR, 'indexing', 'config.yaml'))
-            data_base = FaissDB(shared_config)
-
-            artifacts = IndexSnapshotStore.from_config(query_config).current_artifacts()
-            if os.path.exists(artifacts.index_path):
-                query_service = Query(query_config, data_base)
-                pipeline = RAGPipeline(
-                    config=query_config,
-                    query=query_service,
-                    responder=responder,
-                    redis_client=redis_client
-                )
-                logger.info('Query service and RAG pipeline initialized successfully.')
-            else:
-                logger.warning('Index not found. Query service will be initialized after first indexing.')
-
-        except Exception as e:
-            logger.warning(f'Query service initialization skipped (no index): {str(e)}')
-
-        # Initialize shared indexing service for session-based (temp) queries.
-        # Loaded once at startup so the embedding model is not re-created per request.
-        try:
-            indexing_config = SharedConfig(_os.path.join(_RAG_DIR, 'indexing', 'config.yaml'))
-            temp_indexing_service = Indexing(
-                indexing_config,
-                DataLoader(indexing_config),
-                FaissDB(indexing_config),
-            )
-            logger.info('Temp indexing service initialized for session queries.')
-        except Exception as e:
-            logger.warning(f'Temp indexing service init failed: {str(e)}')
-
-        logger.info('Query Service initialized.')
-
-    except Exception as e:
-        logger.error(f'Failed to initialize Query Service: {str(e)}')
-        raise
-
-
-initialize_services()
-
-# FastAPI rag-app
 app = FastAPI(
     title="RAG Query Service",
     description="Microservice for RAG queries and semantic search",
     version="2.0.0"
 )
 
-# CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Gateway handles CORS
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-
-# Dependency injection
-def get_pipeline() -> RAGPipeline:
-    """Return the initialized RAG pipeline.
-
-    Returns:
-        RAG pipeline instance.
-
-    Raises:
-        HTTPException: If the pipeline is not ready.
-    """
-    if pipeline is None:
-        raise HTTPException(
-            status_code=503,
-            detail="Query service not ready. Please upload documents first."
-        )
-    return pipeline
-
-
-def get_redis_client() -> RedisDB:
-    """Return the initialized Redis client.
-
-    Returns:
-        Redis client wrapper.
-
-    Raises:
-        HTTPException: If Redis is unavailable.
-    """
-    if redis_client is None:
-        raise HTTPException(
-            status_code=503,
-            detail="Redis client not available"
-        )
-    return redis_client
-
-
-# Import routers
-from rag_system.services.query.app.routers import health
-from rag_system.services.query.app.routers import query
-from rag_system.services.query.app.routers import sessions
-
 app.include_router(query.router, prefix="/api/query", tags=["query"])
 app.include_router(sessions.router, prefix="/api/query", tags=["sessions"])
+app.include_router(config.router, prefix="/api/query", tags=["config"])
 app.include_router(health.router, tags=["health"])
+
+
+def __getattr__(name: str) -> Any:
+    """Proxy legacy module globals to query state."""
+    if hasattr(state, name):
+        return getattr(state, name)
+    raise AttributeError(name)
+
+
+def get_pipeline():
+    """Return the initialized RAG pipeline."""
+    return state.get_pipeline()
+
+
+def get_redis_client():
+    """Return the initialized Redis client."""
+    return state.get_redis_client()
 
 
 @app.get("/")
@@ -179,7 +77,7 @@ async def root():
         "service": "RAG Query Service",
         "version": "2.0.0",
         "status": "running",
-        "pipeline_ready": pipeline is not None
+        "pipeline_ready": state.pipeline is not None
     }
 
 
@@ -193,38 +91,36 @@ async def reload_index():
     Raises:
         HTTPException: If index reload fails.
     """
-    global query_service, pipeline, data_base
-
     try:
-        artifacts = IndexSnapshotStore.from_config(query_config).current_artifacts()
-        if not os.path.exists(artifacts.index_path):
-            logger.warning("Index file not found for reload")
+        state.query_config.reload()
+        state.indexing_config.reload()
+
+        artifacts = IndexSnapshotStore.from_config(state.query_config).current_artifacts()
+        if not artifacts.index_path or not os.path.exists(artifacts.index_path):
+            state.logger.warning("Index file not found for reload")
             return {"status": "no_index", "message": "No index file found"}
 
-        # Reload database index
-        if data_base is None:
-            _indexing_cfg = SharedConfig(_os.path.join(_RAG_DIR, 'indexing', 'config.yaml'))
-            data_base = FaissDB(_indexing_cfg)
+        if state.data_base is None:
+            state.data_base = FaissDB(state.indexing_config)
 
-        data_base.load_index(artifacts.index_path)
+        state.data_base.load_index(artifacts.index_path)
 
-        # Reinitialize query service and pipeline
-        query_service = Query(query_config, data_base)
-        pipeline = RAGPipeline(
-            config=query_config,
-            query=query_service,
-            responder=responder,
-            redis_client=redis_client
+        state.query_service = Query(state.query_config, state.data_base)
+        state.pipeline = RAGPipeline(
+            config=state.query_config,
+            query=state.query_service,
+            responder=state.responder,
+            redis_client=state.redis_client
         )
 
-        if redis_client is not None:
-            redis_client.flush_cache()
+        if state.redis_client is not None:
+            state.redis_client.flush_cache()
 
-        logger.info("Index reloaded successfully")
+        state.logger.info("Index reloaded successfully")
         return {"status": "reloaded", "message": "Index reloaded successfully"}
 
     except Exception as e:
-        logger.error(f"Failed to reload index: {str(e)}")
+        state.logger.error(f"Failed to reload index: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -235,17 +131,14 @@ async def reset_service():
     Returns:
         Reset status payload.
     """
-    global query_service, pipeline
+    state.query_service = None
+    state.pipeline = None
 
-    query_service = None
-    pipeline = None
-
-    logger.info("Query service reset")
+    state.logger.info("Query service reset")
     return {"status": "reset", "message": "Query service reset successfully"}
 
 
 if __name__ == "__main__":
-    import uvicorn
     uvicorn.run(
         app,
         host="0.0.0.0",

@@ -1,8 +1,13 @@
 """Service reload endpoints."""
 
 import logging
+import os
+
+import requests
 from fastapi import APIRouter
 from fastapi import HTTPException
+
+from rag_system.services.indexing.app import state
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -24,15 +29,12 @@ async def reload_service(service: str):
     try:
         if service == "indexing":
             # Reload indexing service
-            from rag_system.services.indexing.app.main import initialize_services
-            initialize_services()
+            state.initialize_services()
             logger.info("Indexing service reloaded successfully")
             return {"message": "Indexing service reloaded successfully"}
 
         elif service == "query":
             # Notify query service to reload via HTTP
-            import requests
-            import os
             query_service_url = os.getenv('QUERY_SERVICE_URL', 'http://query:8002')
             response = requests.post(f"{query_service_url}/api/query/reload", timeout=5)
 

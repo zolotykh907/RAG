@@ -1,6 +1,7 @@
 import os
 from typing import List, Optional
 
+import faiss
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
@@ -26,8 +27,6 @@ def create_embeddings(
     Returns:
         L2-normalized float32 array of embeddings.
     """
-    import faiss
-
     prepared_texts = prepare_embedding_texts(model_name, texts, is_query=is_query)
 
     embeddings = model.encode(

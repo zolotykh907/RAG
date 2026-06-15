@@ -1,5 +1,6 @@
 import json
 import os
+from datetime import datetime
 from typing import Any, List, Optional
 
 import numpy as np
@@ -231,8 +232,6 @@ class Indexing:
         Returns:
             New DataFrame with chunks.
         """
-        from datetime import datetime
-
         res = []
         for _, row in df.iterrows():
             chunks = self.text_splitter.split_text(row['text'])

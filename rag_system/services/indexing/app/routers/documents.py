@@ -9,12 +9,18 @@ from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
 
-from rag_system.services.indexing.app.main import get_indexing_service
-from rag_system.services.indexing.app.main import shared_config
+from rag_system.indexing.data_vectorize import create_embeddings
+from rag_system.indexing.indexing import Indexing
+from rag_system.services.indexing.app import state
 from rag_system.shared.index_snapshot import IndexSnapshotStore
 
 logger = logging.getLogger(__name__)
 router: APIRouter = APIRouter()
+
+
+def _get_snapshot_store() -> IndexSnapshotStore:
+    """Build a snapshot store from the current indexing config."""
+    return IndexSnapshotStore.from_config(state.shared_config)
 
 
 @router.get('/documents')
@@ -28,7 +34,7 @@ async def get_documents():
         HTTPException: If document metadata cannot be loaded.
     """
     try:
-        processed_data_path = IndexSnapshotStore.from_config(shared_config).current_artifacts().processed_data_path
+        processed_data_path = _get_snapshot_store().current_artifacts().processed_data_path
 
         if not os.path.exists(processed_data_path):
             return {"documents": [], "total_chunks": 0}
@@ -87,7 +93,7 @@ async def get_document_content(filename: str):
         HTTPException: If the document is missing or cannot be loaded.
     """
     try:
-        processed_data_path = IndexSnapshotStore.from_config(shared_config).current_artifacts().processed_data_path
+        processed_data_path = _get_snapshot_store().current_artifacts().processed_data_path
 
         if not os.path.exists(processed_data_path):
             raise HTTPException(status_code=404, detail="No documents found")
@@ -118,7 +124,7 @@ async def get_document_content(filename: str):
 @router.delete('/documents/{filename}')
 async def delete_document(
     filename: str,
-    indexing_service=Depends(get_indexing_service)
+    indexing_service: Indexing = Depends(state.get_indexing_service)
 ):
     """Delete a specific document and reindex.
 
@@ -131,13 +137,12 @@ async def delete_document(
     Raises:
         HTTPException: If the database is unavailable, the document is missing, or deletion fails.
     """
-    import rag_system.services.indexing.app.main as main_module
-    data_base = main_module.data_base
+    data_base = state.data_base
     if data_base is None:
         raise HTTPException(status_code=503, detail="Database not available")
 
     try:
-        snapshot_store = IndexSnapshotStore.from_config(shared_config)
+        snapshot_store = IndexSnapshotStore.from_config(state.shared_config)
         processed_data_path = snapshot_store.current_artifacts().processed_data_path
 
         if not os.path.exists(processed_data_path):
@@ -156,8 +161,6 @@ async def delete_document(
 
         # Reindex if there's remaining data
         if filtered_data:
-            from rag_system.indexing.data_vectorize import create_embeddings
-
             # Use the same helper as the normal indexing path so model-specific
             # preprocessing, such as E5 passage prefixes, stays consistent.
             texts = [item['text'] for item in filtered_data]
@@ -229,7 +232,7 @@ async def search_documents(query: str = ''):
         return {"results": [], "total_results": 0}
 
     try:
-        processed_data_path = IndexSnapshotStore.from_config(shared_config).current_artifacts().processed_data_path
+        processed_data_path = _get_snapshot_store().current_artifacts().processed_data_path
 
         if not os.path.exists(processed_data_path):
             return {"results": [], "total_results": 0}

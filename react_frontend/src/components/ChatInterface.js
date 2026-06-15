@@ -15,6 +15,8 @@ function ChatInterface({ onSendMessage, sessionId = null, onFileUpload, onMessag
   const [copiedIndex, setCopiedIndex] = useState(null);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
+  const messagesRef = useRef(messages);
+  const previousSessionIdRef = useRef(sessionId);
 
   const handleCopyMessage = async (text, index) => {
     try {
@@ -26,10 +28,20 @@ function ChatInterface({ onSendMessage, sessionId = null, onFileUpload, onMessag
     }
   };
 
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
   // Загрузка истории сообщений для текущей сессии
   useEffect(() => {
+    const previousSessionId = previousSessionIdRef.current;
+    previousSessionIdRef.current = sessionId;
+
     if (sessionId) {
-      loadMessages(sessionId);
+      const hasPendingMessagesForNewSession = !previousSessionId && messagesRef.current.length > 0;
+      if (!hasPendingMessagesForNewSession) {
+        loadMessages(sessionId);
+      }
       loadTempFilesInfo(sessionId);
     } else {
       setMessages([]);

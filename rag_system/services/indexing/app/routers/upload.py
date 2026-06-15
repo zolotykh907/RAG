@@ -16,9 +16,8 @@ from fastapi import HTTPException
 from fastapi import UploadFile
 
 from rag_system.indexing.indexing import Indexing
+from rag_system.services.indexing.app import state
 from rag_system.shared.data_loader import DataLoader
-from rag_system.services.indexing.app.main import get_data_loader
-from rag_system.services.indexing.app.main import get_indexing_service
 
 logger = logging.getLogger(__name__)
 router: APIRouter = APIRouter()
@@ -35,8 +34,8 @@ def _safe_filename(filename: str) -> str:
 @router.post('/upload')
 async def upload_file(
     file: UploadFile = File(...),
-    indexing_service: Indexing = Depends(get_indexing_service),
-    data_loader: DataLoader = Depends(get_data_loader),
+    indexing_service: Indexing = Depends(state.get_indexing_service),
+    data_loader: DataLoader = Depends(state.get_data_loader),
 ) -> Dict[str, Any]:
     """Upload and index a file permanently.
 
@@ -93,7 +92,7 @@ async def upload_file(
 
 @router.delete('/clear-index')
 async def clear_index(
-    indexing_service: Indexing = Depends(get_indexing_service),
+    indexing_service: Indexing = Depends(state.get_indexing_service),
 ) -> Dict[str, Any]:
     """Clear all indexed data.
 
@@ -106,8 +105,7 @@ async def clear_index(
     Raises:
         HTTPException: If the database is unavailable or clearing fails.
     """
-    import rag_system.services.indexing.app.main as main_module
-    data_base = main_module.data_base
+    data_base = state.data_base
     if data_base is None:
         raise HTTPException(status_code=503, detail="Database not available")
 

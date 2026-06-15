@@ -57,6 +57,13 @@ def build_cache_namespace(
         f"llm={getattr(config, 'llm', '')}",
         f"emb={getattr(config, 'emb_model_name', '')}",
         f"prompt={prompt_hash}",
+        f"k={getattr(config, 'k', '')}",
+        f"rerank={getattr(config, 'rerank_enabled', '')}",
+        f"rerank_model={getattr(config, 'reranker_model_name', '')}",
+        f"rerank_candidates={getattr(config, 'rerank_candidate_k', '')}",
+        f"vector_candidates={getattr(config, 'vector_candidate_k', '')}",
+        f"rerank_threshold={getattr(config, 'rerank_score_threshold', '')}",
+        f"rerank_max_chars={getattr(config, 'rerank_max_chars', '')}",
     ]
     if extra:
         parts.extend(extra)
