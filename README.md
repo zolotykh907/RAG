@@ -1,109 +1,125 @@
-# RAG-система для вопросно-ответного поиска по документам
+<h1 align="center">Q&A сервис с использованием RAG</h1>
 
-Проект реализует локальную вопросно-ответную систему на основе RAG. Пользователь загружает документы, система индексирует их, находит релевантные фрагменты по вопросу и передает найденный контекст локальной языковой модели.
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI">
+  <img src="https://img.shields.io/badge/LangChain-1C3C3C?style=for-the-badge&logo=chainlink&logoColor=white" alt="LangChain">
+  <img src="https://img.shields.io/badge/FAISS-00C4CC?style=for-the-badge" alt="FAISS">
+  <img src="https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white" alt="Redis">
+  <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker">
+  <img src="https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=222222" alt="React">
+  <img src="https://img.shields.io/badge/LM%20Studio-7C3AED?style=for-the-badge&logo=lmstudio&logoColor=white" alt="LM Studio">
+  <img src="https://img.shields.io/badge/OCR-Tesseract-FF9900?style=for-the-badge" alt="OCR Tesseract">
+</p>
 
-Основной сценарий проекта - работа с документами без передачи данных во внешние облачные сервисы.
+> Проект находится в разработке.
 
-## Возможности
+## О проекте
 
-- загрузка документов в постоянную базу знаний;
-- временная загрузка файлов в рамках отдельной сессии чата;
-- извлечение текста из PDF и изображений через OCR;
-- разбиение текста на фрагменты и построение векторного индекса;
-- семантический поиск по FAISS;
-- переранжирование найденных фрагментов;
-- генерация ответа локальной LLM через LM Studio;
-- отображение источников ответа в веб-интерфейсе;
-- кэширование повторных запросов через Redis;
-- развертывание через Docker Compose;
-- разделение индексирования и обработки запросов на отдельные сервисы.
+Система реализует RAG-пайплайн для работы с пользовательскими документами:
+
+1. пользователь загружает документы в базу знаний;
+2. сервис индексирования извлекает текст, очищает его и делит на фрагменты;
+3. фрагменты векторизуются и сохраняются в FAISS;
+4. пользователь задает вопрос;
+5. сервис запросов находит релевантные фрагменты, переранжирует их и передает в LLM;
+6. LLM формирует ответ на основе найденного контекста.
+
+Основной сценарий - локальный запуск с LM Studio или другим OpenAI-compatible endpoint. При первой подготовке окружения модели Hugging Face и демонстрационные данные могут скачиваться из внешних источников, если их еще нет в локальном кэше.
+
+В качестве демонстрационного корпуса используется датасет русских текстов [RuBQ 2.0](https://raw.githubusercontent.com/vladislavneon/RuBQ/refs/heads/master/RuBQ_2.0/RuBQ_2.0_paragraphs.json).
+
+## Основной функционал
+
+- текстовые вопросы по загруженным документам;
+- постоянная база знаний;
+- временные файлы внутри отдельной chat session;
+- OCR для PDF и изображений в сервисе индексирования;
+- инкрементальное обновление по SHA-256 хэшам фрагментов;
+- атомарная публикация FAISS snapshot через `current_index.json`;
+- reranking найденных фрагментов;
+- кэширование повторных RAG-ответов в Redis;
+- React web UI;
+- опциональный desktop-режим через Tauri;
+- Docker Compose запуск в микросервисной архитектуре.
 
 ## Архитектура
 
 Основная микросервисная схема:
 
 - `gateway` - Nginx, раздает React-интерфейс и маршрутизирует API-запросы;
-- `indexing` - сервис индексирования документов;
-- `query` - сервис обработки вопросов и RAG-пайплайна;
-- `redis` - кэш запросов и вспомогательное хранилище;
-- общий том `shared_data` - индекс FAISS и обработанные данные.
+- `indexing` - принимает документы, извлекает текст, строит embeddings и публикует FAISS snapshot;
+- `query` - обрабатывает вопросы, читает текущий snapshot индекса, вызывает reranker, LLM и Redis cache;
+- `redis` - хранит кэш ответов;
+- `shared_data` - общий Docker volume с `current_index.json`, `index_snapshots` и обработанными данными.
 
-Схема работы:
-
-1. Пользователь загружает документ через веб-интерфейс.
-2. Сервис индексирования извлекает текст, очищает его и делит на фрагменты.
-3. Для фрагментов строятся эмбеддинги моделью `intfloat/multilingual-e5-base`.
-4. Векторы сохраняются в FAISS-индекс.
-5. При вопросе пользователя сервис запросов ищет релевантные фрагменты.
-6. Найденные фрагменты проходят переранжирование моделью `BAAI/bge-reranker-v2-m3`.
-7. Локальная языковая модель формирует ответ только по найденному контексту.
+Временные файлы сессий сейчас хранятся в памяти процесса query-сервиса, а не в Redis.
 
 ## Структура проекта
 
 ```text
 rag_system/
-  api/                 # единые API-эндпоинты
-  indexing/            # сервис индексирования документов
-  query/               # сервис запросов
+  api/                 # монолитный API для локальной отладки и совместимости
+  indexing/            # логика индексирования документов
+  query/               # поиск, RAG-пайплайн, LLM, Redis, combined query
   services/
     gateway/           # Nginx gateway и сборка frontend
     indexing/          # микросервис индексирования
     query/             # микросервис запросов
-  shared/              # общие модули: FAISS, OCR, загрузка данных, конфиги
+  shared/              # FAISS, OCR, загрузка данных, конфиги, snapshots, temp storage
 
-react_frontend/        # веб-интерфейс
-docker/                # Dockerfile
+react_frontend/        # React frontend и Tauri shell
+docker/                # Dockerfile для монолитного запуска
 tests/                 # тесты
-scripts/               # скрипты
-data/                  # данные, индекс и обработанные документы
+scripts/               # вспомогательные скрипты
+data/                  # локальные данные и индекс
 logs/                  # логи
+```
+
+## Веб-интерфейс
+
+![Интерфейс](images/web_interface.png)
+
+Интерфейс включает:
+
+- чат с вопросами и ответами;
+- загрузку временных файлов в текущую сессию;
+- страницу документов;
+- просмотр фрагментов документа;
+- страницу настроек;
+- отображение источников ответа.
+
+Для desktop-режима используется Tauri:
+
+```bash
+cd react_frontend
+npm run tauri:dev
 ```
 
 ## Используемые модели
 
-- LLM: `qwen/qwen3-4b-2507`, запускается локально через LM Studio.
+- LLM: `qwen/qwen3-4b-2507`, запускается локально через LM Studio или совместимый OpenAI endpoint.
 - Эмбеддинги: `intfloat/multilingual-e5-base`.
 - Переранжирование: `BAAI/bge-reranker-v2-m3`.
 - Векторный индекс: FAISS `IndexHNSWFlat`.
 
-Для выбора модели эмбеддингов использовался датасет RuBQ 2.0. После очистки корпуса осталось 56 719 текстов. По результатам сравнения `multilingual-e5-base` дала лучший баланс качества поиска и скорости.
+Для выбора модели эмбеддингов использовался RuBQ 2.0. После очистки корпуса осталось 56 719 текстов. По результатам сравнения `intfloat/multilingual-e5-base` дала лучший баланс качества поиска и скорости.
 
 ## Требования
 
-- Docker и Docker Compose;
-- LM Studio с запущенным OpenAI-совместимым сервером на `http://localhost:1234/v1`;
-- модель `qwen/qwen3-4b-2507`, загруженная в LM Studio.
-
-Для локального запуска без Docker также нужны:
-
 - Python 3.10+;
 - `uv`;
-- Node.js 18+;
-- Tesseract OCR и Poppler для обработки PDF и изображений.
+- Docker и Docker Compose;
+- Node.js 18+ и npm;
+- LM Studio или другой OpenAI-compatible LLM endpoint;
+- Tesseract OCR и Poppler для локальной обработки PDF и изображений без Docker.
 
-## Запуск через Docker
-
-1. Запустите LM Studio.
-2. Загрузите модель `qwen/qwen3-4b-2507`.
-3. Включите локальный сервер LM Studio на порту `1234`.
-4. Запустите микросервисную сборку:
+## Установка
 
 ```bash
-docker compose -f docker-compose.microservices.yml up --build
+git clone https://github.com/zolotykh907/RAG.git
+cd RAG
 ```
-
-После запуска интерфейс будет доступен:
-
-- http://localhost:3000
-- http://localhost
-
-Проверка gateway:
-
-```bash
-curl http://localhost/health
-```
-
-## Локальный запуск для разработки
 
 Установка Python-зависимостей:
 
@@ -118,62 +134,76 @@ cd react_frontend
 npm install
 ```
 
-Единый API для локальной отладки:
+## Запуск через Docker
+
+Перед запуском нужно поднять LM Studio:
+
+1. скачайте и установите LM Studio;
+2. загрузите модель `qwen/qwen3-4b-2507` или измените модель в `rag_system/query/config.yaml`;
+3. включите OpenAI-compatible local server на порту `1234`;
+4. не закрывайте LM Studio во время работы системы.
+
+Запуск микросервисной сборки:
+
+```bash
+docker compose -f docker-compose.microservices.yml up --build
+```
+
+После запуска:
+
+- React frontend: http://localhost:3000 или http://localhost
+- Gateway health: http://localhost/health
+
+## Локальный запуск для разработки
+
+Монолитный API для быстрой отладки:
 
 ```bash
 uv run rag-api
 ```
 
-Отдельный запуск React-интерфейса:
+React frontend:
 
 ```bash
 cd react_frontend
 npm start
 ```
 
-Для полноценной работы интерфейса с маршрутами `/api/query/...` и `/api/indexing/...` удобнее использовать Docker Compose с gateway.
+Для полноценной проверки маршрутов `/api/query/...` и `/api/indexing/...` удобнее использовать Docker Compose с gateway.
 
 ## Основные API-маршруты
 
-Маршруты при запуске микросервисной версии через gateway:
+Маршруты микросервисной версии через gateway:
 
 | Метод | Маршрут | Назначение |
 | --- | --- | --- |
 | `POST` | `/api/query/ask` | задать вопрос по индексу |
 | `POST` | `/api/query/upload-temp` | временно загрузить файл в сессию |
 | `GET` | `/api/query/sessions/{session_id}/files` | получить файлы сессии |
+| `GET` | `/api/query/sessions/{session_id}/files/{filename}` | получить содержимое временного файла |
+| `DELETE` | `/api/query/sessions/{session_id}` | очистить временную сессию |
 | `DELETE` | `/api/query/sessions/{session_id}/files/{filename}` | удалить временный файл |
 | `POST` | `/api/indexing/upload` | загрузить документ в постоянный индекс |
+| `DELETE` | `/api/indexing/clear-index` | очистить постоянный индекс |
 | `GET` | `/api/indexing/documents` | получить список документов |
 | `GET` | `/api/indexing/documents/{filename}` | получить фрагменты документа |
 | `DELETE` | `/api/indexing/documents/{filename}` | удалить документ из индекса |
+| `GET` | `/api/indexing/search-documents?query=...` | поиск по тексту документов |
 | `GET` | `/health` | проверка gateway |
-| `GET` | `/health/indexing` | проверка сервиса индексирования |
-| `GET` | `/health/query` | проверка сервиса запросов |
+| `GET` | `/health/indexing` | liveness сервиса индексирования |
+| `GET` | `/health/indexing/ready` | readiness сервиса индексирования |
+| `GET` | `/health/query` | liveness сервиса запросов |
+
+Монолитный API для локальной отладки использует старые маршруты, например `/query`, `/upload-files` и `/upload-temp`.
 
 ## Конфигурация
 
-Основные настройки находятся в файлах:
+Основные настройки:
 
 - `rag_system/indexing/config.yaml` - пути к данным, OCR-форматы, модель эмбеддингов, параметры FAISS;
-- `rag_system/query/config.yaml` - LLM, prompt template, Redis, параметры поиска и переранжирования.
+- `rag_system/query/config.yaml` - LLM endpoint, prompt template, Redis, параметры поиска и reranking.
 
-Через веб-интерфейс и API можно читать и обновлять часть настроек без ручного редактирования YAML.
-
-## Веб-интерфейс
-
-Интерфейс сделан на React. В нем есть:
-
-- чат с вопросами и ответами;
-- загрузка временных файлов в текущую сессию;
-- просмотр источников ответа;
-- страница документов;
-- просмотр фрагментов документа;
-- страница настроек.
-
-Пример интерфейса:
-
-![Интерфейс](images/web_interface.png)
+Часть настроек можно читать и обновлять через веб-интерфейс и API config endpoints.
 
 ## Индексирование
 
@@ -192,13 +222,34 @@ npm start
 3. очистка и фильтрация;
 4. разбиение на чанки;
 5. построение эмбеддингов;
-6. сохранение данных и FAISS-индекса;
-7. уведомление сервиса запросов о необходимости перезагрузить индекс.
+6. публикация нового snapshot индекса;
+7. уведомление query-сервиса о необходимости перезагрузить индекс.
 
-Для инкрементального обновления используются SHA-256-хэши фрагментов.
+Snapshot-публикация нужна, чтобы query-сервис не читал частично записанные файлы.
 
-## Тесты
+## Тесты и проверки
 
 ```bash
 uv run pytest
+uv run ruff check rag_system tests
+uv run mypy rag_system
 ```
+
+## Ограничения текущей реализации
+
+- временные индексы сессий хранятся в памяти query-процесса;
+- горизонтальное масштабирование query-сервиса требует внешнего хранилища session state или sticky routing;
+- постоянный индекс должен иметь одного writer-а - сервис `indexing`;
+- проект не включает production auth, TLS и multi-tenant isolation из коробки;
+- временная загрузка PDF и изображений через query-сервис зависит от OCR-зависимостей образа.
+
+## Контакты
+
+<div align="center">
+  <a href="mailto:i.zolotykh@g.nsu.ru">
+    <img src="https://img.shields.io/badge/i.zolotykh@g.nsu.ru-E0FFFF?style=for-the-badge&logo=gmail&logoColor=red" alt="Email">
+  </a>
+  <a href="https://t.me/igor_zolotykh">
+    <img src="https://img.shields.io/badge/@igor%5Fzolotykh-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white" alt="Telegram">
+  </a>
+</div>
